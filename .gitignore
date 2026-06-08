@@ -1,0 +1,84 @@
+# ============================================================
+# .NET / ASP.NET Core
+# ============================================================
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.rsuser
+*.db
+*.mdf
+*.ldf
+*.nupkg
+*.snupkg
+*.[Ll]og
+*.cache
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+appsettings.Development.json
+appsettings.Local.json
+
+# ============================================================
+# Node / Frontend
+# ============================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+dist/
+build/
+.next/
+out/
+.nuxt/
+.cache/
+
+# ============================================================
+# Docker
+# ============================================================
+.dockerignore
+
+# ============================================================
+# Secretos y configuración sensible
+# ============================================================
+*.env
+.env
+.env.*
+secrets.json
+**/appsettings.Production.json
+
+# ============================================================
+# Sistema operativo
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ============================================================
+# IDEs y editores
+# ============================================================
+.idea/
+*.swp
+*.swo
+*~
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+
+# ============================================================
+# Herramientas de IA (Claude Code, Copilot, Cursor, etc.)
+# ============================================================
+CLAUDE.md
+CONTRATOS.md
+.claude/
+.copilot/
+.cursor/
+.aider*
+.continue/
