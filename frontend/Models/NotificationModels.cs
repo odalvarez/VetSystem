@@ -9,21 +9,21 @@ public class NotificationStatusResponse
     public string    Body         { get; set; } = "";
     public string    Status       { get; set; } = "";
     public DateTime? SentAt       { get; set; }
-    public string?   ErrorMessage { get; set; }
+    public string?   Error        { get; set; }
     public DateTime  CreatedAt    { get; set; }
 }
 
 public class SendWhatsAppRequest
 {
-    public string PhoneNumber { get; set; } = "";
-    public string Message     { get; set; } = "";
+    public string To      { get; set; } = "";
+    public string Message { get; set; } = "";
 }
 
 public class SendEmailRequest
 {
-    public string ToEmail  { get; set; } = "";
-    public string Subject  { get; set; } = "";
-    public string Body     { get; set; } = "";
+    public string To      { get; set; } = "";
+    public string Subject { get; set; } = "";
+    public string Body    { get; set; } = "";
 }
 
 public class ScheduleReminderRequest

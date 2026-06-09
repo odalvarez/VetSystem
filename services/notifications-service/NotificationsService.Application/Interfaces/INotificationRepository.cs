@@ -5,6 +5,8 @@ namespace NotificationsService.Application.Interfaces;
 public interface INotificationRepository
 {
     Task<NotificationRecord?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    // recipientFilter: si se provee, filtra notificaciones donde Recipient coincida (email o teléfono)
+    Task<IEnumerable<NotificationRecord>> ListAllAsync(int page, int pageSize, IReadOnlyList<string>? recipientFilter, CancellationToken ct = default);
     Task AddAsync(NotificationRecord record, CancellationToken ct = default);
     Task UpdateAsync(NotificationRecord record, CancellationToken ct = default);
     Task AddReminderAsync(ReminderJob job, CancellationToken ct = default);
