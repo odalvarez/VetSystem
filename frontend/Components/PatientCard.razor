@@ -1,0 +1,42 @@
+@* Tarjeta de mascota usada tanto en VetDashboard como en OwnerPortal *@
+<div class="patient-card" @onclick="OnSelect">
+    <div class="patient-card-header">
+        <div class="patient-avatar">@GetSpeciesEmoji(Patient.Species)</div>
+        <div>
+            <div class="patient-name">@Patient.Name</div>
+            <div class="patient-meta">@Patient.Breed · @Patient.Species</div>
+        </div>
+    </div>
+    <div class="patient-details">
+        <div class="patient-detail-item">
+            <span class="patient-detail-label">Edad</span>
+            <span class="patient-detail-value">@Patient.AgeYears a.</span>
+        </div>
+        <div class="patient-detail-item">
+            <span class="patient-detail-label">Sexo</span>
+            <span class="patient-detail-value">@Patient.Sex</span>
+        </div>
+        <div class="patient-detail-item">
+            <span class="patient-detail-label">Peso</span>
+            <span class="patient-detail-value">@Patient.WeightKg kg</span>
+        </div>
+        <div class="patient-detail-item">
+            <span class="patient-detail-label">Color</span>
+            <span class="patient-detail-value">@Patient.Color</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PatientResponse Patient { get; set; } = null!;
+    [Parameter] public EventCallback OnSelect { get; set; }
+
+    private static string GetSpeciesEmoji(string species) => species.ToLowerInvariant() switch
+    {
+        "dog"    => "🐶",
+        "cat"    => "🐱",
+        "bird"   => "🦜",
+        "rabbit" => "🐰",
+        _        => "🐾"
+    };
+}

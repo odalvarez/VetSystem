@@ -9,12 +9,19 @@ namespace AppointmentsService.Application.Services;
 public class AppointmentAppService
 {
     private readonly IAppointmentRepository _repo;
+    private readonly INotificationClient    _notifications;
 
     // Horario de atención: 08:00 a 18:00 en la zona horaria del servidor
     private static readonly TimeOnly WorkStart = new(8, 0);
     private static readonly TimeOnly WorkEnd   = new(18, 0);
 
-    public AppointmentAppService(IAppointmentRepository repo) => _repo = repo;
+    public AppointmentAppService(
+        IAppointmentRepository repo,
+        INotificationClient notifications)
+    {
+        _repo          = repo;
+        _notifications = notifications;
+    }
 
     public async Task<AppointmentResponse> CreateAsync(
         CreateAppointmentRequest req, Guid callerId, bool isOwner, CancellationToken ct)
@@ -96,6 +103,23 @@ public class AppointmentAppService
         appt.ChangeStatus(newStatus);
         await _repo.UpdateAsync(appt, ct);
         await _repo.SaveChangesAsync(ct);
+
+        // Al confirmar la cita programamos el recordatorio 24h antes.
+        // Lo hacemos DESPUÉS de guardar para no perder el cambio de estado si falla.
+        // El cliente absorbe cualquier excepción del notifications-service internamente.
+        if (newStatus == AppointmentStatus.Confirmed)
+        {
+            await _notifications.ScheduleReminderAsync(
+                appointmentId: appt.Id,
+                patientName:   appt.PatientName,
+                ownerName:     appt.OwnerName,
+                ownerPhone:    appt.OwnerPhone,
+                ownerEmail:    "",   // el email del owner no llega en el appointments-service;
+                                     // el recordatorio enviará solo por WhatsApp en este caso
+                scheduledAt:   appt.ScheduledAt,
+                ct:            ct);
+        }
+
         return Map(appt);
     }
 

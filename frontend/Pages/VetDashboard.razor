@@ -1,0 +1,277 @@
+@page "/vet-dashboard"
+@attribute [Authorize(Roles = "Veterinarian")]
+
+@inject PatientApiClient     PatientApi
+@inject AppointmentApiClient AppointmentApi
+@inject NavigationManager    Nav
+
+<PageTitle>Panel veterinario — VetSystem</PageTitle>
+
+<div class="page-header">
+    <div class="page-title">🩺 Panel de control</div>
+    <div class="page-subtitle">Gestión de pacientes y citas</div>
+</div>
+
+<div class="page-content">
+
+    @if (_loading)
+    {
+        <LoadingSpinner Message="Cargando datos…" />
+    }
+    else
+    {
+        @* ── KPIs ── *@
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total pacientes</div>
+                <div class="stat-value">@_totalPatients</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Citas hoy</div>
+                <div class="stat-value">@_todayAppointments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pendientes confirmación</div>
+                <div class="stat-value">@_pendingConfirmation</div>
+            </div>
+        </div>
+
+        @* ── Pacientes ── *@
+        <div class="card" style="margin-bottom:28px">
+            <div class="card-header">
+                <span class="card-title">Pacientes</span>
+                <div class="filters-bar" style="margin-bottom:0">
+                    <div class="search-input" style="min-width:180px">
+                        <span class="search-icon">🔍</span>
+                        <input class="form-control" placeholder="Buscar por nombre…"
+                               value="@_patientSearch"
+                               @oninput="HandleSearchInput" />
+                    </div>
+                    <select class="filter-select" @bind="_speciesFilter" @bind:after="LoadPatients">
+                        <option value="">Todas las especies</option>
+                        <option value="Dog">Perros</option>
+                        <option value="Cat">Gatos</option>
+                        <option value="Bird">Aves</option>
+                        <option value="Rabbit">Conejos</option>
+                        <option value="Other">Otros</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body" style="padding:0">
+                @if (_patients == null || !_patients.Any())
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🐾</div>
+                        <div class="empty-state-title">No hay pacientes</div>
+                        <div class="empty-state-sub">Aún no se han registrado mascotas en el sistema.</div>
+                    </div>
+                }
+                else
+                {
+                    <div style="padding:20px">
+                        <div class="patients-grid">
+                            @foreach (var p in _patients)
+                            {
+                                <PatientCard Patient="p"
+                                             OnSelect="EventCallback.Factory.Create(this, () => SelectPatient(p))" />
+                            }
+                        </div>
+                        @if (_totalPatients > _pageSize)
+                        {
+                            <div class="pagination">
+                                <button class="page-btn" disabled="@(_page == 1)"
+                                        @onclick="PrevPage">‹</button>
+                                <span class="page-btn active">@_page</span>
+                                <button class="page-btn" disabled="@(_page * _pageSize >= _totalPatients)"
+                                        @onclick="NextPage">›</button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* ── Citas ── *@
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Citas</span>
+                <div class="filters-bar" style="margin-bottom:0">
+                    <select class="filter-select" @bind="_statusFilter" @bind:after="LoadAppointments">
+                        <option value="">Todos los estados</option>
+                        <option value="Scheduled">Programadas</option>
+                        <option value="Confirmed">Confirmadas</option>
+                        <option value="Completed">Completadas</option>
+                        <option value="Cancelled">Canceladas</option>
+                        <option value="NoShow">No asistió</option>
+                    </select>
+                    <input type="date" class="filter-select" @bind="_fromFilter" @bind:after="LoadAppointments" />
+                    <input type="date" class="filter-select" @bind="_toFilter"   @bind:after="LoadAppointments" />
+                </div>
+            </div>
+            <div class="table-wrapper">
+                @if (_appointments == null || !_appointments.Any())
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📅</div>
+                        <div class="empty-state-title">Sin citas</div>
+                        <div class="empty-state-sub">No hay citas para los filtros seleccionados.</div>
+                    </div>
+                }
+                else
+                {
+                    <table class="vet-table">
+                        <thead>
+                            <tr>
+                                <th>Paciente / Propietario</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Duración</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in _appointments)
+                            {
+                                <AppointmentCard Appointment="a"
+                                                 ShowActions="true"
+                                                 OnStatusChange="HandleStatusChange" />
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@* Modal para agregar registro clínico *@
+<ClinicalRecordModal Visible="_showRecordModal"
+                     PatientId="_selectedPatientId"
+                     PatientName="_selectedPatientName"
+                     OnSaved="EventCallback.Factory.Create(this, LoadPatients)"
+                     OnClose="EventCallback.Factory.Create(this, () => _showRecordModal = false)" />
+
+@if (!string.IsNullOrEmpty(_toast))
+{
+    <div style="position:fixed;bottom:28px;right:28px;background:var(--color-success);color:white;
+                padding:12px 20px;border-radius:var(--radius-md);box-shadow:var(--shadow-md);
+                font-size:.875rem;font-weight:600;z-index:2000">
+        ✅ @_toast
+    </div>
+}
+
+@code {
+    private List<PatientResponse>?     _patients;
+    private List<AppointmentResponse>? _appointments;
+
+    private bool   _loading = true;
+    private int    _page     = 1;
+    private int    _pageSize = 12;
+    private int    _totalPatients;
+    private int    _todayAppointments;
+    private int    _pendingConfirmation;
+
+    private string _patientSearch  = "";
+    private string _speciesFilter  = "";
+    private string _statusFilter   = "";
+    private DateTime? _fromFilter;
+    private DateTime? _toFilter;
+
+    private bool   _showRecordModal;
+    private Guid   _selectedPatientId;
+    private string _selectedPatientName = "";
+    private string? _toast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadPatients(), LoadAppointments());
+        _loading = false;
+    }
+
+    private async Task LoadPatients()
+    {
+        try
+        {
+            var result = await PatientApi.ListAsync(
+                page: _page, pageSize: _pageSize,
+                species: string.IsNullOrEmpty(_speciesFilter) ? null : _speciesFilter,
+                search: string.IsNullOrEmpty(_patientSearch) ? null : _patientSearch);
+
+            _patients      = result?.Items ?? [];
+            _totalPatients = result?.TotalCount ?? 0;
+        }
+        catch { _patients = []; }
+    }
+
+    private async Task LoadAppointments()
+    {
+        try
+        {
+            var result = await AppointmentApi.ListAsync(
+                status: string.IsNullOrEmpty(_statusFilter) ? null : _statusFilter,
+                from: _fromFilter,
+                to: _toFilter);
+
+            _appointments       = result ?? [];
+            _todayAppointments  = _appointments.Count(a => a.ScheduledAt.Date == DateTime.Today);
+            _pendingConfirmation = _appointments.Count(a => a.Status == "Scheduled");
+        }
+        catch { _appointments = []; }
+    }
+
+    private void SelectPatient(PatientResponse p)
+    {
+        _selectedPatientId   = p.Id;
+        _selectedPatientName = p.Name;
+        _showRecordModal     = true;
+    }
+
+    private async Task HandleStatusChange((Guid Id, string Status) args)
+    {
+        try
+        {
+            await AppointmentApi.ChangeStatusAsync(args.Id, args.Status);
+            await LoadAppointments();
+            ShowToast("Estado actualizado correctamente.");
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Error: {ex.Message}");
+        }
+    }
+
+    private void HandleSearchInput(ChangeEventArgs e)
+    {
+        _patientSearch = e.Value?.ToString() ?? "";
+        _ = OnPatientSearchChanged();
+    }
+
+    // Debounce básico: espera 400ms después del último keystroke para buscar
+    private System.Threading.CancellationTokenSource? _searchCts;
+    private async Task OnPatientSearchChanged()
+    {
+        _searchCts?.Cancel();
+        _searchCts = new();
+        try
+        {
+            await Task.Delay(400, _searchCts.Token);
+            _page = 1;
+            await LoadPatients();
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task PrevPage() { _page--; await LoadPatients(); }
+    private async Task NextPage() { _page++; await LoadPatients(); }
+
+    private async Task ShowToast(string msg)
+    {
+        _toast = msg;
+        StateHasChanged();
+        await Task.Delay(3000);
+        _toast = null;
+        StateHasChanged();
+    }
+}

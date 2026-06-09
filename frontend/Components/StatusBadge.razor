@@ -1,0 +1,56 @@
+@* Badge de estado reutilizable; mapea el texto del estado a la clase CSS correcta *@
+<span class="badge @GetClass()">
+    <span class="badge-dot" style="background:@GetDotColor()"></span>
+    @GetLabel()
+</span>
+
+@code {
+    [Parameter, EditorRequired] public string Status { get; set; } = "";
+
+    // Normaliza para que minúsculas/mayúsculas no rompan el estilo
+    private string Key => Status.ToLowerInvariant().Replace(" ", "_");
+
+    private string GetClass() => Key switch
+    {
+        "scheduled"  => "badge-scheduled",
+        "confirmed"  => "badge-confirmed",
+        "completed"  => "badge-completed",
+        "cancelled"  => "badge-cancelled",
+        "no_show"    => "badge-no_show",
+        "noshow"     => "badge-no_show",
+        "pending"    => "badge-pending",
+        "sent"       => "badge-sent",
+        "failed"     => "badge-failed",
+        "whatsapp"   => "badge-whatsapp",
+        "email"      => "badge-email",
+        _            => "badge-pending"
+    };
+
+    private string GetDotColor() => Key switch
+    {
+        "scheduled"  => "#0B7285",
+        "confirmed"  => "#087F5B",
+        "completed"  => "#16A34A",
+        "cancelled"  => "#BE123C",
+        "no_show" or "noshow" => "#92400E",
+        "pending"    => "#B45309",
+        "sent"       => "#087F5B",
+        "failed"     => "#BE123C",
+        _            => "#64748B"
+    };
+
+    private string GetLabel() => Key switch
+    {
+        "scheduled"  => "Programada",
+        "confirmed"  => "Confirmada",
+        "completed"  => "Completada",
+        "cancelled"  => "Cancelada",
+        "no_show" or "noshow" => "No asistió",
+        "pending"    => "Pendiente",
+        "sent"       => "Enviada",
+        "failed"     => "Fallida",
+        "whatsapp"   => "WhatsApp",
+        "email"      => "Email",
+        _            => Status
+    };
+}

@@ -42,6 +42,9 @@ builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<NotificationAppService>();
 
+// Worker que despierta cada 5 minutos y despacha los recordatorios cuya hora ya llegó
+builder.Services.AddHostedService<NotificationsService.API.ReminderWorker>();
+
 var app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();

@@ -1,0 +1,140 @@
+services:
+
+  # ──────────────────────────────────────────────
+  # SQL Server — base de datos compartida por todos los servicios
+  # Cada servicio usa su propia base de datos dentro de la misma instancia
+  # ──────────────────────────────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: vetsystem-sqlserver
+    environment:
+      SA_PASSWORD:          "${SA_PASSWORD}"
+      ACCEPT_EULA:          "Y"
+      MSSQL_PID:            "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${SA_PASSWORD}' -Q 'SELECT 1' -C || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ──────────────────────────────────────────────
+  # Evolution API — servidor WhatsApp Business
+  # Se configura la instancia "vetsystem" por primera vez vía su panel web (puerto 8080)
+  # ──────────────────────────────────────────────
+  evolution-api:
+    image: atendai/evolution-api:v2.2.3
+    container_name: vetsystem-evolution
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_URL:               "http://evolution-api:8080"
+      AUTHENTICATION_TYPE:      "apikey"
+      AUTHENTICATION_API_KEY:   "${EVOLUTION_API_KEY}"
+      DATABASE_ENABLED:         "false"
+      LOG_LEVEL:                "ERROR"
+    volumes:
+      - evolution_data:/evolution/instances
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
+  # auth-service — puerto 5001
+  # ──────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: AuthService.API/Dockerfile
+    container_name: vetsystem-auth
+    ports:
+      - "5001:8080"
+    environment:
+      ConnectionStrings__Default: "Server=sqlserver,1433;Database=VetAuth;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret:                "${JWT_SECRET}"
+      Jwt__Issuer:                "auth-service"
+      Jwt__Audience:              "vetsystem"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
+  # patients-service — puerto 5002
+  # ──────────────────────────────────────────────
+  patients-service:
+    build:
+      context: ./services/patients-service
+      dockerfile: PatientsService.API/Dockerfile
+    container_name: vetsystem-patients
+    ports:
+      - "5002:8080"
+    environment:
+      ConnectionStrings__Default: "Server=sqlserver,1433;Database=VetPatients;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret:                "${JWT_SECRET}"
+      Jwt__Issuer:                "auth-service"
+      Jwt__Audience:              "vetsystem"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
+  # appointments-service — puerto 5003
+  # ──────────────────────────────────────────────
+  appointments-service:
+    build:
+      context: ./services/appointments-service
+      dockerfile: AppointmentsService.API/Dockerfile
+    container_name: vetsystem-appointments
+    ports:
+      - "5003:8080"
+    environment:
+      ConnectionStrings__Default:          "Server=sqlserver,1433;Database=VetAppointments;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret:                         "${JWT_SECRET}"
+      Jwt__Issuer:                         "auth-service"
+      Jwt__Audience:                       "vetsystem"
+      NotificationsService__BaseUrl:       "http://notifications-service:8080"
+      NotificationsService__InternalKey:   "${INTERNAL_KEY}"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      notifications-service:
+        condition: service_started
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
+  # notifications-service — puerto 5004
+  # ──────────────────────────────────────────────
+  notifications-service:
+    build:
+      context: ./services/notifications-service
+      dockerfile: NotificationsService.API/Dockerfile
+    container_name: vetsystem-notifications
+    ports:
+      - "5004:8080"
+    environment:
+      ConnectionStrings__Default:   "Server=sqlserver,1433;Database=VetNotifications;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret:                  "${JWT_SECRET}"
+      Jwt__Issuer:                  "auth-service"
+      Jwt__Audience:                "vetsystem"
+      InternalKey:                  "${INTERNAL_KEY}"
+      EvolutionApi__BaseUrl:        "http://evolution-api:8080"
+      EvolutionApi__InstanceName:   "vetsystem"
+      EvolutionApi__ApiKey:         "${EVOLUTION_API_KEY}"
+      Smtp__Host:                   "${SMTP_HOST}"
+      Smtp__Port:                   "${SMTP_PORT}"
+      Smtp__User:                   "${SMTP_USER}"
+      Smtp__Password:               "${SMTP_PASSWORD}"
+      Smtp__From:                   "${SMTP_FROM}"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      evolution-api:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  sqlserver_data:
+  evolution_data:

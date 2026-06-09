@@ -1,0 +1,6 @@
+@inject NavigationManager Nav
+@code {
+    // Redirige inmediatamente al entrar, sin renderizar nada visible
+    protected override void OnInitialized()
+        => Nav.NavigateTo("/login", replace: true);
+}

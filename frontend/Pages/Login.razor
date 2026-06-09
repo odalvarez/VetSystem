@@ -1,0 +1,115 @@
+@page "/login"
+@inject AuthApiClient AuthApi
+@inject TokenProvider Token
+@inject NavigationManager Nav
+
+<PageTitle>Iniciar sesión — VetSystem</PageTitle>
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <span class="auth-logo-icon">🏥</span>
+            <div class="auth-logo-title">VetSystem</div>
+            <div class="auth-logo-sub">Sistema de gestión veterinaria</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger">⚠️ @_error</div>
+        }
+
+        <div class="form-group">
+            <label class="form-label">Correo electrónico</label>
+            <input type="email"
+                   class="form-control @(_submitted && string.IsNullOrWhiteSpace(_email) ? "invalid" : "")"
+                   @bind="_email"
+                   @bind:event="oninput"
+                   placeholder="correo@ejemplo.com"
+                   @onkeydown="HandleKeyDown" />
+            @if (_submitted && string.IsNullOrWhiteSpace(_email))
+            { <div class="validation-message">Ingresa tu correo.</div> }
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contraseña</label>
+            <input type="password"
+                   class="form-control @(_submitted && string.IsNullOrWhiteSpace(_password) ? "invalid" : "")"
+                   @bind="_password"
+                   @bind:event="oninput"
+                   placeholder="••••••••"
+                   @onkeydown="HandleKeyDown" />
+            @if (_submitted && string.IsNullOrWhiteSpace(_password))
+            { <div class="validation-message">Ingresa tu contraseña.</div> }
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" @onclick="DoLogin" disabled="@_loading">
+            @if (_loading) { <span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block"></span> }
+            <span>Ingresar</span>
+        </button>
+
+        <div style="margin-top:20px;text-align:center;font-size:.85rem;color:var(--color-text-muted)">
+            ¿No tienes cuenta?
+            <a href="/register" style="font-weight:600">Regístrate aquí</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _email    = "";
+    private string _password = "";
+    private bool   _submitted;
+    private bool   _loading;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        // Si ya hay sesión activa, redirige según el rol sin mostrar login
+        if (Token.IsAuthenticated)
+            RedirectByRole();
+    }
+
+    private async Task DoLogin()
+    {
+        _submitted = true;
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+            return;
+
+        _loading = true;
+        try
+        {
+            var response = await AuthApi.LoginAsync(new LoginRequest
+            {
+                Email    = _email.Trim(),
+                Password = _password
+            });
+
+            Token.SetSession(response.Token, response.User);
+            RedirectByRole();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            _error = "Correo o contraseña incorrectos.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error de conexión: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void RedirectByRole()
+    {
+        var role = Token.User?.Role ?? "";
+        Nav.NavigateTo(role == "Veterinarian" ? "/vet-dashboard" : "/owner-portal", replace: true);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await DoLogin();
+    }
+}

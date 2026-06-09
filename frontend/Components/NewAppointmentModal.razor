@@ -1,0 +1,207 @@
+@* Modal de nueva cita para el propietario.
+   Primero busca los datos del paciente en patients-service (necesitamos
+   PatientName, OwnerName, OwnerPhone, OwnerId para el POST a appointments-service,
+   porque ese servicio no llama a los demás). *@
+@inject PatientApiClient PatientApi
+@inject AppointmentApiClient AppointmentApi
+@inject TokenProvider Token
+
+@if (Visible)
+{
+    <div class="modal-overlay" @onclick="HandleOverlayClick">
+        <div class="modal-box" style="max-width:600px" @onclick:stopPropagation>
+            <div class="modal-header">
+                <span class="modal-title">📅 Solicitar cita</span>
+                <button class="btn-close" @onclick="Close">✕</button>
+            </div>
+
+            <div class="modal-body">
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger">@_error</div>
+                }
+
+                @* Paso 1: el propietario elige su mascota *@
+                <div class="form-group">
+                    <label class="form-label">Mascota *</label>
+                    @if (_patients == null)
+                    {
+                        <LoadingSpinner Message="Cargando mascotas…" />
+                    }
+                    else
+                    {
+                        <select class="form-control @(_submitted && _selectedPatientId == Guid.Empty ? "invalid" : "")"
+                                @onchange="OnPatientSelected">
+                            <option value="">— Selecciona una mascota —</option>
+                            @foreach (var p in _patients)
+                            {
+                                <option value="@p.Id">@p.Name (@p.Species)</option>
+                            }
+                        </select>
+                        @if (_submitted && _selectedPatientId == Guid.Empty)
+                        { <div class="validation-message">Selecciona una mascota.</div> }
+                    }
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha *</label>
+                        <input type="date" class="form-control @(_submitted && _request.ScheduledAt == default ? "invalid" : "")"
+                               @bind="_date" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Hora *</label>
+                        @if (_slots == null || !_slots.Any())
+                        {
+                            <input type="time" class="form-control" value="@_timeStr"
+                                   @oninput="e => _timeStr = e.Value?.ToString() ?? string.Empty"
+                                   min="08:00" max="17:00" step="900" />
+                        }
+                        else
+                        {
+                            <select class="form-control" @bind="_timeStr">
+                                <option value="">— Horario disponible —</option>
+                                @foreach (var s in _slots)
+                                {
+                                    <option value="@s.StartsAt.ToString("HH:mm")">
+                                        @s.StartsAt.ToString("HH:mm")
+                                    </option>
+                                }
+                            </select>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Duración (minutos) *</label>
+                        <select class="form-control" @bind="_request.DurationMinutes">
+                            <option value="20">20 min — Consulta rápida</option>
+                            <option value="40">40 min — Consulta estándar</option>
+                            <option value="60">60 min — Consulta extendida</option>
+                            <option value="90">90 min — Procedimiento</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ID del veterinario *</label>
+                        <input class="form-control" @bind="_vetIdStr"
+                               placeholder="UUID del veterinario" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Motivo de la cita</label>
+                    <textarea class="form-control" rows="2" @bind="_request.Reason"
+                              placeholder="Describe brevemente el motivo de la consulta…"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-ghost" @onclick="Close" disabled="@_saving">Cancelar</button>
+                <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
+                    @if (_saving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                    else { <span>Solicitar cita</span> }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private List<PatientResponse>? _patients;
+    private List<TimeSlot>?         _slots;
+    private CreateAppointmentRequest _request = new() { DurationMinutes = 40 };
+    private Guid   _selectedPatientId;
+    private bool   _submitted;
+    private bool   _saving;
+    private string? _error;
+    private string  _vetIdStr = "";
+    private string  _timeStr  = "09:00";
+    private DateTime _date;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Visible && _patients == null)
+        {
+            await LoadPatients();
+        }
+        else if (!Visible)
+        {
+            _patients = null; _slots = null; _error = null;
+            _submitted = false; _selectedPatientId = Guid.Empty;
+            _request = new() { DurationMinutes = 40 };
+            _vetIdStr = ""; _timeStr = "09:00"; _date = default;
+        }
+    }
+
+    private async Task LoadPatients()
+    {
+        try
+        {
+            var result = await PatientApi.ListAsync(page: 1, pageSize: 100);
+            _patients = result?.Items ?? [];
+        }
+        catch { _patients = []; }
+    }
+
+    private void OnPatientSelected(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var id))
+            _selectedPatientId = id;
+        else
+            _selectedPatientId = Guid.Empty;
+    }
+
+    private async Task Save()
+    {
+        _submitted = true;
+        _error = null;
+
+        if (_selectedPatientId == Guid.Empty) return;
+        if (!Guid.TryParse(_vetIdStr, out var vetId)) { _error = "ID de veterinario inválido."; return; }
+
+        // Combina fecha y hora elegidas en un único DateTime
+        var timeSpan = TimeSpan.TryParse(_timeStr, out var ts) ? ts : new TimeSpan(9, 0, 0);
+        var scheduledAt = (_date == default ? DateTime.Today : _date).Add(timeSpan);
+
+        if (scheduledAt <= DateTime.Now) { _error = "La fecha y hora deben ser futuras."; return; }
+
+        // Obtiene datos del paciente para enviárselos al appointments-service
+        var patient = _patients?.FirstOrDefault(p => p.Id == _selectedPatientId);
+        if (patient == null) { _error = "No se encontró la mascota seleccionada."; return; }
+
+        var user = Token.User;
+
+        _request.PatientId      = _selectedPatientId;
+        _request.VeterinarianId = vetId;
+        _request.ScheduledAt    = scheduledAt;
+        _request.PatientName    = patient.Name;
+        _request.OwnerId        = user?.Id ?? Guid.Empty;
+        _request.OwnerName      = user?.FullName ?? "";
+        _request.OwnerPhone     = user?.Phone ?? "";
+        _request.VeterinarianName = _vetIdStr; // el vet ingresa su UUID; en prod vendría de un select
+
+        _saving = true;
+        try
+        {
+            await AppointmentApi.CreateAsync(_request);
+            await OnSaved.InvokeAsync();
+            await Close();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+    private async Task HandleOverlayClick() => await Close();
+}

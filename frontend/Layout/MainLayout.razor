@@ -1,0 +1,18 @@
+@inherits LayoutComponentBase
+@inject TokenProvider Token
+
+@* Si el usuario está autenticado renderizamos el layout con sidebar.
+   Las páginas públicas (login, register) se renderizan solas sin sidebar. *@
+@if (Token.IsAuthenticated)
+{
+    <div class="app-layout">
+        <NavMenu />
+        <main class="main-content">
+            @Body
+        </main>
+    </div>
+}
+else
+{
+    @Body
+}
