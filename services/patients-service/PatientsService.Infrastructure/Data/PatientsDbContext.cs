@@ -20,7 +20,10 @@ public class PatientsDbContext : DbContext
             e.Property(p => p.Species).HasConversion<string>();
             e.Property(p => p.Sex).HasConversion<string>();
             e.Property(p => p.Weight).HasColumnType("decimal(6,2)");
+            e.Property(p => p.Color).HasMaxLength(100);
+            e.Property(p => p.MicrochipNumber).HasMaxLength(50);
             e.Property(p => p.OwnerName).HasMaxLength(200);
+            e.Property(p => p.OwnerPhone).HasMaxLength(30).HasDefaultValue("");
             e.HasIndex(p => p.OwnerId);
         });
 
@@ -31,6 +34,8 @@ public class PatientsDbContext : DbContext
             e.Property(r => r.Diagnosis).HasMaxLength(500);
             e.Property(r => r.Treatment).HasMaxLength(500);
             e.Property(r => r.Notes).HasMaxLength(1000);
+            e.Property(r => r.WeightKg).HasColumnType("decimal(6,2)");
+            e.Property(r => r.TemperatureCelsius).HasColumnType("decimal(4,1)");
             e.Property(r => r.VeterinarianName).HasMaxLength(200);
 
             e.HasOne(r => r.Patient)

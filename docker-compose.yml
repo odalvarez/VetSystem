@@ -1,56 +1,78 @@
 services:
 
-  # ──────────────────────────────────────────────
-  # SQL Server — base de datos compartida por todos los servicios
-  # Cada servicio usa su propia base de datos dentro de la misma instancia
-  # ──────────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────
+  # SQL Server 2022
+  # Base de datos única compartida por los 4 servicios, cada uno con su
+  # propia base de datos dentro de la misma instancia (VetAuth, VetPatients, …)
+  # ──────────────────────────────────────────────────────────────────────
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: vetsystem-sqlserver
     environment:
-      SA_PASSWORD:          "${SA_PASSWORD}"
-      ACCEPT_EULA:          "Y"
-      MSSQL_PID:            "Developer"
+      SA_PASSWORD:  "${SA_PASSWORD}"
+      ACCEPT_EULA:  "Y"
+      MSSQL_PID:    "Developer"
     ports:
-      - "1433:1433"
+      - "1433:1433"           # Expuesto al host para conectarse con SSMS
     volumes:
       - sqlserver_data:/var/opt/mssql
+    networks:
+      - vetsystem
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${SA_PASSWORD}' -Q 'SELECT 1' -C || exit 1"]
+      # sqlcmd tarda en estar disponible aunque el proceso ya arrancó;
+      # con 10 reintentos le damos ~100 s antes de declararlo unhealthy
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"${SA_PASSWORD}\" -Q \"SELECT 1\" -C -l 5 || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 8s
       retries: 10
+      start_period: 30s
+    restart: unless-stopped
 
-  # ──────────────────────────────────────────────
-  # Evolution API — servidor WhatsApp Business
-  # Se configura la instancia "vetsystem" por primera vez vía su panel web (puerto 8080)
-  # ──────────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────
+  # Evolution API v1 — servidor WhatsApp Business
+  # v1 guarda la sesión en disco; no necesita base de datos externa
+  # La instancia "vetsystem" se vincula escaneando el QR en http://localhost:8080
+  # ──────────────────────────────────────────────────────────────────────
   evolution-api:
-    image: atendai/evolution-api:v2.2.3
+    image: atendai/evolution-api:v1.8.7
     container_name: vetsystem-evolution
     ports:
       - "8080:8080"
     environment:
-      SERVER_URL:               "http://evolution-api:8080"
-      AUTHENTICATION_TYPE:      "apikey"
-      AUTHENTICATION_API_KEY:   "${EVOLUTION_API_KEY}"
-      DATABASE_ENABLED:         "false"
-      LOG_LEVEL:                "ERROR"
+      SERVER_URL:              "http://localhost:8080"
+      AUTHENTICATION_TYPE:     "apikey"
+      AUTHENTICATION_API_KEY:  "${EVOLUTION_API_KEY}"
+      DATABASE_ENABLED:        "false"
+      LOG_LEVEL:               "ERROR"
+      STORE_MESSAGES:          "true"
+      STORE_MESSAGE_UP:        "true"
+      STORE_CONTACTS:          "true"
+      STORE_CHATS:             "true"
     volumes:
       - evolution_data:/evolution/instances
+    networks:
+      - vetsystem
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
-  # ──────────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────
   # auth-service — puerto 5001
-  # ──────────────────────────────────────────────
+  # Depende solo de SQL Server porque no llama a otros servicios internos
+  # ──────────────────────────────────────────────────────────────────────
   auth-service:
     build:
       context: ./services/auth-service
       dockerfile: AuthService.API/Dockerfile
     container_name: vetsystem-auth
-    ports:
-      - "5001:8080"
+    # Sin ports: el servicio solo es accesible desde nginx dentro de la red Docker
+    # Eliminar los puertos externos previene acceso directo saltando la autenticación de nginx
     environment:
+      ASPNETCORE_URLS:            "http://+:8080"
       ConnectionStrings__Default: "Server=sqlserver,1433;Database=VetAuth;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
       Jwt__Secret:                "${JWT_SECRET}"
       Jwt__Issuer:                "auth-service"
@@ -58,19 +80,26 @@ services:
     depends_on:
       sqlserver:
         condition: service_healthy
+    networks:
+      - vetsystem
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
-  # ──────────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────
   # patients-service — puerto 5002
-  # ──────────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────
   patients-service:
     build:
       context: ./services/patients-service
       dockerfile: PatientsService.API/Dockerfile
     container_name: vetsystem-patients
-    ports:
-      - "5002:8080"
     environment:
+      ASPNETCORE_URLS:            "http://+:8080"
       ConnectionStrings__Default: "Server=sqlserver,1433;Database=VetPatients;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
       Jwt__Secret:                "${JWT_SECRET}"
       Jwt__Issuer:                "auth-service"
@@ -78,19 +107,66 @@ services:
     depends_on:
       sqlserver:
         condition: service_healthy
+    networks:
+      - vetsystem
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
-  # ──────────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────────────────
+  # notifications-service — puerto 5004
+  # Se declara antes de appointments-service porque este último depende de él
+  # ──────────────────────────────────────────────────────────────────────
+  notifications-service:
+    build:
+      context: ./services/notifications-service
+      dockerfile: NotificationsService.API/Dockerfile
+    container_name: vetsystem-notifications
+    environment:
+      ASPNETCORE_URLS:             "http://+:8080"
+      ConnectionStrings__Default:  "Server=sqlserver,1433;Database=VetNotifications;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret:                 "${JWT_SECRET}"
+      Jwt__Issuer:                 "auth-service"
+      Jwt__Audience:               "vetsystem"
+      InternalKey:                 "${INTERNAL_KEY}"
+      EvolutionApi__BaseUrl:       "http://evolution-api:8080"
+      EvolutionApi__InstanceName:  "vetsystem"
+      EvolutionApi__ApiKey:        "${EVOLUTION_API_KEY}"
+      Smtp__Host:                  "${SMTP_HOST}"
+      Smtp__Port:                  "${SMTP_PORT}"
+      Smtp__User:                  "${SMTP_USER}"
+      Smtp__Password:              "${SMTP_PASSWORD}"
+      Smtp__From:                  "${SMTP_FROM}"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      evolution-api:
+        condition: service_healthy
+    networks:
+      - vetsystem
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────────────────────────────
   # appointments-service — puerto 5003
-  # ──────────────────────────────────────────────
+  # Depende de notifications-service porque lo llama al confirmar citas
+  # ──────────────────────────────────────────────────────────────────────
   appointments-service:
     build:
       context: ./services/appointments-service
       dockerfile: AppointmentsService.API/Dockerfile
     container_name: vetsystem-appointments
-    ports:
-      - "5003:8080"
     environment:
+      ASPNETCORE_URLS:                     "http://+:8080"
       ConnectionStrings__Default:          "Server=sqlserver,1433;Database=VetAppointments;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
       Jwt__Secret:                         "${JWT_SECRET}"
       Jwt__Issuer:                         "auth-service"
@@ -101,40 +177,55 @@ services:
       sqlserver:
         condition: service_healthy
       notifications-service:
-        condition: service_started
+        condition: service_healthy
+    networks:
+      - vetsystem
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
-  # ──────────────────────────────────────────────
-  # notifications-service — puerto 5004
-  # ──────────────────────────────────────────────
-  notifications-service:
+  # ──────────────────────────────────────────────────────────────────────
+  # Frontend Blazor WASM — puerto 80
+  # nginx sirve los archivos estáticos y actúa como reverse proxy hacia los microservicios.
+  # Los servicios no tienen puertos expuestos al host; solo son accesibles a través de nginx.
+  # ──────────────────────────────────────────────────────────────────────
+  frontend:
     build:
-      context: ./services/notifications-service
-      dockerfile: NotificationsService.API/Dockerfile
-    container_name: vetsystem-notifications
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vetsystem-frontend
     ports:
-      - "5004:8080"
-    environment:
-      ConnectionStrings__Default:   "Server=sqlserver,1433;Database=VetNotifications;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
-      Jwt__Secret:                  "${JWT_SECRET}"
-      Jwt__Issuer:                  "auth-service"
-      Jwt__Audience:                "vetsystem"
-      InternalKey:                  "${INTERNAL_KEY}"
-      EvolutionApi__BaseUrl:        "http://evolution-api:8080"
-      EvolutionApi__InstanceName:   "vetsystem"
-      EvolutionApi__ApiKey:         "${EVOLUTION_API_KEY}"
-      Smtp__Host:                   "${SMTP_HOST}"
-      Smtp__Port:                   "${SMTP_PORT}"
-      Smtp__User:                   "${SMTP_USER}"
-      Smtp__Password:               "${SMTP_PASSWORD}"
-      Smtp__From:                   "${SMTP_FROM}"
+      - "80:80"
+    networks:
+      - vetsystem
     depends_on:
-      sqlserver:
+      auth-service:
         condition: service_healthy
-      evolution-api:
-        condition: service_started
+      patients-service:
+        condition: service_healthy
+      appointments-service:
+        condition: service_healthy
+      notifications-service:
+        condition: service_healthy
+    healthcheck:
+      # Alpine resuelve localhost a IPv6 pero nginx solo escucha IPv4; usamos la IP directa
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
+
+networks:
+  vetsystem:
+    driver: bridge
+    # Red interna; solo los puertos declarados en cada servicio son accesibles desde el host
 
 volumes:
   sqlserver_data:
+    # Los datos de SQL Server persisten entre reinicios del contenedor
   evolution_data:
+    # La sesión de WhatsApp vinculada persiste; sin esto hay que re-escanear el QR

@@ -64,7 +64,8 @@ public class AuthApplicationService
                 Id       = user.Id,
                 Email    = user.Email,
                 FullName = user.FullName,
-                Role     = user.Role.ToString().ToLowerInvariant()
+                Role     = user.Role.ToString().ToLowerInvariant(),
+                Phone    = user.Phone ?? ""
             }
         };
     }
@@ -100,6 +101,18 @@ public class AuthApplicationService
         user.ChangePassword(_hasher.Hash(req.NewPassword));
         await _users.UpdateAsync(user, ct);
         await _users.SaveChangesAsync(ct);
+    }
+
+    public async Task<IEnumerable<OwnerSummary>> ListOwnersAsync(CancellationToken ct)
+    {
+        var owners = await _users.ListByRoleAsync(UserRole.Owner, ct);
+        return owners.Select(u => new OwnerSummary
+        {
+            Id       = u.Id,
+            FullName = u.FullName,
+            Email    = u.Email,
+            Phone    = u.Phone ?? ""
+        });
     }
 
     private static UserResponse MapToUserResponse(User user) => new()

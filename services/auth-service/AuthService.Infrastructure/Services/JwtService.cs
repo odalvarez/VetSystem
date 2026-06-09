@@ -14,7 +14,8 @@ public class JwtService : IJwtService
     private readonly string _issuer;
     private readonly string _audience;
 
-    public int ExpiresInSeconds { get; } = 3600;
+    // 8 horas — cubre una jornada laboral completa sin forzar re-login
+    public int ExpiresInSeconds { get; } = 28800;
 
     public JwtService(IConfiguration config)
     {
@@ -32,6 +33,9 @@ public class JwtService : IJwtService
         {
             new Claim(JwtRegisteredClaimNames.Sub,   user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            // ClaimTypes.Name es lo que PatientsController y AppointmentsController usan para "ownerName / vetName"
+            new Claim(ClaimTypes.Name,               user.FullName),
+            new Claim("phone",                       user.Phone ?? ""),
             new Claim(ClaimTypes.Role,               user.Role.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti,   Guid.NewGuid().ToString())
         };

@@ -1,9 +1,9 @@
 @page "/notifications"
 @attribute [Authorize]
-
 @inject NotificationApiClient NotificationApi
 @inject AppointmentApiClient  AppointmentApi
 @inject TokenProvider         Token
+@inject NavigationManager     Nav
 
 <PageTitle>Notificaciones — VetSystem</PageTitle>
 
@@ -137,7 +137,9 @@
     private string? _sendSuccess;
 
     protected override async Task OnInitializedAsync()
-        => await LoadHistory();
+    {
+        await LoadHistory();
+    }
 
     private async Task LoadHistory()
     {

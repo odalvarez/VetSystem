@@ -1,5 +1,6 @@
 @page "/owner-portal"
-@attribute [Authorize(Roles = "Owner")]
+@attribute [Authorize]
+@inject NavigationManager Nav
 
 @inject PatientApiClient     PatientApi
 @inject AppointmentApiClient AppointmentApi
@@ -206,6 +207,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // [Authorize] garantiza autenticación; si es veterinario redirigimos a su panel
+        var role = Token.User?.Role ?? "";
+        if (role.Equals("Veterinarian", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("/vet-dashboard", replace: true);
+            return;
+        }
+
         await Task.WhenAll(LoadPatients(), LoadAppointments());
         _loading = false;
     }

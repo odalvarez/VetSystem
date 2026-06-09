@@ -1,6 +1,7 @@
 @inject TokenProvider Token
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthState
+@inject AuthApiClient AuthApi
 
 <aside class="sidebar">
     <div class="sidebar-brand">
@@ -42,7 +43,7 @@
             </div>
         </div>
         <button class="btn btn-ghost btn-sm btn-block" style="color:var(--color-sidebar-text)"
-                @onclick="Logout">
+                @onclick="() => _ = Logout()">
             🚪 Cerrar sesión
         </button>
     </div>
@@ -66,8 +67,10 @@
         Token.OnChange += StateHasChanged;
     }
 
-    private void Logout()
+    private async Task Logout()
     {
+        // Primero le decimos al servidor que borre la cookie httpOnly
+        await AuthApi.LogoutAsync();
         Token.ClearSession();
         Nav.NavigateTo("/login");
     }

@@ -12,6 +12,12 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
+
+builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
+    p.WithOrigins("http://localhost", "https://localhost")
+     .AllowAnyHeader()
+     .AllowAnyMethod()));
 
 builder.Services.AddDbContext<AppointmentsDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
@@ -34,6 +40,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew                = TimeSpan.Zero,
             RoleClaimType            = System.Security.Claims.ClaimTypes.Role
         };
+        opt.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                ctx.Token = ctx.Request.Cookies["vetsys_jwt"];
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -41,13 +55,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 
 // Cliente HTTP hacia notifications-service; incluye X-Internal-Key para pasar el middleware
-var notifBaseUrl    = builder.Configuration["NotificationsService:BaseUrl"]    ?? "http://notifications-service:5004";
-var notifInternalKey = builder.Configuration["NotificationsService:InternalKey"] ?? "dev-internal-key-change-in-production";
+var notifBaseUrl     = builder.Configuration["NotificationsService:BaseUrl"]    ?? "http://notifications-service:8080";
+var notifInternalKey = builder.Configuration["NotificationsService:InternalKey"] ?? "";
 builder.Services.AddHttpClient<INotificationClient, NotificationHttpClient>(c =>
 {
     c.BaseAddress = new Uri(notifBaseUrl);
     c.DefaultRequestHeaders.Add("X-Internal-Key", notifInternalKey);
-    // Evolution API a veces tarda; 10s es suficiente para no bloquear el hilo principal
     c.Timeout = TimeSpan.FromSeconds(10);
 });
 
@@ -55,9 +68,17 @@ builder.Services.AddScoped<AppointmentAppService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppointmentsDbContext>();
+    await db.Database.MigrateAsync();
+}
+
+app.UseCors();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

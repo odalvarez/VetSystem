@@ -16,6 +16,33 @@
                     <div class="alert alert-danger">@_error</div>
                 }
 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha de consulta *</label>
+                        <input type="date" class="form-control"
+                               max="@_todayStr"
+                               value="@_dateStr"
+                               @oninput="e => _dateStr = e.Value?.ToString() ?? string.Empty" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Próxima visita</label>
+                        <input type="date" class="form-control"
+                               min="@_minNextVisitStr"
+                               value="@_nextVisitStr"
+                               @oninput="e => _nextVisitStr = e.Value?.ToString() ?? string.Empty" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Motivo de la consulta *</label>
+                    <input class="form-control @(_submitted && string.IsNullOrWhiteSpace(_request.Reason) ? "invalid" : "")"
+                           @bind="_request.Reason" placeholder="Ej. Revisión anual, vómitos, etc." />
+                    @if (_submitted && string.IsNullOrWhiteSpace(_request.Reason))
+                    {
+                        <div class="validation-message">El motivo es obligatorio.</div>
+                    }
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Diagnóstico *</label>
                     <input class="form-control @(_submitted && string.IsNullOrWhiteSpace(_request.Diagnosis) ? "invalid" : "")"
@@ -75,26 +102,39 @@
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private CreateClinicalRecordRequest _request = new();
-    private bool _submitted;
-    private bool _saving;
-    private string? _error;
+    private CreateClinicalRecordRequest _request        = new();
+    private string                       _dateStr        = DateTime.Today.ToString("yyyy-MM-dd");
+    private string                       _nextVisitStr   = "";
+    private string                       _todayStr       = DateTime.Today.ToString("yyyy-MM-dd");
+    private string                       _minNextVisitStr = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
+    private bool                         _submitted;
+    private bool                         _saving;
+    private string?                      _error;
 
     // Resetea el formulario cada vez que el modal se abre
     protected override void OnParametersSet()
     {
         if (Visible)
         {
-            _request = new();
-            _submitted = false;
-            _error = null;
+            _request      = new();
+            _dateStr      = DateTime.Today.ToString("yyyy-MM-dd");
+            _nextVisitStr = "";
+            _submitted    = false;
+            _error        = null;
         }
     }
 
     private async Task Save()
     {
+        if (DateTime.TryParse(_dateStr, out var d))
+            _request.Date = d;
+
+        if (DateOnly.TryParseExact(_nextVisitStr, "yyyy-MM-dd", out var nv))
+            _request.NextVisitDate = nv;
+
         _submitted = true;
-        if (string.IsNullOrWhiteSpace(_request.Diagnosis) ||
+        if (string.IsNullOrWhiteSpace(_request.Reason)    ||
+            string.IsNullOrWhiteSpace(_request.Diagnosis) ||
             string.IsNullOrWhiteSpace(_request.Treatment))
             return;
 

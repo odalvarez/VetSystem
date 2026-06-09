@@ -56,7 +56,7 @@ public class AppointmentAppService
         var (data, total) = await _repo.ListAsync(ownerFilter, status, from, to, veterinarianId, patientId, page, pageSize, ct);
         return new PagedResponse<AppointmentResponse>
         {
-            Data = data.Select(Map), Total = total, Page = page, PageSize = pageSize
+            Items = data.Select(Map), TotalCount = total, Page = page, PageSize = pageSize
         };
     }
 

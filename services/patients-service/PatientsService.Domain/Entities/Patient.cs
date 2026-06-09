@@ -5,17 +5,20 @@ namespace PatientsService.Domain.Entities;
 
 public class Patient
 {
-    public Guid      Id        { get; private set; }
-    public string    Name      { get; private set; } = default!;
-    public Species   Species   { get; private set; }
-    public string    Breed     { get; private set; } = default!;
-    public DateOnly  BirthDate { get; private set; }
-    public Sex       Sex       { get; private set; }
-    public decimal   Weight    { get; private set; }
-    public Guid      OwnerId   { get; private set; }
-    public string    OwnerName { get; private set; } = default!;
-    public DateTime  CreatedAt { get; private set; }
-    public DateTime  UpdatedAt { get; private set; }
+    public Guid      Id              { get; private set; }
+    public string    Name            { get; private set; } = default!;
+    public Species   Species         { get; private set; }
+    public string    Breed           { get; private set; } = default!;
+    public DateOnly  BirthDate       { get; private set; }
+    public Sex       Sex             { get; private set; }
+    public decimal   Weight          { get; private set; }
+    public string?   Color           { get; private set; }
+    public string?   MicrochipNumber { get; private set; }
+    public Guid      OwnerId         { get; private set; }
+    public string    OwnerName       { get; private set; } = default!;
+    public string    OwnerPhone      { get; private set; } = "";
+    public DateTime  CreatedAt       { get; private set; }
+    public DateTime  UpdatedAt       { get; private set; }
 
     public ICollection<ClinicalRecord> ClinicalRecords { get; private set; } = new List<ClinicalRecord>();
 
@@ -24,7 +27,8 @@ public class Patient
     public static Patient Create(
         string name, Species species, string breed,
         DateOnly birthDate, Sex sex, decimal weight,
-        Guid ownerId, string ownerName)
+        Guid ownerId, string ownerName, string ownerPhone = "",
+        string? color = null, string? microchipNumber = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("El nombre de la mascota es obligatorio.");
@@ -34,30 +38,36 @@ public class Patient
 
         return new Patient
         {
-            Id        = Guid.NewGuid(),
-            Name      = name.Trim(),
-            Species   = species,
-            Breed     = breed.Trim(),
-            BirthDate = birthDate,
-            Sex       = sex,
-            Weight    = weight,
-            OwnerId   = ownerId,
-            OwnerName = ownerName,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            Id              = Guid.NewGuid(),
+            Name            = name.Trim(),
+            Species         = species,
+            Breed           = breed.Trim(),
+            BirthDate       = birthDate,
+            Sex             = sex,
+            Weight          = weight,
+            Color           = color?.Trim(),
+            MicrochipNumber = microchipNumber?.Trim(),
+            OwnerId         = ownerId,
+            OwnerName       = ownerName,
+            OwnerPhone      = ownerPhone,
+            CreatedAt       = DateTime.UtcNow,
+            UpdatedAt       = DateTime.UtcNow
         };
     }
 
-    public void Update(string name, string breed, DateOnly birthDate, Sex sex, decimal weight)
+    public void Update(string name, string breed, DateOnly birthDate, Sex sex, decimal weight,
+                       string? color = null, string? microchipNumber = null)
     {
         if (weight <= 0)
             throw new DomainException("El peso debe ser mayor a cero.");
 
-        Name      = name.Trim();
-        Breed     = breed.Trim();
-        BirthDate = birthDate;
-        Sex       = sex;
-        Weight    = weight;
-        UpdatedAt = DateTime.UtcNow;
+        Name            = name.Trim();
+        Breed           = breed.Trim();
+        BirthDate       = birthDate;
+        Sex             = sex;
+        Weight          = weight;
+        Color           = color?.Trim();
+        MicrochipNumber = microchipNumber?.Trim();
+        UpdatedAt       = DateTime.UtcNow;
     }
 }

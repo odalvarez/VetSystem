@@ -1,12 +1,13 @@
-@* Modal para que el propietario registre una nueva mascota *@
+@* Modal para que el veterinario registre una nueva mascota eligiendo al propietario *@
 @inject PatientApiClient PatientApi
+@inject AuthApiClient AuthApi
 
 @if (Visible)
 {
     <div class="modal-overlay" @onclick="HandleOverlayClick">
         <div class="modal-box" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">🐾 Registrar nueva mascota</span>
+                <span class="modal-title">🐾 Registrar mascota</span>
                 <button class="btn-close" @onclick="Close">✕</button>
             </div>
 
@@ -15,6 +16,27 @@
                 {
                     <div class="alert alert-danger">@_error</div>
                 }
+
+                <div class="form-group">
+                    <label class="form-label">Propietario *</label>
+                    @if (_owners == null)
+                    {
+                        <LoadingSpinner Message="Cargando propietarios…" />
+                    }
+                    else
+                    {
+                        <select class="form-control @(_submitted && _selectedOwner == null ? "invalid" : "")"
+                                @onchange="OnOwnerSelected">
+                            <option value="">— Selecciona un propietario —</option>
+                            @foreach (var o in _owners)
+                            {
+                                <option value="@o.Id">@o.FullName (@o.Email)</option>
+                            }
+                        </select>
+                        @if (_submitted && _selectedOwner == null)
+                        { <div class="validation-message">Selecciona un propietario.</div> }
+                    }
+                </div>
 
                 <div class="form-row">
                     <div class="form-group">
@@ -68,7 +90,7 @@
                                value="@_birthDateStr"
                                @oninput="e => _birthDateStr = e.Value?.ToString() ?? string.Empty" />
                         @if (_submitted && _request.BirthDate == default)
-                        { <div class="validation-message">Ingresa una fecha válida.</div> }
+                        { <div class="validation-message">Obligatorio.</div> }
                     </div>
                 </div>
 
@@ -102,6 +124,8 @@
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
+    private List<OwnerSummary>?  _owners;
+    private OwnerSummary?        _selectedOwner;
     private CreatePatientRequest _request      = new();
     private string               _birthDateStr = "";
     private string               _maxDateStr   = DateTime.Today.ToString("yyyy-MM-dd");
@@ -109,26 +133,46 @@
     private bool                 _saving;
     private string?              _error;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        if (Visible) { _request = new(); _birthDateStr = ""; _submitted = false; _error = null; }
+        if (Visible && _owners == null)
+            _owners = await AuthApi.GetOwnersAsync();
+        else if (!Visible)
+        {
+            _owners = null; _selectedOwner = null;
+            _request = new(); _birthDateStr = "";
+            _submitted = false; _error = null;
+        }
+    }
+
+    private void OnOwnerSelected(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var id))
+            _selectedOwner = _owners?.FirstOrDefault(o => o.Id == id);
+        else
+            _selectedOwner = null;
     }
 
     private async Task Save()
     {
-        // Sincronizamos el string del datepicker a DateOnly antes de validar
         if (DateOnly.TryParseExact(_birthDateStr, "yyyy-MM-dd", out var bd))
             _request.BirthDate = bd;
 
         _submitted = true;
-        if (string.IsNullOrWhiteSpace(_request.Name) ||
-            string.IsNullOrWhiteSpace(_request.Species) ||
-            string.IsNullOrWhiteSpace(_request.Sex)    ||
+
+        if (_selectedOwner == null                        ||
+            string.IsNullOrWhiteSpace(_request.Name)     ||
+            string.IsNullOrWhiteSpace(_request.Species)  ||
+            string.IsNullOrWhiteSpace(_request.Sex)      ||
             _request.BirthDate == default)
             return;
 
+        _request.OwnerId    = _selectedOwner.Id;
+        _request.OwnerName  = _selectedOwner.FullName;
+        _request.OwnerPhone = _selectedOwner.Phone;
+
         _saving = true;
-        _error = null;
+        _error  = null;
         try
         {
             await PatientApi.CreateAsync(_request);
@@ -148,7 +192,6 @@
     private async Task Close() => await OnClose.InvokeAsync();
     private async Task HandleOverlayClick() => await Close();
 
-    // Helpers de clase CSS para validación inline
-    private string Cls(string? v)  => _submitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
-    private string ClsDate()       => _submitted && _request.BirthDate == default ? "invalid" : "";
+    private string Cls(string? v) => _submitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
+    private string ClsDate()      => _submitted && _request.BirthDate == default ? "invalid" : "";
 }

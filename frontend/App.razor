@@ -1,9 +1,19 @@
-﻿<CascadingAuthenticationState>
+@inject NavigationManager Nav
+@inject TokenProvider     Token
+@inject AuthApiClient     AuthApi
+
+@if (!_ready)
+{
+    @* Espera a que se verifique la sesión antes de renderizar rutas protegidas *@
+    return;
+}
+
+<CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    <RedirectToLogin />
+                    @{ Nav.NavigateTo("/login", replace: true); }
                 </NotAuthorized>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
@@ -19,3 +29,28 @@
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
+
+@code {
+    private bool _ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Verifica si la cookie httpOnly sigue siendo válida.
+        // Si el servidor responde con el perfil, la sesión se restaura sin que el cliente
+        // haya tenido acceso al token en ningún momento.
+        var profile = await AuthApi.GetProfileAsync();
+        if (profile is not null)
+        {
+            Token.SetSession(new VetSystem.Frontend.Models.LoginUserInfo
+            {
+                Id       = profile.Id,
+                Email    = profile.Email,
+                FullName = $"{profile.FirstName} {profile.LastName}".Trim(),
+                Role     = profile.Role,
+                Phone    = profile.Phone
+            });
+        }
+
+        _ready = true;
+    }
+}
