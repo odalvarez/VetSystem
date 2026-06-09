@@ -57,4 +57,64 @@ public class AuthApiClient
         try { return await _http.GetFromJsonAsync<List<OwnerSummary>>("api/auth/owners") ?? []; }
         catch { return []; }
     }
+
+    // Lista de veterinarios activos para el selector al agendar citas
+    public async Task<List<VetSummary>> GetVeterinariansAsync()
+    {
+        try { return await _http.GetFromJsonAsync<List<VetSummary>>("api/auth/veterinarians") ?? []; }
+        catch { return []; }
+    }
+
+    // ── Admin ─────────────────────────────────────────────────────────────────────
+
+    public async Task<AdminPagedUsers> AdminListUsersAsync(
+        string? role = null, string? search = null, bool? isActive = null,
+        int page = 1, int pageSize = 15)
+    {
+        var url = $"api/auth/admin/users?page={page}&pageSize={pageSize}";
+        if (!string.IsNullOrEmpty(role))   url += $"&role={role}";
+        if (!string.IsNullOrEmpty(search)) url += $"&search={Uri.EscapeDataString(search)}";
+        if (isActive.HasValue)             url += $"&isActive={isActive.Value.ToString().ToLower()}";
+        try { return await _http.GetFromJsonAsync<AdminPagedUsers>(url) ?? new(); }
+        catch { return new(); }
+    }
+
+    public async Task<AdminUserItem?> AdminGetUserAsync(Guid id)
+    {
+        try { return await _http.GetFromJsonAsync<AdminUserItem>($"api/auth/admin/users/{id}"); }
+        catch { return null; }
+    }
+
+    public async Task<AdminUserItem> AdminCreateUserAsync(AdminCreateUserRequest req)
+    {
+        var res = await _http.PostAsJsonAsync("api/auth/admin/users", req);
+        if (res.StatusCode == HttpStatusCode.Conflict)
+            throw new HttpRequestException("Ya existe un usuario con ese correo.", null, HttpStatusCode.Conflict);
+        res.EnsureSuccessStatusCode();
+        return (await res.Content.ReadFromJsonAsync<AdminUserItem>())!;
+    }
+
+    public async Task<AdminUserItem> AdminUpdateUserAsync(Guid id, AdminUpdateUserRequest req)
+    {
+        var res = await _http.PutAsJsonAsync($"api/auth/admin/users/{id}", req);
+        res.EnsureSuccessStatusCode();
+        return (await res.Content.ReadFromJsonAsync<AdminUserItem>())!;
+    }
+
+    public async Task AdminSetActiveAsync(Guid id, bool active)
+    {
+        var res = await _http.PatchAsync($"api/auth/admin/users/{id}/active?value={active.ToString().ToLower()}", null);
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = await res.Content.ReadFromJsonAsync<ApiError>();
+            throw new Exception(err?.Detail ?? $"Error {(int)res.StatusCode}");
+        }
+    }
+
+    public async Task AdminResetPasswordAsync(Guid id, string newPassword)
+    {
+        var res = await _http.PostAsJsonAsync($"api/auth/admin/users/{id}/reset-password",
+            new AdminResetPasswordRequest { NewPassword = newPassword });
+        res.EnsureSuccessStatusCode();
+    }
 }
