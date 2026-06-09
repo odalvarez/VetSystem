@@ -77,7 +77,7 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Veterinarian")]
+    [Authorize(Roles = "Veterinarian,Admin")]
     public async Task<IActionResult> ChangeStatus(
         Guid id, [FromBody] ChangeStatusRequest req, CancellationToken ct)
     {
