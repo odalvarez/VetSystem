@@ -207,11 +207,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // [Authorize] garantiza autenticación; si es veterinario redirigimos a su panel
+        // [Authorize] garantiza autenticación; cada rol tiene su propio panel
         var role = Token.User?.Role ?? "";
         if (role.Equals("Veterinarian", StringComparison.OrdinalIgnoreCase))
         {
             Nav.NavigateTo("/vet-dashboard", replace: true);
+            return;
+        }
+        if (role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("/admin", replace: true);
             return;
         }
 
@@ -244,7 +249,8 @@
         _records = null;
         try
         {
-            _records = await PatientApi.ListRecordsAsync(p.Id) ?? [];
+            var paged = await PatientApi.ListRecordsAsync(p.Id);
+            _records = paged?.Items?.ToList() ?? [];
         }
         catch { _records = []; }
     }

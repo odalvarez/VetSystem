@@ -1,0 +1,81 @@
+@* Vista solo lectura de una bitácora. Compact=true reduce el espaciado (para el panel de referencia). *@
+
+@if (Log != null)
+{
+    <div class="@(Compact ? "log-readonly-compact" : "log-readonly")">
+
+        @* Estado y fechas *@
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
+            <span class="badge @(Log.IsOpen ? "badge-scheduled" : "badge-completed")">
+                @(Log.IsOpen ? "Abierta" : "Cerrada")
+            </span>
+            <span style="font-size:.82rem;color:var(--color-text-muted)">
+                Abierta: @Log.OpenedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+            </span>
+            @if (Log.ClosedAt.HasValue)
+            {
+                <span style="font-size:.82rem;color:var(--color-text-muted)">
+                    · Cerrada: @Log.ClosedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                </span>
+            }
+            <span style="font-size:.82rem;color:var(--color-text-muted);margin-left:auto">
+                Dr. @Log.VeterinarianName
+            </span>
+        </div>
+
+        <LogSection Title="Motivo de consulta" Value="@Log.ReasonForVisit" Always="true" />
+        <LogSection Title="Anamnesis" Value="@Log.Anamnesis" />
+
+        @* Exploración física — solo si hay algún campo *@
+        @if (Log.HeartRate != null || Log.RespiratoryRate != null ||
+             Log.BodyCondition != null || Log.MucousMembranes != null || Log.Hydration != null)
+        {
+            <div class="log-section-block">
+                <div class="log-section-title">Exploración física</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+                    @if (Log.HeartRate       != null) { <LogField Label="FC"               Value="@Log.HeartRate" /> }
+                    @if (Log.RespiratoryRate != null) { <LogField Label="FR"               Value="@Log.RespiratoryRate" /> }
+                    @if (Log.BodyCondition   != null) { <LogField Label="Cond. corporal"   Value="@Log.BodyCondition" /> }
+                    @if (Log.MucousMembranes != null) { <LogField Label="Mucosas"          Value="@Log.MucousMembranes" /> }
+                    @if (Log.Hydration       != null) { <LogField Label="Hidratación"      Value="@Log.Hydration" /> }
+                </div>
+            </div>
+        }
+
+        @if (Log.WeightKg.HasValue || Log.TemperatureCelsius.HasValue)
+        {
+            <div class="log-section-block">
+                <div class="log-section-title">Signos vitales</div>
+                <div style="display:flex;gap:20px;flex-wrap:wrap">
+                    @if (Log.WeightKg.HasValue)
+                    { <LogField Label="Peso" Value="@($"{Log.WeightKg} kg")" /> }
+                    @if (Log.TemperatureCelsius.HasValue)
+                    { <LogField Label="Temperatura" Value="@($"{Log.TemperatureCelsius} °C")" /> }
+                </div>
+            </div>
+        }
+
+        <LogSection Title="Exámenes solicitados"    Value="@Log.RequestedTests" />
+        <LogSection Title="Resultados de exámenes"  Value="@Log.TestResults" />
+        <LogSection Title="Diagnóstico"             Value="@Log.Diagnosis" />
+        <LogSection Title="Pronóstico"              Value="@Log.Prognosis" />
+        <LogSection Title="Plan terapéutico"        Value="@Log.TherapeuticPlan" />
+        <LogSection Title="Plan diagnóstico"        Value="@Log.DiagnosticPlan" />
+        <LogSection Title="Recomendaciones"         Value="@Log.Recommendations" />
+
+        @if (Log.NextVisitDate.HasValue)
+        {
+            <div class="log-section-block">
+                <div class="log-section-title">Próxima visita</div>
+                <div style="font-weight:600;color:var(--color-primary)">
+                    @Log.NextVisitDate.Value.ToString("dd/MM/yyyy")
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public ConsultationLogResponse? Log     { get; set; }
+    [Parameter] public bool                     Compact { get; set; } = false;
+}

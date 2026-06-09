@@ -13,16 +13,20 @@ public class AppointmentApiClient
         string? status = null, DateTime? from = null, DateTime? to = null,
         int page = 1, int pageSize = 100)
     {
+        var paged = await ListPagedAsync(status, from, to, page, pageSize);
+        return paged?.Items;
+    }
+
+    public async Task<PagedResponse<AppointmentResponse>?> ListPagedAsync(
+        string? status = null, DateTime? from = null, DateTime? to = null,
+        int page = 1, int pageSize = 20)
+    {
         var url = $"api/appointments?page={page}&pageSize={pageSize}";
         if (!string.IsNullOrEmpty(status)) url += $"&status={status}";
         if (from.HasValue) url += $"&from={from.Value:yyyy-MM-dd}";
         if (to.HasValue)   url += $"&to={to.Value:yyyy-MM-dd}";
 
-        try
-        {
-            var paged = await _http.GetFromJsonAsync<PagedResponse<AppointmentResponse>>(url);
-            return paged?.Items;
-        }
+        try { return await _http.GetFromJsonAsync<PagedResponse<AppointmentResponse>>(url); }
         catch { return null; }
     }
 

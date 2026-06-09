@@ -1,0 +1,637 @@
+@* Modal de detalle de paciente con 3 pestañas:
+   Datos (editar ficha) | Bitácoras (consultation logs) | Historia clínica (clinical records)
+   Abierto tanto por el veterinario como por el propietario (lectura diferenciada por rol). *@
+@inject PatientApiClient          PatientApi
+@inject ConsultationLogApiClient  LogApi
+@inject TokenProvider             Token
+
+@if (Visible && Patient != null)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal-box" style="max-width:860px;width:100%;max-height:92vh;display:flex;flex-direction:column"
+             @onclick:stopPropagation>
+
+            @* ── Cabecera ── *@
+            <div class="modal-header" style="flex-shrink:0">
+                <div>
+                    <div class="modal-title">🐾 @Patient.Name</div>
+                    <div style="font-size:.8rem;color:var(--color-text-muted);margin-top:2px">
+                        @Patient.SpeciesName · @Patient.Breed · @Patient.OwnerName
+                    </div>
+                </div>
+                <button class="btn-close" @onclick="Close">✕</button>
+            </div>
+
+            @* ── Tabs ── *@
+            <div class="admin-tabs" style="margin-bottom:0;padding:0 26px;flex-shrink:0">
+                <button class="admin-tab @(_tab == "data"    ? "active" : "")" @onclick='() => SwitchTab("data")'>
+                    📋 Datos
+                </button>
+                <button class="admin-tab @(_tab == "logs"    ? "active" : "")" @onclick='() => SwitchTab("logs")'>
+                    📝 Bitácoras @if (_logCount > 0) { <span style="margin-left:4px;font-size:.72rem;background:var(--color-primary-light);color:var(--color-primary);padding:1px 7px;border-radius:10px">@_logCount</span> }
+                </button>
+                <button class="admin-tab @(_tab == "records" ? "active" : "")" @onclick='() => SwitchTab("records")'>
+                    🏥 Historia clínica @if (_recordCount > 0) { <span style="margin-left:4px;font-size:.72rem;background:var(--color-primary-light);color:var(--color-primary);padding:1px 7px;border-radius:10px">@_recordCount</span> }
+                </button>
+            </div>
+
+            @* ── Contenido del tab (scrollable) ── *@
+            <div style="overflow-y:auto;flex:1;padding:24px 26px">
+
+                @* ════════════════════════════════
+                   TAB: DATOS
+                   ════════════════════════════════ *@
+                @if (_tab == "data")
+                {
+                    @if (!string.IsNullOrEmpty(_dataError))
+                    { <div class="alert alert-danger">@_dataError</div> }
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nombre *</label>
+                            <input class="form-control" @bind="_edit.Name" disabled="@IsOwner" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Raza *</label>
+                            <input class="form-control" @bind="_edit.Breed" disabled="@IsOwner" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Especie</label>
+                            <input class="form-control" value="@Patient.SpeciesName" disabled />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Sexo</label>
+                            <select class="form-control" @bind="_edit.Sex" disabled="@IsOwner">
+                                <option value="male">Macho</option>
+                                <option value="female">Hembra</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Fecha de nac. aproximada</label>
+                            <input type="date" class="form-control"
+                                   value="@_edit.BirthDate.ToString("yyyy-MM-dd")"
+                                   max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")"
+                                   @oninput="HandleBirthDate"
+                                   disabled="@IsOwner" />
+                            <div class="form-hint">Edad: <strong>@AgeLabel(_edit.BirthDate)</strong></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Peso (kg)</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control"
+                                   @bind="_edit.WeightKg" disabled="@IsOwner" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Color</label>
+                            <input class="form-control" @bind="_edit.Color" disabled="@IsOwner" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Microchip</label>
+                            <input class="form-control" @bind="_edit.MicrochipNumber" disabled="@IsOwner" />
+                        </div>
+                    </div>
+
+                    @if (!IsOwner)
+                    {
+                        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+                            <button class="btn btn-primary" @onclick="SaveData" disabled="@_saving">
+                                @if (_saving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                                else { <span>Guardar cambios</span> }
+                            </button>
+                        </div>
+                    }
+                }
+
+                @* ════════════════════════════════
+                   TAB: BITÁCORAS
+                   ════════════════════════════════ *@
+                @if (_tab == "logs")
+                {
+                    @if (_logsLoading)
+                    {
+                        <LoadingSpinner Message="Cargando bitácoras…" />
+                    }
+                    else if (_showLogForm)
+                    {
+                        @* ── Formulario de creación / edición ── *@
+                        <ConsultationLogForm
+                            Log="_editingLog"
+                            PatientId="Patient.Id"
+                            OnSaved="OnLogSaved"
+                            OnCancel="CancelLogForm" />
+                    }
+                    else if (_closedLog != null)
+                    {
+                        @* ── Vista post-cierre: resumen de la bitácora cerrada ── *@
+                        <div class="alert alert-success" style="margin-bottom:16px">
+                            ✅ Bitácora cerrada correctamente.
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+                            <button class="btn btn-primary"
+                                    @onclick="GoToRecordsWithReference">
+                                📋 Ir a historia clínica →
+                            </button>
+                        </div>
+                        <ConsultationLogReadOnly Log="_closedLog" />
+                        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+                            <button class="btn btn-ghost" @onclick="() => _closedLog = null">
+                                ← Ver lista de bitácoras
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        @* ── Lista de bitácoras ── *@
+                        @if (!IsOwner)
+                        {
+                            <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+                                <button class="btn btn-primary btn-sm" @onclick="OpenNewLogForm">
+                                    + Nueva bitácora
+                                </button>
+                            </div>
+                        }
+
+                        @if (!_logs.Any())
+                        {
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📝</div>
+                                <div class="empty-state-title">Sin bitácoras</div>
+                                <div class="empty-state-sub">
+                                    @(IsOwner ? "Este paciente no tiene bitácoras de consulta aún."
+                                               : "Crea la primera bitácora para registrar una consulta.")
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var log in _logs)
+                            {
+                                <div class="log-list-item @(log.IsOpen ? "log-open" : "log-closed")"
+                                     style="cursor:pointer" @onclick="() => SelectLog(log)">
+                                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                                        <span class="badge @(log.IsOpen ? "badge-scheduled" : "badge-completed")">
+                                            @(log.IsOpen ? "Abierta" : "Cerrada")
+                                        </span>
+                                        <span style="font-weight:600;font-size:.92rem">@log.ReasonForVisit</span>
+                                        <span style="margin-left:auto;font-size:.78rem;color:var(--color-text-muted)">
+                                            @log.OpenedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                            · @log.VeterinarianName
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+
+                    @* ── Detalle de bitácora seleccionada ── *@
+                    @if (_selectedLog != null && !_showLogForm && _closedLog == null)
+                    {
+                        <div class="modal-overlay" @onclick="() => _selectedLog = null">
+                            <div class="modal-box" style="max-width:760px;width:100%;max-height:90vh;overflow-y:auto"
+                                 @onclick:stopPropagation>
+                                <div class="modal-header">
+                                    <span class="modal-title">
+                                        Bitácora — @_selectedLog.OpenedAt.ToLocalTime().ToString("dd/MM/yyyy")
+                                    </span>
+                                    <div style="display:flex;gap:8px;align-items:center">
+                                        @if (_selectedLog.IsOpen && !IsOwner)
+                                        {
+                                            <button class="btn btn-sm btn-secondary"
+                                                    @onclick="() => OpenEditLogForm(_selectedLog)">
+                                                ✏️ Editar
+                                            </button>
+                                            <button class="btn btn-sm btn-danger"
+                                                    @onclick="() => _ = CloseLogAsync(_selectedLog)"
+                                                    disabled="@_closingLog">
+                                                @if (_closingLog) { <span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> }
+                                                else { <span>🔒 Cerrar bitácora</span> }
+                                            </button>
+                                        }
+                                        <button class="btn-close" @onclick="() => _selectedLog = null">✕</button>
+                                    </div>
+                                </div>
+                                <div class="modal-body">
+                                    @if (!string.IsNullOrEmpty(_logError))
+                                    { <div class="alert alert-danger">@_logError</div> }
+                                    <ConsultationLogReadOnly Log="_selectedLog" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+
+                @* ════════════════════════════════
+                   TAB: HISTORIA CLÍNICA
+                   ════════════════════════════════ *@
+                @if (_tab == "records")
+                {
+                    @* Panel flotante de referencia (bitácora recién cerrada) *@
+                    @if (_referenceLog != null)
+                    {
+                        <div class="reference-log-panel">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                                <div style="font-weight:700;font-size:.92rem;color:var(--color-primary)">
+                                    📋 Bitácora de referencia — @_referenceLog.OpenedAt.ToLocalTime().ToString("dd/MM/yyyy")
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center">
+                                    <button class="btn btn-ghost btn-sm"
+                                            @onclick="() => _refCollapsed = !_refCollapsed">
+                                        @(_refCollapsed ? "▼ Expandir" : "▲ Colapsar")
+                                    </button>
+                                    <button class="btn-close" style="font-size:1rem"
+                                            @onclick="() => _referenceLog = null">✕</button>
+                                </div>
+                            </div>
+                            @if (!_refCollapsed)
+                            {
+                                <ConsultationLogReadOnly Log="_referenceLog" Compact="true" />
+                            }
+                        </div>
+                    }
+
+                    @* Botón agregar entrada (vet) *@
+                    @if (!IsOwner && !_showRecordForm)
+                    {
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+                            <button class="btn btn-primary btn-sm" @onclick="() => _showRecordForm = true">
+                                + Agregar entrada
+                            </button>
+                        </div>
+                    }
+
+                    @* Formulario inline para nueva entrada *@
+                    @if (_showRecordForm)
+                    {
+                        <div class="card" style="margin-bottom:20px">
+                            <div class="card-header">
+                                <span class="card-title">Nueva entrada en historia clínica</span>
+                                <button class="btn-close" @onclick="() => _showRecordForm = false">✕</button>
+                            </div>
+                            <div class="card-body">
+                                @if (!string.IsNullOrEmpty(_recordError))
+                                { <div class="alert alert-danger">@_recordError</div> }
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Fecha *</label>
+                                        <input type="date" class="form-control"
+                                               value="@_recDateStr"
+                                               max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                               @oninput="e => _recDateStr = e.Value?.ToString() ?? string.Empty" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Próxima visita</label>
+                                        <input type="date" class="form-control"
+                                               value="@_recNextStr"
+                                               @oninput="e => _recNextStr = e.Value?.ToString() ?? string.Empty" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Motivo *</label>
+                                    <input class="form-control" @bind="_rec.Reason"
+                                           placeholder="Motivo de la consulta" />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Diagnóstico *</label>
+                                    <input class="form-control" @bind="_rec.Diagnosis"
+                                           placeholder="Diagnóstico" />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tratamiento *</label>
+                                    <textarea class="form-control" rows="3" @bind="_rec.Treatment"
+                                              placeholder="Tratamiento indicado…"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Notas</label>
+                                    <textarea class="form-control" rows="2" @bind="_rec.Notes"
+                                              placeholder="Observaciones adicionales…"></textarea>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Peso (kg)</label>
+                                        <input type="number" step="0.1" min="0" class="form-control"
+                                               @bind="_rec.WeightKg" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Temperatura (°C)</label>
+                                        <input type="number" step="0.1" min="35" max="42" class="form-control"
+                                               @bind="_rec.TemperatureCelsius" />
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:10px;justify-content:flex-end">
+                                    <button class="btn btn-ghost" @onclick="() => _showRecordForm = false">Cancelar</button>
+                                    <button class="btn btn-primary" @onclick="SaveRecord" disabled="@_savingRecord">
+                                        @if (_savingRecord) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                                        else { <span>Guardar entrada</span> }
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @* Lista de entradas *@
+                    @if (_recordsLoading)
+                    {
+                        <LoadingSpinner Message="Cargando historia clínica…" />
+                    }
+                    else if (!_records.Any())
+                    {
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🏥</div>
+                            <div class="empty-state-title">Sin entradas</div>
+                            <div class="empty-state-sub">La historia clínica de @Patient.Name está vacía.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var r in _records)
+                        {
+                            <div class="record-entry">
+                                <div class="record-entry-header">
+                                    <div>
+                                        <span style="font-weight:700">@r.Date.ToLocalTime().ToString("dd/MM/yyyy")</span>
+                                        <span style="margin-left:10px;font-size:.85rem;color:var(--color-text-muted)">
+                                            Dr. @r.VeterinarianName
+                                        </span>
+                                    </div>
+                                    @if (r.NextVisitDate.HasValue)
+                                    {
+                                        <span style="font-size:.78rem;color:var(--color-primary)">
+                                            Próxima visita: @r.NextVisitDate.Value.ToString("dd/MM/yyyy")
+                                        </span>
+                                    }
+                                </div>
+                                <div class="record-entry-body">
+                                    <RecordField Label="Motivo"      Value="@r.Reason" />
+                                    <RecordField Label="Diagnóstico" Value="@r.Diagnosis" />
+                                    <RecordField Label="Tratamiento" Value="@r.Treatment" />
+                                    @if (!string.IsNullOrEmpty(r.Notes))
+                                    { <RecordField Label="Notas" Value="@r.Notes" /> }
+                                    @if (r.WeightKg.HasValue || r.TemperatureCelsius.HasValue)
+                                    {
+                                        <div style="display:flex;gap:20px;margin-top:6px">
+                                            @if (r.WeightKg.HasValue)
+                                            { <span style="font-size:.82rem"><strong>Peso:</strong> @r.WeightKg kg</span> }
+                                            @if (r.TemperatureCelsius.HasValue)
+                                            { <span style="font-size:.82rem"><strong>Temp:</strong> @r.TemperatureCelsius °C</span> }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                }
+
+            </div>@* fin scroll area *@
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool            Visible         { get; set; }
+    [Parameter] public PatientResponse? Patient         { get; set; }
+    [Parameter] public EventCallback   OnClose         { get; set; }
+    [Parameter] public EventCallback   OnPatientSaved  { get; set; }
+
+    // ── Roles ──────────────────────────────────────────────────
+    private bool IsOwner => Token.User?.Role?.Equals("Owner", StringComparison.OrdinalIgnoreCase) == true;
+
+    // ── Tab activa ──────────────────────────────────────────────
+    private string _tab = "data";
+
+    // ── Tab datos ──────────────────────────────────────────────
+    private UpdatePatientRequest _edit  = new();
+    private bool    _saving    = false;
+    private string? _dataError;
+
+    // ── Tab bitácoras ───────────────────────────────────────────
+    private List<ConsultationLogResponse>  _logs         = [];
+    private bool                           _logsLoading  = false;
+    private bool                           _showLogForm  = false;
+    private ConsultationLogResponse?       _editingLog;   // null = crear, non-null = editar
+    private ConsultationLogResponse?       _selectedLog;  // detalle abierto
+    private ConsultationLogResponse?       _closedLog;    // vista post-cierre
+    private bool                           _closingLog   = false;
+    private string?                        _logError;
+    private int                            _logCount;
+
+    // ── Tab historia clínica ────────────────────────────────────
+    private List<ClinicalRecordResponse>   _records        = [];
+    private bool                           _recordsLoading = false;
+    private bool                           _showRecordForm = false;
+    private bool                           _savingRecord   = false;
+    private string?                        _recordError;
+    private int                            _recordCount;
+    private CreateClinicalRecordRequest    _rec            = new();
+    private string                         _recDateStr     = DateTime.Today.ToString("yyyy-MM-dd");
+    private string                         _recNextStr     = "";
+    // Panel de referencia (bitácora recién cerrada pasada al tab de HC)
+    private ConsultationLogResponse?       _referenceLog;
+    private bool                           _refCollapsed   = false;
+
+    private bool _prevVisible;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Visible && Patient != null && !_prevVisible)
+        {
+            // Reinicia el estado al abrir con un paciente nuevo
+            _tab          = "data";
+            _closedLog    = null;
+            _referenceLog = null;
+            _refCollapsed = false;
+            _selectedLog  = null;
+            _showLogForm  = false;
+            _showRecordForm = false;
+            _dataError    = null;
+            _logError     = null;
+            _recordError  = null;
+
+            LoadEditForm();
+            await LoadLogsAsync();
+            await LoadRecordsAsync();
+        }
+        _prevVisible = Visible;
+    }
+
+    private void LoadEditForm()
+    {
+        if (Patient == null) return;
+        _edit = new UpdatePatientRequest
+        {
+            Name            = Patient.Name,
+            Breed           = Patient.Breed,
+            BirthDate       = Patient.BirthDate,
+            Sex             = Patient.Sex,
+            WeightKg        = Patient.WeightKg,
+            Color           = Patient.Color,
+            MicrochipNumber = Patient.MicrochipNumber
+        };
+    }
+
+    private async Task SwitchTab(string tab)
+    {
+        _tab = tab;
+        // Limpia el panel de referencia si el usuario sale del tab de HC manualmente
+        // (el panel solo desaparece al navegar FUERA del modal o al cerrarlo manualmente)
+    }
+
+    // ── Datos ───────────────────────────────────────────────────
+
+    private async Task SaveData()
+    {
+        _dataError = null;
+        if (string.IsNullOrWhiteSpace(_edit.Name) || string.IsNullOrWhiteSpace(_edit.Breed))
+        { _dataError = "Nombre y raza son obligatorios."; return; }
+        if (_edit.WeightKg <= 0)
+        { _dataError = "El peso debe ser mayor que cero."; return; }
+
+        _saving = true;
+        try
+        {
+            await PatientApi.UpdateAsync(Patient!.Id, _edit);
+            await OnPatientSaved.InvokeAsync();
+        }
+        catch (Exception ex) { _dataError = ex.Message; }
+        finally { _saving = false; }
+    }
+
+    private void HandleBirthDate(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var d))
+            _edit.BirthDate = d;
+    }
+
+    // ── Bitácoras ───────────────────────────────────────────────
+
+    private async Task LoadLogsAsync()
+    {
+        _logsLoading = true;
+        try
+        {
+            var result = await LogApi.ListAsync(Patient!.Id, pageSize: 50);
+            _logs      = result.Items.ToList();
+            _logCount  = result.TotalCount;
+        }
+        catch { _logs = []; }
+        finally { _logsLoading = false; }
+    }
+
+    private void OpenNewLogForm()
+    {
+        _editingLog  = null;
+        _showLogForm = true;
+    }
+
+    private void OpenEditLogForm(ConsultationLogResponse log)
+    {
+        _editingLog  = log;
+        _selectedLog = null;
+        _showLogForm = true;
+    }
+
+    private async Task OnLogSaved()
+    {
+        _showLogForm = false;
+        _editingLog  = null;
+        await LoadLogsAsync();
+    }
+
+    private void CancelLogForm()
+    {
+        _showLogForm = false;
+        _editingLog  = null;
+    }
+
+    private void SelectLog(ConsultationLogResponse log) => _selectedLog = log;
+
+    private async Task CloseLogAsync(ConsultationLogResponse log)
+    {
+        _closingLog = true;
+        _logError   = null;
+        try
+        {
+            var closed   = await LogApi.CloseAsync(Patient!.Id, log.Id);
+            _closedLog   = closed;
+            _selectedLog = null;
+            await LoadLogsAsync();
+        }
+        catch (Exception ex) { _logError = ex.Message; }
+        finally { _closingLog = false; }
+    }
+
+    // Lleva al tab de Historia Clínica con el panel de referencia activo
+    private void GoToRecordsWithReference()
+    {
+        _referenceLog = _closedLog;
+        _refCollapsed = false;
+        _closedLog    = null;
+        _tab          = "records";
+    }
+
+    // ── Historia clínica ────────────────────────────────────────
+
+    private async Task LoadRecordsAsync()
+    {
+        _recordsLoading = true;
+        try
+        {
+            var result  = await PatientApi.ListRecordsAsync(Patient!.Id, page: 1, pageSize: 50);
+            _records     = result?.Items?.ToList() ?? [];
+            _recordCount = result?.TotalCount ?? 0;
+        }
+        catch { _records = []; }
+        finally { _recordsLoading = false; }
+    }
+
+    private async Task SaveRecord()
+    {
+        _recordError = null;
+        if (string.IsNullOrWhiteSpace(_rec.Reason))
+        { _recordError = "El motivo es obligatorio."; return; }
+        if (string.IsNullOrWhiteSpace(_rec.Diagnosis))
+        { _recordError = "El diagnóstico es obligatorio."; return; }
+        if (string.IsNullOrWhiteSpace(_rec.Treatment))
+        { _recordError = "El tratamiento es obligatorio."; return; }
+
+        if (DateTime.TryParse(_recDateStr, out var d))  _rec.Date = d;
+        if (DateOnly.TryParseExact(_recNextStr, "yyyy-MM-dd", out var nv)) _rec.NextVisitDate = nv;
+
+        _savingRecord = true;
+        try
+        {
+            await PatientApi.AddRecordAsync(Patient!.Id, _rec);
+            _showRecordForm = false;
+            _rec = new();
+            _recDateStr = DateTime.Today.ToString("yyyy-MM-dd");
+            _recNextStr = "";
+            await LoadRecordsAsync();
+        }
+        catch (Exception ex) { _recordError = ex.Message; }
+        finally { _savingRecord = false; }
+    }
+
+    // ── Misc ────────────────────────────────────────────────────
+
+    private async Task Close()
+    {
+        _referenceLog = null;   // limpia el panel al cerrar el modal
+        await OnClose.InvokeAsync();
+    }
+
+    private static string AgeLabel(DateOnly birthDate)
+    {
+        var today  = DateOnly.FromDateTime(DateTime.Today);
+        var months = (today.Year - birthDate.Year) * 12 + (today.Month - birthDate.Month);
+        if (today.Day < birthDate.Day) months--;
+        months = Math.Max(0, months);
+        if (months < 12) return months == 1 ? "1 mes" : $"{months} meses";
+        var years = months / 12;
+        return years == 1 ? "1 año" : $"{years} años";
+    }
+}

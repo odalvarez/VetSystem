@@ -4,7 +4,7 @@
         <div class="patient-avatar">@GetSpeciesEmoji(Patient.Species)</div>
         <div>
             <div class="patient-name">@Patient.Name</div>
-            <div class="patient-meta">@Patient.Breed · @Patient.Species</div>
+            <div class="patient-meta">@Patient.Breed · @(string.IsNullOrEmpty(Patient.SpeciesName) ? Patient.Species : Patient.SpeciesName)</div>
         </div>
     </div>
     <div class="patient-details">
@@ -14,7 +14,7 @@
         </div>
         <div class="patient-detail-item">
             <span class="patient-detail-label">Sexo</span>
-            <span class="patient-detail-value">@Patient.Sex</span>
+            <span class="patient-detail-value">@SexLabel(Patient.Sex)</span>
         </div>
         <div class="patient-detail-item">
             <span class="patient-detail-label">Peso</span>
@@ -41,5 +41,12 @@
         "bird"   => "🦜",
         "rabbit" => "🐰",
         _        => "🐾"
+    };
+
+    private static string SexLabel(string sex) => sex.ToLowerInvariant() switch
+    {
+        "male"   => "Macho",
+        "female" => "Hembra",
+        _        => sex
     };
 }

@@ -3,8 +3,8 @@
 
 @if (Visible)
 {
-    <div class="modal-overlay" @onclick="HandleOverlayClick">
-        <div class="modal-box" @onclick:stopPropagation>
+    <div class="modal-overlay">
+        <div class="modal-box" tabindex="-1" @ref="_modalRef" @onkeydown="HandleKeyDown" @onclick:stopPropagation>
             <div class="modal-header">
                 <span class="modal-title">➕ Nuevo registro clínico — @PatientName</span>
                 <button class="btn-close" @onclick="Close">✕</button>
@@ -102,14 +102,16 @@
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private CreateClinicalRecordRequest _request        = new();
-    private string                       _dateStr        = DateTime.Today.ToString("yyyy-MM-dd");
-    private string                       _nextVisitStr   = "";
-    private string                       _todayStr       = DateTime.Today.ToString("yyyy-MM-dd");
+    private CreateClinicalRecordRequest _request         = new();
+    private string                       _dateStr         = DateTime.Today.ToString("yyyy-MM-dd");
+    private string                       _nextVisitStr    = "";
+    private string                       _todayStr        = DateTime.Today.ToString("yyyy-MM-dd");
     private string                       _minNextVisitStr = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
+    private ElementReference             _modalRef;
     private bool                         _submitted;
     private bool                         _saving;
     private string?                      _error;
+    private bool                         _prevVisible;
 
     // Resetea el formulario cada vez que el modal se abre
     protected override void OnParametersSet()
@@ -159,6 +161,15 @@
 
     private async Task Close() => await OnClose.InvokeAsync();
 
-    // Cerrar al hacer clic en el fondo oscuro
-    private async Task HandleOverlayClick() => await Close();
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") await Close();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Visible && !_prevVisible)
+            await _modalRef.FocusAsync();
+        _prevVisible = Visible;
+    }
 }

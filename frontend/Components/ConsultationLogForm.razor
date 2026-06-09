@@ -1,0 +1,253 @@
+@* Formulario para crear o editar una bitácora de consulta.
+   Si Log es null se crea una nueva; si no, se edita la existente. *@
+@inject ConsultationLogApiClient LogApi
+
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">@(Log == null ? "Nueva bitácora" : "Editar bitácora")</span>
+        <button class="btn-close" @onclick="OnCancel">✕</button>
+    </div>
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(_error))
+        { <div class="alert alert-danger">@_error</div> }
+
+        @* ── Motivo (obligatorio) ── *@
+        <div class="form-group">
+            <label class="form-label">Motivo de consulta *</label>
+            <input class="form-control @(_submitted && string.IsNullOrWhiteSpace(_req.ReasonForVisit) ? "invalid" : "")"
+                   @bind="_req.ReasonForVisit"
+                   placeholder="Motivo principal de la consulta" />
+            @if (_submitted && string.IsNullOrWhiteSpace(_req.ReasonForVisit))
+            { <div class="validation-message">Campo obligatorio.</div> }
+        </div>
+
+        @* ── Anamnesis ── *@
+        <div class="form-group">
+            <label class="form-label">Anamnesis</label>
+            <textarea class="form-control" rows="3" @bind="_req.Anamnesis"
+                      placeholder="Historia clínica previa, síntomas referidos por el propietario…"></textarea>
+        </div>
+
+        @* ── Exploración física (colapsable) ── *@
+        <div style="margin-bottom:16px">
+            <button type="button" class="btn btn-ghost btn-sm"
+                    style="padding:6px 0;font-weight:600;width:100%;text-align:left;display:flex;align-items:center;gap:6px"
+                    @onclick="() => _showPhysical = !_showPhysical">
+                @(_showPhysical ? "▼" : "▶") Exploración física
+            </button>
+            @if (_showPhysical)
+            {
+                <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Frecuencia cardíaca</label>
+                            <input class="form-control" @bind="_req.HeartRate" placeholder="ej. 72 lpm" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Frecuencia respiratoria</label>
+                            <input class="form-control" @bind="_req.RespiratoryRate" placeholder="ej. 18 rpm" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Condición corporal</label>
+                            <input class="form-control" @bind="_req.BodyCondition" placeholder="ej. 3/5" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Estado de mucosas</label>
+                            <input class="form-control" @bind="_req.MucousMembranes" placeholder="ej. Rosadas, húmedas" />
+                        </div>
+                    </div>
+                    <div class="form-group" style="max-width:50%">
+                        <label class="form-label">Hidratación</label>
+                        <input class="form-control" @bind="_req.Hydration" placeholder="ej. Normal" />
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* ── Peso y temperatura ── *@
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Peso (kg)</label>
+                <input type="number" step="0.01" min="0" class="form-control" @bind="_req.WeightKg" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Temperatura (°C)</label>
+                <input type="number" step="0.1" min="35" max="42" class="form-control"
+                       @bind="_req.TemperatureCelsius" />
+            </div>
+        </div>
+
+        @* ── Exámenes ── *@
+        <div style="margin-bottom:16px">
+            <button type="button" class="btn btn-ghost btn-sm"
+                    style="padding:6px 0;font-weight:600;width:100%;text-align:left;display:flex;align-items:center;gap:6px"
+                    @onclick="() => _showTests = !_showTests">
+                @(_showTests ? "▼" : "▶") Exámenes
+            </button>
+            @if (_showTests)
+            {
+                <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
+                    <div class="form-group">
+                        <label class="form-label">Exámenes solicitados</label>
+                        <textarea class="form-control" rows="2" @bind="_req.RequestedTests"
+                                  placeholder="Hemograma, bioquímica, radiografías…"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Resultados de exámenes</label>
+                        <textarea class="form-control" rows="2" @bind="_req.TestResults"
+                                  placeholder="Resultados obtenidos…"></textarea>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* ── Diagnóstico y pronóstico ── *@
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Diagnóstico</label>
+                <textarea class="form-control" rows="2" @bind="_req.Diagnosis"
+                          placeholder="Diagnóstico presuntivo o definitivo…"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Pronóstico</label>
+                <textarea class="form-control" rows="2" @bind="_req.Prognosis"
+                          placeholder="Pronóstico del caso…"></textarea>
+            </div>
+        </div>
+
+        @* ── Planes ── *@
+        <div style="margin-bottom:16px">
+            <button type="button" class="btn btn-ghost btn-sm"
+                    style="padding:6px 0;font-weight:600;width:100%;text-align:left;display:flex;align-items:center;gap:6px"
+                    @onclick="() => _showPlans = !_showPlans">
+                @(_showPlans ? "▼" : "▶") Planes
+            </button>
+            @if (_showPlans)
+            {
+                <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
+                    <div class="form-group">
+                        <label class="form-label">Plan terapéutico (medicamentos y tratamiento)</label>
+                        <textarea class="form-control" rows="3" @bind="_req.TherapeuticPlan"
+                                  placeholder="Medicamentos, dosis, duración, tratamiento indicado…"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Plan diagnóstico</label>
+                        <textarea class="form-control" rows="2" @bind="_req.DiagnosticPlan"
+                                  placeholder="Estudios adicionales a realizar…"></textarea>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* ── Recomendaciones y próxima visita ── *@
+        <div class="form-group">
+            <label class="form-label">Recomendaciones</label>
+            <textarea class="form-control" rows="2" @bind="_req.Recommendations"
+                      placeholder="Cuidados en casa, dieta, ejercicio…"></textarea>
+        </div>
+        <div class="form-group" style="max-width:50%">
+            <label class="form-label">Próxima visita</label>
+            <input type="date" class="form-control"
+                   value="@_nextVisitStr"
+                   min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")"
+                   @oninput="e => _nextVisitStr = e.Value?.ToString() ?? string.Empty" />
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+            <button class="btn btn-ghost" @onclick="OnCancel" disabled="@_saving">Cancelar</button>
+            <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
+                @if (_saving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                else { <span>@(Log == null ? "Crear bitácora" : "Guardar cambios")</span> }
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public ConsultationLogResponse? Log       { get; set; }  // null = crear
+    [Parameter] public Guid                     PatientId { get; set; }
+    [Parameter] public EventCallback            OnSaved   { get; set; }
+    [Parameter] public EventCallback            OnCancel  { get; set; }
+
+    private CreateConsultationLogRequest _req = new();
+    private bool    _submitted    = false;
+    private bool    _saving       = false;
+    private string? _error;
+    private string  _nextVisitStr = "";
+    // Secciones colapsables
+    private bool _showPhysical = false;
+    private bool _showTests    = false;
+    private bool _showPlans    = false;
+
+    protected override void OnParametersSet()
+    {
+        if (Log != null)
+        {
+            // Precarga los campos al editar
+            _req = new CreateConsultationLogRequest
+            {
+                ReasonForVisit     = Log.ReasonForVisit,
+                Anamnesis          = Log.Anamnesis,
+                HeartRate          = Log.HeartRate,
+                RespiratoryRate    = Log.RespiratoryRate,
+                BodyCondition      = Log.BodyCondition,
+                MucousMembranes    = Log.MucousMembranes,
+                Hydration          = Log.Hydration,
+                WeightKg           = Log.WeightKg,
+                TemperatureCelsius = Log.TemperatureCelsius,
+                RequestedTests     = Log.RequestedTests,
+                TestResults        = Log.TestResults,
+                Diagnosis          = Log.Diagnosis,
+                Prognosis          = Log.Prognosis,
+                TherapeuticPlan    = Log.TherapeuticPlan,
+                DiagnosticPlan     = Log.DiagnosticPlan,
+                Recommendations    = Log.Recommendations,
+                NextVisitDate      = Log.NextVisitDate
+            };
+            _nextVisitStr = Log.NextVisitDate?.ToString("yyyy-MM-dd") ?? "";
+            // Abre las secciones que tienen datos
+            _showPhysical = Log.HeartRate != null || Log.RespiratoryRate != null
+                         || Log.BodyCondition != null || Log.MucousMembranes != null
+                         || Log.Hydration != null;
+            _showTests    = Log.RequestedTests != null || Log.TestResults != null;
+            _showPlans    = Log.TherapeuticPlan != null || Log.DiagnosticPlan != null;
+        }
+        else
+        {
+            _req          = new();
+            _nextVisitStr = "";
+            _showPhysical = false;
+            _showTests    = false;
+            _showPlans    = false;
+        }
+        _submitted = false;
+        _error     = null;
+    }
+
+    private async Task Save()
+    {
+        _submitted = true;
+        if (string.IsNullOrWhiteSpace(_req.ReasonForVisit)) return;
+
+        if (DateOnly.TryParseExact(_nextVisitStr, "yyyy-MM-dd", out var nv))
+            _req.NextVisitDate = nv;
+        else
+            _req.NextVisitDate = null;
+
+        _saving = true;
+        _error  = null;
+        try
+        {
+            if (Log == null)
+                await LogApi.CreateAsync(PatientId, _req);
+            else
+                await LogApi.UpdateAsync(PatientId, Log.Id, _req);
+
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _saving = false; }
+    }
+}

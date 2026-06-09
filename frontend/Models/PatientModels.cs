@@ -21,6 +21,7 @@ public class PatientResponse
     public Guid     Id              { get; set; }
     public string   Name            { get; set; } = "";
     public string   Species         { get; set; } = "";
+    public string   SpeciesName     { get; set; } = "";
     public string   Breed           { get; set; } = "";
     public string?  Color           { get; set; }
     public string   Sex             { get; set; } = "";
@@ -33,6 +34,17 @@ public class PatientResponse
     public string   OwnerPhone      { get; set; } = "";
     public DateTime CreatedAt       { get; set; }
     public DateTime UpdatedAt       { get; set; }
+}
+
+public class UpdatePatientRequest
+{
+    public string   Name            { get; set; } = "";
+    public string   Breed           { get; set; } = "";
+    public DateOnly BirthDate       { get; set; }
+    public string   Sex             { get; set; } = "";
+    public decimal  WeightKg        { get; set; }
+    public string?  Color           { get; set; }
+    public string?  MicrochipNumber { get; set; }
 }
 
 public class CreateClinicalRecordRequest
