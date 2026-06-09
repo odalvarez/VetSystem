@@ -9,25 +9,33 @@ namespace PatientsService.Application.Services;
 public class PatientAppService
 {
     private readonly IPatientRepository _repo;
+    private readonly ISpeciesRepository _speciesRepo;
 
-    public PatientAppService(IPatientRepository repo) => _repo = repo;
+    public PatientAppService(IPatientRepository repo, ISpeciesRepository speciesRepo)
+    {
+        _repo        = repo;
+        _speciesRepo = speciesRepo;
+    }
 
     public async Task<PatientResponse> CreateAsync(
         CreatePatientRequest req, Guid ownerId, string ownerName, string ownerPhone, CancellationToken ct)
     {
-        if (!Enum.TryParse<Species>(req.Species, ignoreCase: true, out var species))
-            throw new ValidationException("Especie no válida.");
+        var slug = req.Species.Trim().ToLowerInvariant();
+
+        // Valida que el slug exista en la tabla de especies administrada
+        var species = await _speciesRepo.GetBySlugAsync(slug, ct)
+            ?? throw new ValidationException($"Especie '{req.Species}' no válida.");
 
         if (!Enum.TryParse<Sex>(req.Sex, ignoreCase: true, out var sex))
             throw new ValidationException("Sexo no válido.");
 
         var patient = Patient.Create(
-            req.Name, species, req.Breed, req.BirthDate, sex, req.WeightKg,
+            req.Name, slug, req.Breed, req.BirthDate, sex, req.WeightKg,
             ownerId, ownerName, ownerPhone, req.Color, req.MicrochipNumber);
 
         await _repo.AddAsync(patient, ct);
         await _repo.SaveChangesAsync(ct);
-        return Map(patient);
+        return Map(patient, species.Name);
     }
 
     public async Task<PagedResponse<PatientResponse>> ListAsync(
@@ -36,9 +44,14 @@ public class PatientAppService
     {
         pageSize = Math.Min(pageSize, 100);
         var (data, total) = await _repo.ListAsync(callerOwnerId, species, search, page, pageSize, ct);
+
+        // Carga todas las especies una sola vez para resolver nombres sin N+1 queries
+        var speciesList = await _speciesRepo.ListActiveAsync(ct);
+        var speciesDict = speciesList.ToDictionary(s => s.Slug, s => s.Name);
+
         return new PagedResponse<PatientResponse>
         {
-            Items      = data.Select(Map),
+            Items      = data.Select(p => Map(p, speciesDict.GetValueOrDefault(p.Species, p.Species))),
             TotalCount = total,
             Page       = page,
             PageSize   = pageSize
@@ -53,7 +66,8 @@ public class PatientAppService
         if (callerOwnerId.HasValue && patient.OwnerId != callerOwnerId.Value)
             throw new ForbiddenException("No tiene permiso para ver esta mascota.");
 
-        return Map(patient);
+        var species = await _speciesRepo.GetBySlugAsync(patient.Species, ct);
+        return Map(patient, species?.Name ?? patient.Species);
     }
 
     public async Task<PatientResponse> UpdateAsync(
@@ -71,7 +85,9 @@ public class PatientAppService
         patient.Update(req.Name, req.Breed, req.BirthDate, sex, req.WeightKg, req.Color, req.MicrochipNumber);
         await _repo.UpdateAsync(patient, ct);
         await _repo.SaveChangesAsync(ct);
-        return Map(patient);
+
+        var species = await _speciesRepo.GetBySlugAsync(patient.Species, ct);
+        return Map(patient, species?.Name ?? patient.Species);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
@@ -131,14 +147,14 @@ public class PatientAppService
         return MapRecord(record);
     }
 
-    private static PatientResponse Map(Patient p) => new()
+    private static PatientResponse Map(Patient p, string speciesName) => new()
     {
         Id              = p.Id,
         Name            = p.Name,
-        Species         = p.Species.ToString().ToLowerInvariant(),
+        Species         = p.Species,
+        SpeciesName     = speciesName,
         Breed           = p.Breed,
         BirthDate       = p.BirthDate,
-        // Calculamos la edad al vuelo para no almacenarla en BD
         AgeYears        = CalcAge(p.BirthDate),
         Sex             = p.Sex.ToString().ToLowerInvariant(),
         WeightKg        = p.Weight,

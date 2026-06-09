@@ -7,7 +7,8 @@ public class Patient
 {
     public Guid      Id              { get; private set; }
     public string    Name            { get; private set; } = default!;
-    public Species   Species         { get; private set; }
+    /// Slug de la especie, ej. "dog", "cat" — referencia lógica a la tabla Species
+    public string    Species         { get; private set; } = default!;
     public string    Breed           { get; private set; } = default!;
     public DateOnly  BirthDate       { get; private set; }
     public Sex       Sex             { get; private set; }
@@ -20,12 +21,13 @@ public class Patient
     public DateTime  CreatedAt       { get; private set; }
     public DateTime  UpdatedAt       { get; private set; }
 
-    public ICollection<ClinicalRecord> ClinicalRecords { get; private set; } = new List<ClinicalRecord>();
+    public ICollection<ClinicalRecord>   ClinicalRecords   { get; private set; } = new List<ClinicalRecord>();
+    public ICollection<ConsultationLog>  ConsultationLogs  { get; private set; } = new List<ConsultationLog>();
 
     private Patient() { }
 
     public static Patient Create(
-        string name, Species species, string breed,
+        string name, string species, string breed,
         DateOnly birthDate, Sex sex, decimal weight,
         Guid ownerId, string ownerName, string ownerPhone = "",
         string? color = null, string? microchipNumber = null)
