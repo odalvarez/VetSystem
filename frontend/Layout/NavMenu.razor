@@ -2,19 +2,42 @@
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthState
 @inject AuthApiClient AuthApi
+@implements IDisposable
 
-<aside class="sidebar">
+@* Botón hamburger — solo visible en móvil (ver CSS media query) *@
+<button class="nav-toggle" @onclick="ToggleNav" aria-label="Abrir menú">
+    @(_navOpen ? "✕" : "☰")
+</button>
+
+@* Overlay oscuro que cierra el sidebar al tocar fuera *@
+@if (_navOpen)
+{
+    <div class="sidebar-overlay" @onclick="ToggleNav"></div>
+}
+
+<aside class="sidebar @(_navOpen ? "open" : "")">
     <div class="sidebar-brand">
-        <div class="sidebar-brand-name">🏥 VetSystem</div>
-        <div class="sidebar-brand-sub">Sistema veterinario</div>
+        <a class="sidebar-brand-link" href="@_homeUrl">
+            <div class="sidebar-brand-name">🏥 VetSystem</div>
+            <div class="sidebar-brand-sub">Sistema veterinario</div>
+        </a>
     </div>
 
     <nav class="sidebar-nav">
-        @if (_isVet)
+        @if (_isAdmin)
+        {
+            <div class="nav-section-label">Administración</div>
+            <NavLink class="nav-item" href="/admin" Match="NavLinkMatch.All" ActiveClass="active">
+                <span class="nav-icon">⚙️</span> Panel de administración
+            </NavLink>
+            <NavLink class="nav-item" href="/notifications" ActiveClass="active">
+                <span class="nav-icon">🔔</span> Notificaciones
+            </NavLink>
+        }
+        else if (_isVet)
         {
             <div class="nav-section-label">Veterinario</div>
-            <NavLink class="nav-item" href="/vet-dashboard" Match="NavLinkMatch.All"
-                     ActiveClass="active">
+            <NavLink class="nav-item" href="/vet-dashboard" Match="NavLinkMatch.All" ActiveClass="active">
                 <span class="nav-icon">🩺</span> Panel de control
             </NavLink>
             <NavLink class="nav-item" href="/notifications" ActiveClass="active">
@@ -24,8 +47,7 @@
         else
         {
             <div class="nav-section-label">Propietario</div>
-            <NavLink class="nav-item" href="/owner-portal" Match="NavLinkMatch.All"
-                     ActiveClass="active">
+            <NavLink class="nav-item" href="/owner-portal" Match="NavLinkMatch.All" ActiveClass="active">
                 <span class="nav-icon">🐾</span> Mis mascotas
             </NavLink>
             <NavLink class="nav-item" href="/notifications" ActiveClass="active">
@@ -39,7 +61,7 @@
             <div class="sidebar-avatar">@_initials</div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name">@Token.User?.FullName</div>
-                <div class="sidebar-user-role">@(_isVet ? "Veterinario" : "Propietario")</div>
+                <div class="sidebar-user-role">@_roleLabel</div>
             </div>
         </div>
         <button class="btn btn-ghost btn-sm btn-block" style="color:var(--color-sidebar-text)"
@@ -50,28 +72,51 @@
 </aside>
 
 @code {
-    private bool _isVet;
-    private string _initials = "?";
+    private bool   _isVet;
+    private bool   _isAdmin;
+    private string _initials  = "?";
+    private string _homeUrl   = "/";
+    private string _roleLabel = "";
+    private bool   _navOpen   = false;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
-        _isVet = state.User.IsInRole("Veterinarian");
+        _isVet   = state.User.IsInRole("Veterinarian");
+        _isAdmin = state.User.IsInRole("Admin");
 
-        var name = Token.User?.FullName ?? "";
+        _homeUrl   = _isAdmin ? "/admin" : _isVet ? "/vet-dashboard" : "/owner-portal";
+        _roleLabel = _isAdmin ? "Administrador" : _isVet ? "Veterinario" : "Propietario";
+
+        var name  = Token.User?.FullName ?? "";
         var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         _initials = parts.Length >= 2
             ? $"{parts[0][0]}{parts[1][0]}"
             : name.Length > 0 ? name[..1] : "?";
 
-        Token.OnChange += StateHasChanged;
+        Token.OnChange  += StateHasChanged;
+        // Cierra el sidebar automáticamente al navegar (útil en móvil)
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void ToggleNav() => _navOpen = !_navOpen;
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _navOpen = false;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task Logout()
     {
-        // Primero le decimos al servidor que borre la cookie httpOnly
         await AuthApi.LogoutAsync();
         Token.ClearSession();
         Nav.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        Token.OnChange      -= StateHasChanged;
+        Nav.LocationChanged -= OnLocationChanged;
     }
 }
