@@ -42,6 +42,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime         = true,
             ClockSkew                = TimeSpan.Zero
         };
+        // Usa el validador clásico JwtSecurityTokenHandler; el nuevo JsonWebTokenHandler
+        // en .NET 9 tiene un bug con tokens generados por JwtSecurityTokenHandler
+        opt.UseSecurityTokenValidators = true;
         // El JWT llega en la cookie httpOnly; el header Authorization no se usa desde el navegador
         opt.Events = new JwtBearerEvents
         {
@@ -78,8 +81,22 @@ var app = builder.Build();
 // Aplicar migraciones pendientes al arrancar; EF las omite si ya están aplicadas
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-    await db.Database.MigrateAsync();
+    var db      = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+    var hasher  = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+    await MigrateWithRetryAsync(db.Database);
+
+    // Crea el admin inicial si no existe ningún usuario con rol Admin
+    var adminEmail = app.Configuration["AdminSeed:Email"]    ?? "vet@vetsystem.com";
+    var adminPwd   = app.Configuration["AdminSeed:Password"] ?? "Admin1234!";
+    if (!await db.Users.AnyAsync(u => u.Role == AuthService.Domain.Enums.UserRole.Admin))
+    {
+        var adminUser = AuthService.Domain.Entities.User.Create(
+            "Administrador", "VetSystem",
+            adminEmail, hasher.Hash(adminPwd),
+            "", AuthService.Domain.Enums.UserRole.Admin);
+        await db.Users.AddAsync(adminUser);
+        await db.SaveChangesAsync();
+    }
 }
 
 app.UseCors();
@@ -93,3 +110,14 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+static async Task MigrateWithRetryAsync(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade database)
+{
+    for (int attempt = 1; attempt <= 3; attempt++)
+    {
+        try { await database.MigrateAsync(); return; }
+        catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 1801 && attempt < 3)
+        { await Task.Delay(TimeSpan.FromSeconds(attempt * 2)); }
+    }
+    await database.MigrateAsync();
+}

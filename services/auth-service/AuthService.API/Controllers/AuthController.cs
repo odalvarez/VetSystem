@@ -87,11 +87,84 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("owners")]
-    [Authorize(Roles = "Veterinarian")]
+    [Authorize(Roles = "Veterinarian,Admin")]
     public async Task<IActionResult> GetOwners(CancellationToken ct)
     {
         var result = await _auth.ListOwnersAsync(ct);
         return Ok(result);
+    }
+
+    // Cualquier usuario autenticado puede ver la lista de vets para agendar citas
+    [HttpGet("veterinarians")]
+    [Authorize]
+    public async Task<IActionResult> GetVeterinarians(CancellationToken ct)
+    {
+        var result = await _auth.ListVeterinariansAsync(ct);
+        return Ok(result);
+    }
+
+    // ── Admin endpoints ───────────────────────────────────────────────────────────
+
+    [HttpGet("admin/users")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminListUsers(
+        [FromQuery] string? role     = null,
+        [FromQuery] string? search   = null,
+        [FromQuery] bool?   isActive = null,
+        [FromQuery] int     page     = 1,
+        [FromQuery] int     pageSize = 15,
+        CancellationToken ct = default)
+    {
+        var result = await _auth.AdminListUsersAsync(role, search, isActive, page, pageSize, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("admin/users/{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminGetUser(Guid id, CancellationToken ct)
+    {
+        var result = await _auth.AdminGetUserAsync(id, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("admin/users")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminCreateUser(
+        [FromBody] AdminCreateUserRequest req, CancellationToken ct)
+    {
+        var result = await _auth.AdminCreateUserAsync(req, ct);
+        return CreatedAtAction(nameof(AdminGetUser), new { id = result.Id }, result);
+    }
+
+    [HttpPut("admin/users/{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminUpdateUser(
+        Guid id, [FromBody] AdminUpdateUserRequest req, CancellationToken ct)
+    {
+        var result = await _auth.AdminUpdateUserAsync(id, req, ct);
+        return Ok(result);
+    }
+
+    [HttpPatch("admin/users/{id:guid}/active")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminSetActive(
+        Guid id, [FromQuery] bool value, CancellationToken ct)
+    {
+        // El admin no puede desactivarse a sí mismo
+        if (id == GetCurrentUserId())
+            return BadRequest(new { detail = "No puedes desactivar tu propia cuenta." });
+
+        await _auth.AdminSetActiveAsync(id, value, ct);
+        return NoContent();
+    }
+
+    [HttpPost("admin/users/{id:guid}/reset-password")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminResetPassword(
+        Guid id, [FromBody] AdminResetPasswordRequest req, CancellationToken ct)
+    {
+        await _auth.AdminResetPasswordAsync(id, req.NewPassword, ct);
+        return NoContent();
     }
 
     private Guid GetCurrentUserId()

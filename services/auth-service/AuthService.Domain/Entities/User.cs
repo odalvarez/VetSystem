@@ -11,7 +11,8 @@ public class User
     public string Email { get; private set; } = default!;
     public string PasswordHash { get; private set; } = default!;
     public string Phone { get; private set; } = default!;
-    public UserRole Role { get; private set; }
+    public UserRole Role     { get; private set; }
+    public bool     IsActive { get; private set; } = true;
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
@@ -30,15 +31,16 @@ public class User
 
         return new User
         {
-            Id = Guid.NewGuid(),
-            FirstName = firstName.Trim(),
-            LastName = lastName.Trim(),
-            Email = email.Trim().ToLowerInvariant(),
+            Id           = Guid.NewGuid(),
+            FirstName    = firstName.Trim(),
+            LastName     = lastName.Trim(),
+            Email        = email.Trim().ToLowerInvariant(),
             PasswordHash = passwordHash,
-            Phone = phone.Trim(),
-            Role = role,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            Phone        = phone.Trim(),
+            Role         = role,
+            IsActive     = true,
+            CreatedAt    = DateTime.UtcNow,
+            UpdatedAt    = DateTime.UtcNow
         };
     }
 
@@ -56,6 +58,27 @@ public class User
             throw new DomainException("El nuevo hash de contraseña es obligatorio.");
 
         PasswordHash = newPasswordHash;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetActive(bool active)
+    {
+        IsActive  = active;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetRole(UserRole role)
+    {
+        Role      = role;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void AdminUpdate(string firstName, string lastName, string phone, UserRole role)
+    {
+        FirstName = firstName.Trim();
+        LastName  = lastName.Trim();
+        Phone     = phone.Trim();
+        Role      = role;
         UpdatedAt = DateTime.UtcNow;
     }
 
