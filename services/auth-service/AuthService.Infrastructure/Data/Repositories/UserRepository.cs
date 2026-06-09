@@ -1,5 +1,6 @@
 using AuthService.Application.Interfaces;
 using AuthService.Domain.Entities;
+using AuthService.Domain.Enums;
 using AuthService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,9 @@ public class UserRepository : IUserRepository
 
     public Task<bool> EmailExistsAsync(string email, CancellationToken ct) =>
         _db.Users.AnyAsync(u => u.Email == email.ToLowerInvariant(), ct);
+
+    public async Task<IEnumerable<User>> ListByRoleAsync(UserRole role, CancellationToken ct) =>
+        await _db.Users.Where(u => u.Role == role).OrderBy(u => u.LastName).ToListAsync(ct);
 
     public async Task AddAsync(User user, CancellationToken ct) =>
         await _db.Users.AddAsync(user, ct);

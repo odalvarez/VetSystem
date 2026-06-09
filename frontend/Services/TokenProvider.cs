@@ -2,30 +2,26 @@ using VetSystem.Frontend.Models;
 
 namespace VetSystem.Frontend.Services;
 
-// El token vive solo en memoria: si el usuario cierra la pestaña, pierde la sesión.
-// Decisión consciente para no usar localStorage y evitar XSS sobre el token.
+// El JWT vive en la cookie httpOnly del navegador; este proveedor solo guarda
+// la info del usuario en memoria para que la UI sepa el nombre, rol, etc.
 public class TokenProvider
 {
-    private string?      _token;
     private LoginUserInfo? _user;
 
     public event Action? OnChange;
 
-    public string? Token => _token;
-    public LoginUserInfo? User => _user;
-    public bool IsAuthenticated => !string.IsNullOrEmpty(_token);
+    public LoginUserInfo? User            => _user;
+    public bool           IsAuthenticated => _user is not null;
 
-    public void SetSession(string token, LoginUserInfo user)
+    public void SetSession(LoginUserInfo user)
     {
-        _token = token;
-        _user  = user;
+        _user = user;
         OnChange?.Invoke();
     }
 
     public void ClearSession()
     {
-        _token = null;
-        _user  = null;
+        _user = null;
         OnChange?.Invoke();
     }
 }

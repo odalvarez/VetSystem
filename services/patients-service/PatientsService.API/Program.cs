@@ -11,6 +11,12 @@ using PatientsService.Infrastructure.Data.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
+
+builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
+    p.WithOrigins("http://localhost", "https://localhost")
+     .AllowAnyHeader()
+     .AllowAnyMethod()));
 
 builder.Services.AddDbContext<PatientsDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
@@ -33,6 +39,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew                = TimeSpan.Zero,
             RoleClaimType            = System.Security.Claims.ClaimTypes.Role
         };
+        opt.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                ctx.Token = ctx.Request.Cookies["vetsys_jwt"];
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -42,9 +56,17 @@ builder.Services.AddScoped<PatientAppService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PatientsDbContext>();
+    await db.Database.MigrateAsync();
+}
+
+app.UseCors();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

@@ -10,7 +10,7 @@ public class AuthApiClient
 
     public AuthApiClient(HttpClient http) => _http = http;
 
-    public async Task<LoginResponse> LoginAsync(LoginRequest req)
+    public async Task<LoginUserInfo> LoginAsync(LoginRequest req)
     {
         var res = await _http.PostAsJsonAsync("api/auth/login", req);
 
@@ -18,7 +18,16 @@ public class AuthApiClient
             throw new HttpRequestException("Unauthorized", null, HttpStatusCode.Unauthorized);
 
         res.EnsureSuccessStatusCode();
-        return (await res.Content.ReadFromJsonAsync<LoginResponse>())!;
+
+        var body = (await res.Content.ReadFromJsonAsync<LoginResponse>())!;
+        return body.User;
+    }
+
+    public async Task LogoutAsync()
+    {
+        // El servidor borra la cookie httpOnly; el cliente nunca tuvo acceso al token
+        try { await _http.PostAsync("api/auth/logout", null); }
+        catch { /* logout best-effort: si falla el servidor, la cookie expira sola */ }
     }
 
     public async Task RegisterAsync(RegisterRequest req)
@@ -35,9 +44,17 @@ public class AuthApiClient
         }
     }
 
+    // Verifica si la cookie sigue siendo válida y devuelve el perfil del usuario
     public async Task<UserProfile?> GetProfileAsync()
     {
         try { return await _http.GetFromJsonAsync<UserProfile>("api/auth/me"); }
         catch { return null; }
+    }
+
+    // Solo disponible para veterinarios; permite seleccionar el dueño al registrar una mascota
+    public async Task<List<OwnerSummary>> GetOwnersAsync()
+    {
+        try { return await _http.GetFromJsonAsync<List<OwnerSummary>>("api/auth/owners") ?? []; }
+        catch { return []; }
     }
 }

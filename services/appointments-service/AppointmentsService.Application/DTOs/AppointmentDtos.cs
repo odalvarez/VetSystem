@@ -67,8 +67,8 @@ public class TimeSlot
 
 public class PagedResponse<T>
 {
-    public IEnumerable<T> Data     { get; set; } = default!;
-    public int            Total    { get; set; }
-    public int            Page     { get; set; }
-    public int            PageSize { get; set; }
+    public IEnumerable<T> Items      { get; set; } = default!;
+    public int            TotalCount { get; set; }
+    public int            Page       { get; set; }
+    public int            PageSize   { get; set; }
 }

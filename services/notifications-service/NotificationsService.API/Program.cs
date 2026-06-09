@@ -12,6 +12,12 @@ using NotificationsService.Infrastructure.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
+
+builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
+    p.WithOrigins("http://localhost", "https://localhost")
+     .AllowAnyHeader()
+     .AllowAnyMethod()));
 
 builder.Services.AddDbContext<NotificationsDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
@@ -33,6 +39,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime         = true,
             ClockSkew                = TimeSpan.Zero
         };
+        opt.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                ctx.Token = ctx.Request.Cookies["vetsys_jwt"];
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -47,10 +61,21 @@ builder.Services.AddHostedService<NotificationsService.API.ReminderWorker>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>();
+    await db.Database.MigrateAsync();
+}
+
+// InternalKeyMiddleware debe estar antes de Authentication para rechazar temprano
+app.UseCors();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<InternalKeyMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// El healthcheck se expone sin autenticación para que Docker pueda chequearlo
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();

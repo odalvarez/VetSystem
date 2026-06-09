@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject TokenProvider Token
+@implements IDisposable
 
 @* Si el usuario está autenticado renderizamos el layout con sidebar.
    Las páginas públicas (login, register) se renderizan solas sin sidebar. *@
@@ -15,4 +16,17 @@
 else
 {
     @Body
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Sin esto el layout no se re-renderiza cuando el usuario hace login o logout
+        Token.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Token.OnChange -= StateHasChanged;
+    }
 }

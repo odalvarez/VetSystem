@@ -1,9 +1,10 @@
 @page "/vet-dashboard"
-@attribute [Authorize(Roles = "Veterinarian")]
+@attribute [Authorize]
 
 @inject PatientApiClient     PatientApi
 @inject AppointmentApiClient AppointmentApi
 @inject NavigationManager    Nav
+@inject TokenProvider        Token
 
 <PageTitle>Panel veterinario — VetSystem</PageTitle>
 
@@ -40,6 +41,9 @@
         <div class="card" style="margin-bottom:28px">
             <div class="card-header">
                 <span class="card-title">Pacientes</span>
+                <button class="btn btn-primary btn-sm" @onclick="OpenVetPatientModal">
+                    + Registrar mascota
+                </button>
                 <div class="filters-bar" style="margin-bottom:0">
                     <div class="search-input" style="min-width:180px">
                         <span class="search-icon">🔍</span>
@@ -145,6 +149,11 @@
     }
 </div>
 
+@* Modal para que el veterinario registre una nueva mascota *@
+<VetNewPatientModal Visible="_showVetPatientModal"
+                    OnSaved="EventCallback.Factory.Create(this, LoadPatients)"
+                    OnClose="EventCallback.Factory.Create(this, () => _showVetPatientModal = false)" />
+
 @* Modal para agregar registro clínico *@
 <ClinicalRecordModal Visible="_showRecordModal"
                      PatientId="_selectedPatientId"
@@ -178,16 +187,28 @@
     private DateTime? _fromFilter;
     private DateTime? _toFilter;
 
-    private bool   _showRecordModal;
-    private Guid   _selectedPatientId;
-    private string _selectedPatientName = "";
+    private bool    _showRecordModal;
+    private bool    _showVetPatientModal;
+    private Guid    _selectedPatientId;
+    private string  _selectedPatientName = "";
     private string? _toast;
 
     protected override async Task OnInitializedAsync()
     {
+        // [Authorize] garantiza que llegamos aquí autenticados;
+        // si el rol no es veterinario redirigimos al portal del propietario
+        var role = Token.User?.Role ?? "";
+        if (!role.Equals("Veterinarian", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("/owner-portal", replace: true);
+            return;
+        }
+
         await Task.WhenAll(LoadPatients(), LoadAppointments());
         _loading = false;
     }
+
+    private void OpenVetPatientModal() => _showVetPatientModal = true;
 
     private async Task LoadPatients()
     {

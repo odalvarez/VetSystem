@@ -16,6 +16,13 @@ public class InternalKeyMiddleware
 
     public async Task InvokeAsync(HttpContext ctx)
     {
+        // El healthcheck de Docker no puede enviar la clave interna, así que lo dejamos pasar
+        if (ctx.Request.Path.StartsWithSegments("/health"))
+        {
+            await _next(ctx);
+            return;
+        }
+
         if (!ctx.Request.Headers.TryGetValue("X-Internal-Key", out var key) || key != _expectedKey)
         {
             ctx.Response.StatusCode = 403;

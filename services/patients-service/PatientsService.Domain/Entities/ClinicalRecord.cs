@@ -11,6 +11,8 @@ public class ClinicalRecord
     public string    Diagnosis          { get; private set; } = default!;
     public string    Treatment          { get; private set; } = default!;
     public string?   Notes              { get; private set; }
+    public decimal?  WeightKg           { get; private set; }
+    public decimal?  TemperatureCelsius { get; private set; }
     public Guid      VeterinarianId     { get; private set; }
     public string    VeterinarianName   { get; private set; } = default!;
     public DateOnly? NextVisitDate      { get; private set; }
@@ -24,24 +26,27 @@ public class ClinicalRecord
         Guid patientId, DateTime date,
         string reason, string diagnosis, string treatment,
         string? notes, Guid veterinarianId, string veterinarianName,
-        DateOnly? nextVisitDate)
+        DateOnly? nextVisitDate,
+        decimal? weightKg = null, decimal? temperatureCelsius = null)
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new DomainException("El motivo de la consulta es obligatorio.");
 
         return new ClinicalRecord
         {
-            Id               = Guid.NewGuid(),
-            PatientId        = patientId,
-            Date             = date,
-            Reason           = reason.Trim(),
-            Diagnosis        = diagnosis.Trim(),
-            Treatment        = treatment.Trim(),
-            Notes            = notes?.Trim(),
-            VeterinarianId   = veterinarianId,
-            VeterinarianName = veterinarianName,
-            NextVisitDate    = nextVisitDate,
-            CreatedAt        = DateTime.UtcNow
+            Id                 = Guid.NewGuid(),
+            PatientId          = patientId,
+            Date               = date,
+            Reason             = reason.Trim(),
+            Diagnosis          = diagnosis.Trim(),
+            Treatment          = treatment.Trim(),
+            Notes              = notes?.Trim(),
+            WeightKg           = weightKg,
+            TemperatureCelsius = temperatureCelsius,
+            VeterinarianId     = veterinarianId,
+            VeterinarianName   = veterinarianName,
+            NextVisitDate      = nextVisitDate,
+            CreatedAt          = DateTime.UtcNow
         };
     }
 }

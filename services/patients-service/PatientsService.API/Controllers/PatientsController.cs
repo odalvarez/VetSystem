@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +17,32 @@ public class PatientsController : ControllerBase
     public PatientsController(PatientAppService svc) => _svc = svc;
 
     [HttpPost]
-    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> Create([FromBody] CreatePatientRequest req, CancellationToken ct)
     {
-        var (ownerId, ownerName) = GetCaller();
-        var result = await _svc.CreateAsync(req, ownerId, ownerName, ct);
+        Guid   ownerId;
+        string ownerName;
+        string ownerPhone;
+
+        if (IsOwner())
+        {
+            // El owner crea su propia mascota; los datos del dueño vienen del JWT
+            var caller = GetCaller();
+            ownerId    = caller.Id;
+            ownerName  = caller.Name;
+            ownerPhone = caller.Phone;
+        }
+        else
+        {
+            // El veterinario debe proveer el OwnerId del dueño en el request
+            if (req.OwnerId is null || string.IsNullOrWhiteSpace(req.OwnerName))
+                return BadRequest(new { detail = "El veterinario debe indicar OwnerId y OwnerName al registrar una mascota." });
+
+            ownerId    = req.OwnerId.Value;
+            ownerName  = req.OwnerName;
+            ownerPhone = req.OwnerPhone ?? "";
+        }
+
+        var result = await _svc.CreateAsync(req, ownerId, ownerName, ownerPhone, ct);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
@@ -68,7 +90,7 @@ public class PatientsController : ControllerBase
     public async Task<IActionResult> AddRecord(
         Guid id, [FromBody] CreateClinicalRecordRequest req, CancellationToken ct)
     {
-        var (vetId, vetName) = GetCaller();
+        var (vetId, vetName, _) = GetCaller();
         var result = await _svc.AddRecordAsync(id, req, vetId, vetName, ct);
         return CreatedAtAction(nameof(GetRecord), new { id, recordId = result.Id }, result);
     }
@@ -96,11 +118,15 @@ public class PatientsController : ControllerBase
     private bool IsOwner() =>
         User.IsInRole("Owner");
 
-    private (Guid Id, string Name) GetCaller()
+    private (Guid Id, string Name, string Phone) GetCaller()
     {
-        var sub  = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")
+        var sub   = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")
             ?? throw new UnauthorizedAccessException("Token inválido.");
-        var name = User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue("email") ?? "Desconocido";
-        return (Guid.Parse(sub), name);
+        var name  = User.FindFirstValue(ClaimTypes.Name)
+                 ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Name)
+                 ?? User.FindFirstValue("email")
+                 ?? "Desconocido";
+        var phone = User.FindFirstValue("phone") ?? "";
+        return (Guid.Parse(sub), name, phone);
     }
 }

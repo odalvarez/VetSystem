@@ -16,14 +16,11 @@ public class RegisterRequest
     public string Role      { get; set; } = "Owner";
 }
 
+// El token no llega al frontend — está en la cookie httpOnly del navegador.
+// El backend solo devuelve { "user": { ... } }.
 public class LoginResponse
 {
-    // El backend devuelve "accessToken"; Token es el alias que usamos internamente
-    public string        AccessToken { get; set; } = "";
-    public string        Token       => AccessToken;
-    public int           ExpiresIn   { get; set; }
-    public string        TokenType   { get; set; } = "Bearer";
-    public LoginUserInfo User        { get; set; } = new();
+    public LoginUserInfo User { get; set; } = new();
 }
 
 public class LoginUserInfo
@@ -32,7 +29,14 @@ public class LoginUserInfo
     public string Email    { get; set; } = "";
     public string FullName { get; set; } = "";
     public string Role     { get; set; } = "";
-    // El teléfono no llega en el login response; se puede completar desde GetProfile si hace falta
+    public string Phone    { get; set; } = "";
+}
+
+public class OwnerSummary
+{
+    public Guid   Id       { get; set; }
+    public string FullName { get; set; } = "";
+    public string Email    { get; set; } = "";
     public string Phone    { get; set; } = "";
 }
 

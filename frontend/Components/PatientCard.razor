@@ -20,10 +20,13 @@
             <span class="patient-detail-label">Peso</span>
             <span class="patient-detail-value">@Patient.WeightKg kg</span>
         </div>
-        <div class="patient-detail-item">
-            <span class="patient-detail-label">Color</span>
-            <span class="patient-detail-value">@Patient.Color</span>
-        </div>
+        @if (!string.IsNullOrEmpty(Patient.Color))
+        {
+            <div class="patient-detail-item">
+                <span class="patient-detail-label">Color</span>
+                <span class="patient-detail-value">@Patient.Color</span>
+            </div>
+        }
     </div>
 </div>
 

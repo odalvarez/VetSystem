@@ -1,3 +1,4 @@
+@page "/"
 @page "/login"
 @inject AuthApiClient AuthApi
 @inject TokenProvider Token
@@ -79,13 +80,17 @@
         _loading = true;
         try
         {
-            var response = await AuthApi.LoginAsync(new LoginRequest
+            // LoginAsync ahora devuelve LoginUserInfo directamente (el token está en la cookie)
+            var user = await AuthApi.LoginAsync(new LoginRequest
             {
                 Email    = _email.Trim(),
                 Password = _password
             });
 
-            Token.SetSession(response.Token, response.User);
+            Token.SetSession(user);
+            // Cede un ciclo de render para que CascadingAuthenticationState
+            // propague el nuevo estado antes de que el router evalúe [Authorize]
+            await Task.Yield();
             RedirectByRole();
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -105,7 +110,9 @@
     private void RedirectByRole()
     {
         var role = Token.User?.Role ?? "";
-        Nav.NavigateTo(role == "Veterinarian" ? "/vet-dashboard" : "/owner-portal", replace: true);
+        // El backend devuelve el rol en minúsculas; comparamos sin distinción de mayúsculas
+        var isVet = role.Equals("Veterinarian", StringComparison.OrdinalIgnoreCase);
+        Nav.NavigateTo(isVet ? "/vet-dashboard" : "/owner-portal", replace: true);
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
