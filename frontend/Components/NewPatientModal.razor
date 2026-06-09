@@ -1,10 +1,11 @@
 @* Modal para que el propietario registre una nueva mascota *@
 @inject PatientApiClient PatientApi
+@inject SpeciesApiClient SpeciesApi
 
 @if (Visible)
 {
-    <div class="modal-overlay" @onclick="HandleOverlayClick">
-        <div class="modal-box" @onclick:stopPropagation>
+    <div class="modal-overlay">
+        <div class="modal-box" tabindex="-1" @ref="_modalRef" @onkeydown="HandleKeyDown" @onclick:stopPropagation>
             <div class="modal-header">
                 <span class="modal-title">🐾 Registrar nueva mascota</span>
                 <button class="btn-close" @onclick="Close">✕</button>
@@ -26,14 +27,20 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Especie *</label>
-                        <select class="form-control @Cls(_request.Species)" @bind="_request.Species">
-                            <option value="">— Selecciona —</option>
-                            <option value="Dog">Perro</option>
-                            <option value="Cat">Gato</option>
-                            <option value="Bird">Ave</option>
-                            <option value="Rabbit">Conejo</option>
-                            <option value="Other">Otro</option>
-                        </select>
+                        @if (_species == null)
+                        {
+                            <select class="form-control" disabled><option>Cargando…</option></select>
+                        }
+                        else
+                        {
+                            <select class="form-control @Cls(_request.Species)" @bind="_request.Species">
+                                <option value="">— Selecciona —</option>
+                                @foreach (var s in _species)
+                                {
+                                    <option value="@s.Slug">@s.Name</option>
+                                }
+                            </select>
+                        }
                         @if (_submitted && string.IsNullOrWhiteSpace(_request.Species))
                         { <div class="validation-message">Obligatorio.</div> }
                     </div>
@@ -62,13 +69,22 @@
                         { <div class="validation-message">Obligatorio.</div> }
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Fecha de nacimiento *</label>
-                        <input type="date" class="form-control @ClsDate()"
-                               max="@_maxDateStr"
-                               value="@_birthDateStr"
-                               @oninput="e => _birthDateStr = e.Value?.ToString() ?? string.Empty" />
-                        @if (_submitted && _request.BirthDate == default)
-                        { <div class="validation-message">Ingresa una fecha válida.</div> }
+                        <label class="form-label">Edad *</label>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <input type="number"
+                                   min="1"
+                                   max="@(_ageUnit == "months" ? 11 : 40)"
+                                   class="form-control @(_submitted && _ageValue <= 0 ? "invalid" : "")"
+                                   style="flex:1"
+                                   @bind="_ageValue"
+                                   @bind:after="ClampAge" />
+                            <select class="form-control" style="flex:0 0 110px" @bind="_ageUnit" @bind:after="ClampAge">
+                                <option value="years">Años</option>
+                                <option value="months">Meses</option>
+                            </select>
+                        </div>
+                        @if (_submitted && _ageValue <= 0)
+                        { <div class="validation-message">Ingresa una edad válida.</div> }
                     </div>
                 </div>
 
@@ -102,29 +118,53 @@
     [Parameter] public EventCallback OnSaved { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private CreatePatientRequest _request      = new();
-    private string               _birthDateStr = "";
-    private string               _maxDateStr   = DateTime.Today.ToString("yyyy-MM-dd");
-    private bool                 _submitted;
-    private bool                 _saving;
-    private string?              _error;
+    private List<SpeciesResponse>? _species;
+    private CreatePatientRequest   _request  = new();
+    private int                    _ageValue = 0;
+    private string                 _ageUnit  = "years";
+    private ElementReference       _modalRef;
+    private bool                   _submitted;
+    private bool                   _saving;
+    private string?                _error;
+    private bool                   _prevVisible;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        if (Visible) { _request = new(); _birthDateStr = ""; _submitted = false; _error = null; }
+        if (Visible)
+        {
+            if (_species == null)
+                _species = await SpeciesApi.GetAllAsync();
+            _request  = new(); _ageValue = 0; _ageUnit = "years";
+            _submitted = false; _error = null;
+        }
+    }
+
+    // Si el usuario cambia de unidad y el valor supera el máximo de meses, lo recorta
+    private void ClampAge()
+    {
+        if (_ageUnit == "months" && _ageValue > 11) _ageValue = 11;
+        if (_ageValue < 0) _ageValue = 0;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Visible && !_prevVisible)
+            await _modalRef.FocusAsync();
+        _prevVisible = Visible;
     }
 
     private async Task Save()
     {
-        // Sincronizamos el string del datepicker a DateOnly antes de validar
-        if (DateOnly.TryParseExact(_birthDateStr, "yyyy-MM-dd", out var bd))
-            _request.BirthDate = bd;
+        // Convertimos la edad aproximada a fecha de nacimiento
+        _request.BirthDate = _ageUnit == "months"
+            ? DateOnly.FromDateTime(DateTime.Today.AddMonths(-_ageValue))
+            : DateOnly.FromDateTime(DateTime.Today.AddYears(-_ageValue));
 
         _submitted = true;
         if (string.IsNullOrWhiteSpace(_request.Name) ||
             string.IsNullOrWhiteSpace(_request.Species) ||
             string.IsNullOrWhiteSpace(_request.Sex)    ||
-            _request.BirthDate == default)
+            _ageValue <= 0)
             return;
 
         _saving = true;
@@ -146,9 +186,11 @@
     }
 
     private async Task Close() => await OnClose.InvokeAsync();
-    private async Task HandleOverlayClick() => await Close();
 
-    // Helpers de clase CSS para validación inline
-    private string Cls(string? v)  => _submitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
-    private string ClsDate()       => _submitted && _request.BirthDate == default ? "invalid" : "";
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") await Close();
+    }
+
+    private string Cls(string? v) => _submitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
 }

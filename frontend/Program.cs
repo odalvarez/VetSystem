@@ -15,13 +15,22 @@ builder.Services.AddSingleton<TokenProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider, VetAuthStateProvider>();
 builder.Services.AddAuthorizationCore();
 
-// Todos los servicios usan el mismo origen (el propio nginx).
-// Las cookies httpOnly se envían automáticamente — no hace falta ningún handler.
+// Intercepta cualquier 401 de cualquier microservicio y cierra la sesión automáticamente
+builder.Services.AddTransient<AuthInterceptorHandler>();
+
 var baseAddress = new Uri(builder.HostEnvironment.BaseAddress);
 
-builder.Services.AddHttpClient<AuthApiClient>(c => c.BaseAddress = baseAddress);
-builder.Services.AddHttpClient<PatientApiClient>(c => c.BaseAddress = baseAddress);
-builder.Services.AddHttpClient<AppointmentApiClient>(c => c.BaseAddress = baseAddress);
-builder.Services.AddHttpClient<NotificationApiClient>(c => c.BaseAddress = baseAddress);
+builder.Services.AddHttpClient<AuthApiClient>(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<AuthInterceptorHandler>();
+builder.Services.AddHttpClient<PatientApiClient>(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<AuthInterceptorHandler>();
+builder.Services.AddHttpClient<AppointmentApiClient>(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<AuthInterceptorHandler>();
+builder.Services.AddHttpClient<NotificationApiClient>(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<AuthInterceptorHandler>();
+builder.Services.AddHttpClient<SpeciesApiClient>(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<AuthInterceptorHandler>();
+builder.Services.AddHttpClient<ConsultationLogApiClient>(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<AuthInterceptorHandler>();
 
 await builder.Build().RunAsync();

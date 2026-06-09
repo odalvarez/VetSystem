@@ -3,6 +3,7 @@
 
 @inject PatientApiClient     PatientApi
 @inject AppointmentApiClient AppointmentApi
+@inject AuthApiClient        AuthApi
 @inject NavigationManager    Nav
 @inject TokenProvider        Token
 
@@ -15,54 +16,107 @@
 
 <div class="page-content">
 
-    @if (_loading)
-    {
-        <LoadingSpinner Message="Cargando datos…" />
-    }
-    else
-    {
-        @* ── KPIs ── *@
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-label">Total pacientes</div>
-                <div class="stat-value">@_totalPatients</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Citas hoy</div>
-                <div class="stat-value">@_todayAppointments</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Pendientes confirmación</div>
-                <div class="stat-value">@_pendingConfirmation</div>
-            </div>
+    @* ── KPIs ── *@
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-label">Total pacientes</div>
+            <div class="stat-value">@_totalPatients</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-label">Citas hoy</div>
+            <div class="stat-value">@_todayAppointments</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Pendientes confirmación</div>
+            <div class="stat-value">@_pendingConfirmation</div>
+        </div>
+    </div>
 
-        @* ── Pacientes ── *@
-        <div class="card" style="margin-bottom:28px">
+    @* ── Pestañas ── *@
+    <div class="admin-tabs">
+        <button class="admin-tab @(_tab == "patients" ? "active" : "")" @onclick='() => SwitchTab("patients")'>
+            🐾 Pacientes
+        </button>
+        <button class="admin-tab @(_tab == "appointments" ? "active" : "")" @onclick='() => SwitchTab("appointments")'>
+            📅 Citas
+        </button>
+    </div>
+
+    @* ═══════════════════════════════════════════════
+       TAB: PACIENTES
+       ═══════════════════════════════════════════════ *@
+    @if (_tab == "patients")
+    {
+        <div class="card">
             <div class="card-header">
                 <span class="card-title">Pacientes</span>
-                <button class="btn btn-primary btn-sm" @onclick="OpenVetPatientModal">
-                    + Registrar mascota
-                </button>
-                <div class="filters-bar" style="margin-bottom:0">
-                    <div class="search-input" style="min-width:180px">
-                        <span class="search-icon">🔍</span>
-                        <input class="form-control" placeholder="Buscar por nombre…"
-                               value="@_patientSearch"
-                               @oninput="HandleSearchInput" />
+                <div style="display:flex;align-items:center;gap:12px">
+                    <button class="btn btn-primary btn-sm" @onclick="() => _showVetPatientModal = true">+ Registrar mascota</button>
+                    <div class="filters-bar" style="margin-bottom:0">
+                        <div class="search-input" style="min-width:180px">
+                            <span class="search-icon">🔍</span>
+                            <input class="form-control" placeholder="Buscar por nombre…"
+                                   value="@_patientSearch"
+                                   @oninput="HandleSearchInput" />
+                        </div>
+                        <select class="filter-select" @bind="_speciesFilter" @bind:after="LoadPatients">
+                            <option value="">Todas las especies</option>
+                            <option value="Dog">Perros</option>
+                            <option value="Cat">Gatos</option>
+                            <option value="Bird">Aves</option>
+                            <option value="Rabbit">Conejos</option>
+                            <option value="Other">Otros</option>
+                        </select>
+                        <div class="owner-search-wrap">
+                            @if (_selectedOwner != null)
+                            {
+                                <div class="owner-chip">
+                                    <span>@_selectedOwner.FullName</span>
+                                    <button class="owner-chip-clear" @onclick="() => SelectOwner(null)" title="Quitar filtro">✕</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div style="position:relative">
+                                    <input class="form-control filter-select"
+                                           style="min-width:200px"
+                                           placeholder="Buscar dueño…"
+                                           value="@_ownerSearch"
+                                           @oninput="HandleOwnerInput"
+                                           @onfocus="() => _ownerSuggestOpen = true"
+                                           @onblur="@(_ => Task.Delay(150).ContinueWith(_ => InvokeAsync(() => { _ownerSuggestOpen = false; StateHasChanged(); })))" />
+                                    @if (_ownerSuggestOpen && !string.IsNullOrWhiteSpace(_ownerSearch))
+                                    {
+                                        <div class="owner-suggest-dropdown">
+                                            @if (FilteredOwners.Any())
+                                            {
+                                                @foreach (var o in FilteredOwners.Take(8))
+                                                {
+                                                    var owner = o;
+                                                    <div class="owner-suggest-item" @onclick="() => SelectOwner(owner)">
+                                                        <div>@owner.FullName</div>
+                                                        <div class="owner-suggest-sub">@owner.Email @(string.IsNullOrEmpty(owner.Phone) ? "" : $"· {owner.Phone}")</div>
+                                                    </div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <div style="padding:10px 12px;color:var(--color-text-muted);font-size:.85rem">Sin resultados</div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
-                    <select class="filter-select" @bind="_speciesFilter" @bind:after="LoadPatients">
-                        <option value="">Todas las especies</option>
-                        <option value="Dog">Perros</option>
-                        <option value="Cat">Gatos</option>
-                        <option value="Bird">Aves</option>
-                        <option value="Rabbit">Conejos</option>
-                        <option value="Other">Otros</option>
-                    </select>
                 </div>
             </div>
             <div class="card-body" style="padding:0">
-                @if (_patients == null || !_patients.Any())
+                @if (_patientsLoading)
+                {
+                    <div style="padding:40px"><LoadingSpinner Message="Cargando pacientes…" /></div>
+                }
+                else if (_patients == null || !_patients.Any())
                 {
                     <div class="empty-state">
                         <div class="empty-state-icon">🐾</div>
@@ -83,37 +137,47 @@
                         @if (_totalPatients > _pageSize)
                         {
                             <div class="pagination">
-                                <button class="page-btn" disabled="@(_page == 1)"
-                                        @onclick="PrevPage">‹</button>
+                                <button class="page-btn" disabled="@(_page == 1)" @onclick="PrevPage">‹</button>
                                 <span class="page-btn active">@_page</span>
-                                <button class="page-btn" disabled="@(_page * _pageSize >= _totalPatients)"
-                                        @onclick="NextPage">›</button>
+                                <button class="page-btn" disabled="@(_page * _pageSize >= _totalPatients)" @onclick="NextPage">›</button>
                             </div>
                         }
                     </div>
                 }
             </div>
         </div>
+    }
 
-        @* ── Citas ── *@
+    @* ═══════════════════════════════════════════════
+       TAB: CITAS
+       ═══════════════════════════════════════════════ *@
+    @if (_tab == "appointments")
+    {
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Citas</span>
-                <div class="filters-bar" style="margin-bottom:0">
-                    <select class="filter-select" @bind="_statusFilter" @bind:after="LoadAppointments">
-                        <option value="">Todos los estados</option>
-                        <option value="Scheduled">Programadas</option>
-                        <option value="Confirmed">Confirmadas</option>
-                        <option value="Completed">Completadas</option>
-                        <option value="Cancelled">Canceladas</option>
-                        <option value="NoShow">No asistió</option>
-                    </select>
-                    <input type="date" class="filter-select" @bind="_fromFilter" @bind:after="LoadAppointments" />
-                    <input type="date" class="filter-select" @bind="_toFilter"   @bind:after="LoadAppointments" />
+                <div style="display:flex;align-items:center;gap:12px">
+                    <button class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">+ Nueva cita</button>
+                    <div class="filters-bar" style="margin-bottom:0">
+                        <select class="filter-select" @bind="_statusFilter" @bind:after="LoadAppointments">
+                            <option value="">Todos los estados</option>
+                            <option value="Scheduled">Programadas</option>
+                            <option value="Confirmed">Confirmadas</option>
+                            <option value="Completed">Completadas</option>
+                            <option value="Cancelled">Canceladas</option>
+                            <option value="NoShow">No asistió</option>
+                        </select>
+                        <input type="date" class="filter-select" @bind="_fromFilter" @bind:after="LoadAppointments" />
+                        <input type="date" class="filter-select" @bind="_toFilter"   @bind:after="LoadAppointments" />
+                    </div>
                 </div>
             </div>
             <div class="table-wrapper">
-                @if (_appointments == null || !_appointments.Any())
+                @if (_apptsLoading)
+                {
+                    <div style="padding:40px"><LoadingSpinner Message="Cargando citas…" /></div>
+                }
+                else if (_appointments == null || !_appointments.Any())
                 {
                     <div class="empty-state">
                         <div class="empty-state-icon">📅</div>
@@ -147,19 +211,24 @@
             </div>
         </div>
     }
+
 </div>
 
-@* Modal para que el veterinario registre una nueva mascota *@
+@* Modal para registrar nueva mascota *@
 <VetNewPatientModal Visible="_showVetPatientModal"
-                    OnSaved="EventCallback.Factory.Create(this, LoadPatients)"
+                    OnSaved="EventCallback.Factory.Create(this, OnPatientCreated)"
                     OnClose="EventCallback.Factory.Create(this, () => _showVetPatientModal = false)" />
 
-@* Modal para agregar registro clínico *@
-<ClinicalRecordModal Visible="_showRecordModal"
-                     PatientId="_selectedPatientId"
-                     PatientName="_selectedPatientName"
-                     OnSaved="EventCallback.Factory.Create(this, LoadPatients)"
-                     OnClose="EventCallback.Factory.Create(this, () => _showRecordModal = false)" />
+@* Modal de detalle: datos, bitácoras e historia clínica *@
+<PatientDetailModal Visible="_showRecordModal"
+                    Patient="_selectedPatient"
+                    OnPatientSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
+                    OnClose="EventCallback.Factory.Create(this, () => { _showRecordModal = false; _selectedPatient = null; })" />
+
+@* Modal para crear nueva cita *@
+<NewAppointmentModal Visible="_showNewAppointmentModal"
+                     OnSaved="EventCallback.Factory.Create(this, async () => { await LoadAppointments(); await RefreshKpis(); })"
+                     OnClose="EventCallback.Factory.Create(this, () => _showNewAppointmentModal = false)" />
 
 @if (!string.IsNullOrEmpty(_toast))
 {
@@ -171,32 +240,44 @@
 }
 
 @code {
+    private string _tab = "patients";
+
     private List<PatientResponse>?     _patients;
     private List<AppointmentResponse>? _appointments;
+    private List<OwnerSummary>         _owners = [];
 
-    private bool   _loading = true;
-    private int    _page     = 1;
-    private int    _pageSize = 12;
-    private int    _totalPatients;
-    private int    _todayAppointments;
-    private int    _pendingConfirmation;
+    private bool _patientsLoading = true;
+    private bool _apptsLoading    = false;
 
-    private string _patientSearch  = "";
-    private string _speciesFilter  = "";
-    private string _statusFilter   = "";
-    private DateTime? _fromFilter;
-    private DateTime? _toFilter;
+    private int  _page     = 1;
+    private int  _pageSize = 12;
+    private int  _totalPatients;
+    private int  _todayAppointments;
+    private int  _pendingConfirmation;
 
-    private bool    _showRecordModal;
-    private bool    _showVetPatientModal;
-    private Guid    _selectedPatientId;
-    private string  _selectedPatientName = "";
+    private string        _patientSearch    = "";
+    private string        _speciesFilter    = "";
+    private string        _statusFilter     = "";
+    private DateTime?     _fromFilter;
+    private DateTime?     _toFilter;
+    private OwnerSummary? _selectedOwner;
+    private string        _ownerSearch      = "";
+    private bool          _ownerSuggestOpen;
+
+    private bool            _showVetPatientModal     = false;
+    private bool            _showRecordModal         = false;
+    private bool            _showNewAppointmentModal = false;
+    private PatientResponse? _selectedPatient        = null;
     private string? _toast;
+
+    private IEnumerable<OwnerSummary> FilteredOwners =>
+        _owners.Where(o =>
+            o.FullName.Contains(_ownerSearch, StringComparison.OrdinalIgnoreCase) ||
+            o.Email.Contains(_ownerSearch, StringComparison.OrdinalIgnoreCase)    ||
+            (o.Phone ?? "").Contains(_ownerSearch, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
-        // [Authorize] garantiza que llegamos aquí autenticados;
-        // si el rol no es veterinario redirigimos al portal del propietario
         var role = Token.User?.Role ?? "";
         if (!role.Equals("Veterinarian", StringComparison.OrdinalIgnoreCase))
         {
@@ -204,29 +285,72 @@
             return;
         }
 
-        await Task.WhenAll(LoadPatients(), LoadAppointments());
-        _loading = false;
+        await Task.WhenAll(LoadPatients(), LoadOwners());
+        _patientsLoading = false;
     }
 
-    private void OpenVetPatientModal() => _showVetPatientModal = true;
+    private async Task SwitchTab(string tab)
+    {
+        _tab = tab;
+        if (tab == "appointments" && _appointments == null)
+        {
+            _apptsLoading = true;
+            await LoadAppointments();
+            _apptsLoading = false;
+        }
+    }
+
+    private async Task RefreshKpis()
+    {
+        // Recalcula KPIs desde los datos ya cargados
+        if (_appointments != null)
+        {
+            _todayAppointments  = _appointments.Count(a => a.ScheduledAt.Date == DateTime.Today);
+            _pendingConfirmation = _appointments.Count(a => a.Status == "Scheduled");
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadOwners()
+    {
+        try { _owners = await AuthApi.GetOwnersAsync(); }
+        catch { _owners = []; }
+    }
 
     private async Task LoadPatients()
     {
+        _patientsLoading = true;
         try
         {
             var result = await PatientApi.ListAsync(
                 page: _page, pageSize: _pageSize,
                 species: string.IsNullOrEmpty(_speciesFilter) ? null : _speciesFilter,
-                search: string.IsNullOrEmpty(_patientSearch) ? null : _patientSearch);
+                search: string.IsNullOrEmpty(_patientSearch) ? null : _patientSearch,
+                ownerId: _selectedOwner?.Id);
 
             _patients      = result?.Items ?? [];
             _totalPatients = result?.TotalCount ?? 0;
         }
         catch { _patients = []; }
+        finally { _patientsLoading = false; }
+    }
+
+    private async Task OnPatientCreated()
+    {
+        await LoadPatients();
+        await RefreshKpis();
+        ShowToast("Mascota registrada correctamente.");
+    }
+
+    private async Task OnPatientUpdated()
+    {
+        await LoadPatients();
+        ShowToast("Mascota actualizada correctamente.");
     }
 
     private async Task LoadAppointments()
     {
+        _apptsLoading = true;
         try
         {
             var result = await AppointmentApi.ListAsync(
@@ -234,18 +358,33 @@
                 from: _fromFilter,
                 to: _toFilter);
 
-            _appointments       = result ?? [];
-            _todayAppointments  = _appointments.Count(a => a.ScheduledAt.Date == DateTime.Today);
+            _appointments        = result ?? [];
+            _todayAppointments   = _appointments.Count(a => a.ScheduledAt.Date == DateTime.Today);
             _pendingConfirmation = _appointments.Count(a => a.Status == "Scheduled");
         }
         catch { _appointments = []; }
+        finally { _apptsLoading = false; }
+    }
+
+    private void HandleOwnerInput(ChangeEventArgs e)
+    {
+        _ownerSearch      = e.Value?.ToString() ?? "";
+        _ownerSuggestOpen = true;
+    }
+
+    private async Task SelectOwner(OwnerSummary? owner)
+    {
+        _selectedOwner    = owner;
+        _ownerSearch      = "";
+        _ownerSuggestOpen = false;
+        _page = 1;
+        await LoadPatients();
     }
 
     private void SelectPatient(PatientResponse p)
     {
-        _selectedPatientId   = p.Id;
-        _selectedPatientName = p.Name;
-        _showRecordModal     = true;
+        _selectedPatient = p;
+        _showRecordModal = true;
     }
 
     private async Task HandleStatusChange((Guid Id, string Status) args)
@@ -268,7 +407,6 @@
         _ = OnPatientSearchChanged();
     }
 
-    // Debounce básico: espera 400ms después del último keystroke para buscar
     private System.Threading.CancellationTokenSource? _searchCts;
     private async Task OnPatientSearchChanged()
     {
@@ -287,7 +425,7 @@
     private async Task PrevPage() { _page--; await LoadPatients(); }
     private async Task NextPage() { _page++; await LoadPatients(); }
 
-    private async Task ShowToast(string msg)
+    private async void ShowToast(string msg)
     {
         _toast = msg;
         StateHasChanged();

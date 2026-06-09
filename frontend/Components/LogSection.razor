@@ -1,0 +1,15 @@
+@* Renderiza un bloque de sección en la vista solo-lectura de una bitácora.
+   Si Always=false y Value está vacío, no renderiza nada. *@
+@if (Always || !string.IsNullOrWhiteSpace(Value))
+{
+    <div class="log-section-block">
+        <div class="log-section-title">@Title</div>
+        <div class="log-section-content">@(string.IsNullOrWhiteSpace(Value) ? "—" : Value)</div>
+    </div>
+}
+
+@code {
+    [Parameter] public string  Title  { get; set; } = "";
+    [Parameter] public string? Value  { get; set; }
+    [Parameter] public bool    Always { get; set; } = false;
+}
