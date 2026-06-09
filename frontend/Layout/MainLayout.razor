@@ -1,12 +1,15 @@
 @inherits LayoutComponentBase
-@inject TokenProvider Token
+@inject TokenProvider    Token
+@inject AuthApiClient    AuthApi
+@inject NavigationManager Nav
 @implements IDisposable
 
-@* Si el usuario está autenticado renderizamos el layout con sidebar.
-   Las páginas públicas (login, register) se renderizan solas sin sidebar. *@
+@* Las páginas públicas (login, register) se renderizan solas sin sidebar *@
 @if (Token.IsAuthenticated)
 {
-    <div class="app-layout">
+    <div class="app-layout"
+         @onclick="@(_ => Token.RecordActivity())"
+         @onkeydown="@(_ => Token.RecordActivity())">
         <NavMenu />
         <main class="main-content">
             @Body
@@ -19,14 +22,40 @@ else
 }
 
 @code {
+    private CancellationTokenSource _cts = new();
+
     protected override void OnInitialized()
     {
-        // Sin esto el layout no se re-renderiza cuando el usuario hace login o logout
         Token.OnChange += StateHasChanged;
+        _ = RunInactivityCheck();
+    }
+
+    // Verifica cada minuto si el usuario lleva una hora sin interactuar;
+    // si es así, cierra sesión y redirige al login para evitar que siga operando con un token viejo
+    private async Task RunInactivityCheck()
+    {
+        try
+        {
+            while (!_cts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1), _cts.Token);
+
+                if (Token.IsInactive(TimeSpan.FromHours(1)))
+                {
+                    await AuthApi.LogoutAsync();
+                    Token.ClearSession();
+                    await InvokeAsync(() => Nav.NavigateTo("/login", replace: true));
+                    return;
+                }
+            }
+        }
+        catch (TaskCanceledException) { }
     }
 
     public void Dispose()
     {
         Token.OnChange -= StateHasChanged;
+        _cts.Cancel();
+        _cts.Dispose();
     }
 }
