@@ -24,6 +24,30 @@ public class UserRepository : IUserRepository
     public async Task<IEnumerable<User>> ListByRoleAsync(UserRole role, CancellationToken ct) =>
         await _db.Users.Where(u => u.Role == role).OrderBy(u => u.LastName).ToListAsync(ct);
 
+    public async Task<(IEnumerable<User> Data, int Total)> ListAllAsync(
+        string? role, string? search, bool? isActive,
+        int page, int pageSize, CancellationToken ct)
+    {
+        var q = _db.Users.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, true, out var r))
+            q = q.Where(u => u.Role == r);
+
+        if (isActive.HasValue)
+            q = q.Where(u => u.IsActive == isActive.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            q = q.Where(u => u.FirstName.Contains(search) ||
+                              u.LastName.Contains(search)  ||
+                              u.Email.Contains(search));
+
+        var total = await q.CountAsync(ct);
+        var data  = await q.OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+                           .Skip((page - 1) * pageSize).Take(pageSize)
+                           .ToListAsync(ct);
+        return (data, total);
+    }
+
     public async Task AddAsync(User user, CancellationToken ct) =>
         await _db.Users.AddAsync(user, ct);
 
