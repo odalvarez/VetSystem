@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using NotificationsService.Application.DTOs;
 using NotificationsService.Application.Exceptions;
 using NotificationsService.Application.Interfaces;
@@ -11,15 +12,20 @@ public class NotificationAppService
     private readonly INotificationRepository _repo;
     private readonly IWhatsAppSender         _whatsApp;
     private readonly IEmailSender            _email;
+    // Necesario para abrir un scope nuevo en los background tasks; el DbContext
+    // scoped del request ya está destruido cuando el fire-and-forget ejecuta el update
+    private readonly IServiceScopeFactory    _scopeFactory;
 
     public NotificationAppService(
         INotificationRepository repo,
         IWhatsAppSender whatsApp,
-        IEmailSender email)
+        IEmailSender email,
+        IServiceScopeFactory scopeFactory)
     {
-        _repo     = repo;
-        _whatsApp = whatsApp;
-        _email    = email;
+        _repo         = repo;
+        _whatsApp     = whatsApp;
+        _email        = email;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<NotificationAcceptedResponse> SendWhatsAppAsync(
@@ -74,6 +80,24 @@ public class NotificationAppService
         };
     }
 
+    public async Task<IEnumerable<NotificationStatusResponse>> ListAllAsync(
+        int page, int pageSize, IReadOnlyList<string>? recipientFilter, CancellationToken ct)
+    {
+        var records = await _repo.ListAllAsync(page, pageSize, recipientFilter, ct);
+        return records.Select(r => new NotificationStatusResponse
+        {
+            Id        = r.Id,
+            Type      = r.Type.ToString().ToLowerInvariant(),
+            Recipient = r.Recipient,
+            Subject   = r.Subject,
+            Body      = r.Body,
+            Status    = r.Status.ToString().ToLowerInvariant(),
+            SentAt    = r.SentAt,
+            Error     = r.Error,
+            CreatedAt = r.CreatedAt
+        });
+    }
+
     public async Task<NotificationStatusResponse> GetStatusAsync(Guid id, CancellationToken ct)
     {
         var record = await _repo.GetByIdAsync(id, ct)
@@ -106,8 +130,8 @@ public class NotificationAppService
         }
         finally
         {
-            await _repo.UpdateAsync(record, CancellationToken.None);
-            await _repo.SaveChangesAsync(CancellationToken.None);
+            // Scope propio para evitar usar el DbContext ya destruido del request original
+            await PersistUpdateAsync(record);
         }
     }
 
@@ -124,8 +148,15 @@ public class NotificationAppService
         }
         finally
         {
-            await _repo.UpdateAsync(record, CancellationToken.None);
-            await _repo.SaveChangesAsync(CancellationToken.None);
+            await PersistUpdateAsync(record);
         }
+    }
+
+    private async Task PersistUpdateAsync(NotificationRecord record)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+        await repo.UpdateAsync(record, CancellationToken.None);
+        await repo.SaveChangesAsync(CancellationToken.None);
     }
 }

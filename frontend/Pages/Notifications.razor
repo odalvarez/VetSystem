@@ -14,8 +14,8 @@
 
 <div class="page-content">
 
-    @* Panel para enviar notificación manual (solo veterinario) *@
-    <AuthorizeView Roles="Veterinarian">
+    @* Panel para enviar notificación manual (veterinario y admin) *@
+    <AuthorizeView Roles="Veterinarian,Admin">
         <Authorized>
             <div class="card" style="margin-bottom:28px">
                 <div class="card-header">
@@ -35,13 +35,22 @@
                                 <option value="email">Email</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">
-                                @(_notifType == "whatsapp" ? "Número (sin +)" : "Correo destino")
-                            </label>
-                            <input class="form-control" @bind="_recipient"
-                                   placeholder="@(_notifType == "whatsapp" ? "573001234567" : "correo@ejemplo.com")" />
-                        </div>
+
+                        @if (_notifType == "whatsapp")
+                        {
+                            <div class="form-group" style="flex:2">
+                                <label class="form-label">Número WhatsApp</label>
+                                <PhoneInput @bind-Value="_whatsappTo" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-group" style="flex:2">
+                                <label class="form-label">Correo destino</label>
+                                <input class="form-control" @bind="_recipient"
+                                       placeholder="correo@ejemplo.com" inputmode="email" />
+                            </div>
+                        }
                     </div>
 
                     <div class="form-group">
@@ -78,61 +87,259 @@
         {
             <div class="card-body"><LoadingSpinner Message="Cargando historial…" /></div>
         }
-        else if (_history == null || !_history.Any())
-        {
-            <div class="card-body">
-                <div class="empty-state">
-                    <div class="empty-state-icon">🔔</div>
-                    <div class="empty-state-title">Sin notificaciones</div>
-                    <div class="empty-state-sub">Aún no hay notificaciones enviadas.</div>
-                </div>
-            </div>
-        }
         else
         {
-            <div class="table-wrapper">
-                <table class="vet-table">
-                    <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Destinatario</th>
-                            <th>Estado</th>
-                            <th>Enviada</th>
-                            <th>Error</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var n in _history)
+            @* Barra de filtros *@
+            <div class="card-body" style="padding-bottom:0;border-bottom:1px solid var(--color-border)">
+                <div class="filters-bar" style="flex-wrap:wrap;gap:10px">
+
+                    @* Tipo *@
+                    <select class="filter-select" @bind="_filterType">
+                        <option value="">Todos los tipos</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="email">Email</option>
+                    </select>
+
+                    @* Estado *@
+                    <select class="filter-select" @bind="_filterStatus">
+                        <option value="">Todos los estados</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="sent">Enviada</option>
+                        <option value="failed">Fallida</option>
+                    </select>
+
+                    @* Fecha desde *@
+                    <input type="date" class="filter-select"
+                           style="min-width:140px"
+                           @bind="_filterFrom"
+                           title="Desde" />
+
+                    @* Fecha hasta *@
+                    <input type="date" class="filter-select"
+                           style="min-width:140px"
+                           @bind="_filterTo"
+                           title="Hasta" />
+
+                    @* Búsqueda por destinatario — solo para admin y veterinario *@
+                    <AuthorizeView Roles="Veterinarian,Admin">
+                        <Authorized>
+                            <div class="search-input" style="min-width:200px">
+                                <span class="search-icon">🔍</span>
+                                <input class="form-control"
+                                       placeholder="Buscar destinatario…"
+                                       @bind="_filterRecipient"
+                                       @bind:event="oninput" />
+                            </div>
+                        </Authorized>
+                    </AuthorizeView>
+
+                    @* Limpiar filtros *@
+                    @if (HasActiveFilters)
+                    {
+                        <button class="btn btn-ghost btn-sm" @onclick="ClearFilters"
+                                style="white-space:nowrap">✕ Limpiar</button>
+                    }
+
+                    @* Contador de resultados *@
+                    <span style="margin-left:auto;font-size:.82rem;color:var(--color-text-muted);align-self:center;white-space:nowrap">
+                        @FilteredHistory.Count() resultado@(FilteredHistory.Count() == 1 ? "" : "s")
+                        @if (HasActiveFilters && _history?.Count != FilteredHistory.Count())
                         {
-                            <tr>
-                                <td><StatusBadge Status="@n.Type" /></td>
-                                <td style="font-size:.85rem">@n.Recipient</td>
-                                <td><StatusBadge Status="@n.Status" /></td>
-                                <td style="font-size:.82rem;color:var(--color-text-muted)">
-                                    @(n.SentAt.HasValue ? n.SentAt.Value.ToString("dd/MM/yy HH:mm") : "—")
-                                </td>
-                                <td style="font-size:.78rem;color:var(--color-danger)">
-                                    @(n.ErrorMessage ?? "")
-                                </td>
-                            </tr>
+                            <span> de @(_history?.Count ?? 0)</span>
                         }
-                    </tbody>
-                </table>
+                    </span>
+                </div>
             </div>
+
+            @* Tabla *@
+            @if (!FilteredHistory.Any())
+            {
+                <div class="card-body">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔔</div>
+                        <div class="empty-state-title">Sin resultados</div>
+                        <div class="empty-state-sub">
+                            @if (HasActiveFilters)
+                            { <span>Ninguna notificación coincide con los filtros aplicados.</span> }
+                            else
+                            { <span>Aún no hay notificaciones enviadas.</span> }
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-wrapper">
+                    <table class="vet-table">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Destinatario</th>
+                                <th>Estado</th>
+                                <th>Creada</th>
+                                <th>Enviada</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var n in FilteredHistory)
+                            {
+                                <tr>
+                                    <td><StatusBadge Status="@n.Type" /></td>
+                                    <td style="font-size:.85rem">@n.Recipient</td>
+                                    <td><StatusBadge Status="@n.Status" /></td>
+                                    <td style="font-size:.82rem;color:var(--color-text-muted)">
+                                        @n.CreatedAt.ToLocalTime().ToString("dd/MM/yy HH:mm")
+                                    </td>
+                                    <td style="font-size:.82rem;color:var(--color-text-muted)">
+                                        @(n.SentAt.HasValue ? n.SentAt.Value.ToLocalTime().ToString("dd/MM/yy HH:mm") : "—")
+                                    </td>
+                                    <td>
+                                        <span class="tip-wrap">
+                                            <button class="btn btn-sm"
+                                                    style="background:#dbeafe;color:#1e40af;border:1px solid #3b82f6"
+                                                    @onclick="() => OpenDetail(n)">👁</button>
+                                            <span class="tip-txt">Ver detalle</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         }
     </div>
 </div>
+
+@* Modal de detalle de notificación *@
+@if (_detailNotif != null)
+{
+    <div class="modal-overlay" @onclick="CloseDetail">
+        <div class="modal-box" style="max-width:520px;width:100%" @onclick:stopPropagation>
+            <div class="modal-header">
+                <span class="modal-title">Detalle de notificación</span>
+                <button class="btn-close" @onclick="CloseDetail">✕</button>
+            </div>
+            <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+
+                <div style="display:flex;gap:10px;align-items:center">
+                    <StatusBadge Status="@_detailNotif.Type" />
+                    <StatusBadge Status="@_detailNotif.Status" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Destinatario</label>
+                    <div class="detail-value">@_detailNotif.Recipient</div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_detailNotif.Subject))
+                {
+                    <div class="form-group">
+                        <label class="form-label">Asunto</label>
+                        <div class="detail-value">@_detailNotif.Subject</div>
+                    </div>
+                }
+
+                <div class="form-group">
+                    <label class="form-label">Mensaje</label>
+                    <div class="detail-value" style="white-space:pre-wrap;background:var(--color-bg-secondary);padding:12px;border-radius:8px;font-size:.9rem;min-height:60px">@_detailNotif.Body</div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group">
+                        <label class="form-label">Creada</label>
+                        <div class="detail-value">@_detailNotif.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Enviada</label>
+                        <div class="detail-value">
+                            @(_detailNotif.SentAt.HasValue
+                                ? _detailNotif.SentAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                                : "—")
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_detailNotif.Error))
+                {
+                    <div class="alert alert-danger" style="font-size:.85rem">@_detailNotif.Error</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDetail">Cerrar</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<NotificationStatusResponse>? _history;
     private bool   _loadingHistory = true;
     private bool   _sending;
 
+    // Modal de detalle
+    private NotificationStatusResponse? _detailNotif;
+
+    private void OpenDetail(NotificationStatusResponse n) => _detailNotif = n;
+    private void CloseDetail() => _detailNotif = null;
+
+    // Filtros del historial
+    private string    _filterType      = "";
+    private string    _filterStatus    = "";
+    private DateTime? _filterFrom;
+    private DateTime? _filterTo;
+    private string    _filterRecipient = "";
+
+    private bool HasActiveFilters =>
+        !string.IsNullOrEmpty(_filterType)      ||
+        !string.IsNullOrEmpty(_filterStatus)    ||
+        _filterFrom.HasValue                    ||
+        _filterTo.HasValue                      ||
+        !string.IsNullOrEmpty(_filterRecipient);
+
+    private IEnumerable<NotificationStatusResponse> FilteredHistory
+    {
+        get
+        {
+            if (_history == null) return [];
+            var q = _history.AsEnumerable();
+
+            if (!string.IsNullOrEmpty(_filterType))
+                q = q.Where(n => n.Type.Equals(_filterType, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrEmpty(_filterStatus))
+                q = q.Where(n => n.Status.Equals(_filterStatus, StringComparison.OrdinalIgnoreCase));
+
+            // Compara solo la fecha (sin hora) contra CreatedAt en hora local
+            if (_filterFrom.HasValue)
+                q = q.Where(n => n.CreatedAt.ToLocalTime().Date >= _filterFrom.Value.Date);
+
+            if (_filterTo.HasValue)
+                q = q.Where(n => n.CreatedAt.ToLocalTime().Date <= _filterTo.Value.Date);
+
+            if (!string.IsNullOrEmpty(_filterRecipient))
+                q = q.Where(n => n.Recipient.Contains(_filterRecipient, StringComparison.OrdinalIgnoreCase));
+
+            return q;
+        }
+    }
+
+    private void ClearFilters()
+    {
+        _filterType      = "";
+        _filterStatus    = "";
+        _filterFrom      = null;
+        _filterTo        = null;
+        _filterRecipient = "";
+    }
+
     // Formulario manual
-    private string _notifType = "whatsapp";
-    private string _recipient = "";
-    private string _message   = "";
-    private string _subject   = "";
+    private string _notifType   = "whatsapp";
+    private string _whatsappTo  = "";   // número completo emitido por PhoneInput
+    private string _recipient   = "";
+    private string _message     = "";
+    private string _subject     = "";
     private string? _sendError;
     private string? _sendSuccess;
 
@@ -146,10 +353,13 @@
         _loadingHistory = true;
         try
         {
-            // El endpoint de historial requiere un appointmentId; aquí usamos un endpoint
-            // alternativo si existiera, pero según el contrato solo hay GetStatus por appointment.
-            // Para el panel general mostramos mensaje informativo si no aplica.
-            _history = [];
+            // Si es propietario, pasa el teléfono para que el backend filtre sus notificaciones
+            var user  = Token.User;
+            var phone = (user?.Role?.Equals("Owner", StringComparison.OrdinalIgnoreCase) == true)
+                ? user.Phone
+                : null;
+
+            _history = await NotificationApi.ListAllAsync(pageSize: 100, phone: phone);
         }
         catch { _history = []; }
         finally { _loadingHistory = false; }
@@ -160,9 +370,19 @@
         _sendError = null;
         _sendSuccess = null;
 
-        if (string.IsNullOrWhiteSpace(_recipient) || string.IsNullOrWhiteSpace(_message))
+        if (_notifType == "whatsapp" && string.IsNullOrWhiteSpace(_whatsappTo))
         {
-            _sendError = "Completa el destinatario y el mensaje.";
+            _sendError = "Ingresa el número de teléfono.";
+            return;
+        }
+        if (_notifType == "email" && string.IsNullOrWhiteSpace(_recipient))
+        {
+            _sendError = "Ingresa el correo destino.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_message))
+        {
+            _sendError = "Escribe el mensaje.";
             return;
         }
 
@@ -173,21 +393,24 @@
             {
                 await NotificationApi.SendWhatsAppAsync(new SendWhatsAppRequest
                 {
-                    PhoneNumber = _recipient.Trim(),
-                    Message     = _message
+                    To      = _whatsappTo,
+                    Message = _message
                 });
             }
             else
             {
                 await NotificationApi.SendEmailAsync(new SendEmailRequest
                 {
-                    ToEmail  = _recipient.Trim(),
-                    Subject  = _subject,
-                    Body     = _message
+                    To      = _recipient.Trim(),
+                    Subject = _subject,
+                    Body    = _message
                 });
             }
             _sendSuccess = "Notificación enviada (procesando en segundo plano).";
-            _recipient = ""; _message = ""; _subject = "";
+            _whatsappTo = ""; _recipient = ""; _message = ""; _subject = "";
+            // Espera a que el background task del backend actualice el estado en BD
+            await Task.Delay(2500);
+            await LoadHistory();
         }
         catch (Exception ex)
         {

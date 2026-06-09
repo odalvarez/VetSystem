@@ -9,6 +9,18 @@ public class NotificationApiClient
 
     public NotificationApiClient(HttpClient http) => _http = http;
 
+    // phone: solo se envía cuando el usuario es Owner para filtrar sus notificaciones por WhatsApp
+    public async Task<List<NotificationStatusResponse>> ListAllAsync(
+        int page = 1, int pageSize = 50, string? phone = null)
+    {
+        var url = $"api/notifications?page={page}&pageSize={pageSize}";
+        if (!string.IsNullOrWhiteSpace(phone))
+            url += $"&phone={Uri.EscapeDataString(phone)}";
+
+        try { return await _http.GetFromJsonAsync<List<NotificationStatusResponse>>(url) ?? []; }
+        catch { return []; }
+    }
+
     public async Task<NotificationStatusResponse?> GetStatusAsync(Guid appointmentId)
     {
         try { return await _http.GetFromJsonAsync<NotificationStatusResponse>($"api/notifications/{appointmentId}"); }

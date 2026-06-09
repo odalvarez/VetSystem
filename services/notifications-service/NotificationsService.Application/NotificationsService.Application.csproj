@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NotificationsService.Domain\NotificationsService.Domain.csproj" />
+    <!-- Abstracciones de DI (IServiceScopeFactory) sin arrastrar el framework completo -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
   </ItemGroup>
 
   <PropertyGroup>

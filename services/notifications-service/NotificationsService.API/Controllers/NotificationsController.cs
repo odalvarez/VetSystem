@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NotificationsService.Application.DTOs;
@@ -36,6 +37,30 @@ public class NotificationsController : ControllerBase
     {
         var result = await _svc.ScheduleReminderAsync(req, ct);
         return Accepted(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ListAll(
+        [FromQuery] int    page     = 1,
+        [FromQuery] int    pageSize = 50,
+        [FromQuery] string? phone   = null,
+        CancellationToken ct = default)
+    {
+        var role  = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        IReadOnlyList<string>? recipientFilter = null;
+
+        // El propietario solo ve las notificaciones enviadas a su correo o su teléfono
+        if (role.Equals("Owner", StringComparison.OrdinalIgnoreCase))
+        {
+            var email    = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+            var contacts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(email)) contacts.Add(email);
+            if (!string.IsNullOrWhiteSpace(phone))  contacts.Add(phone);
+            recipientFilter = contacts;
+        }
+
+        var result = await _svc.ListAllAsync(page, pageSize, recipientFilter, ct);
+        return Ok(result);
     }
 
     [HttpGet("{id:guid}")]
