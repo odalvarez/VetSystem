@@ -1,0 +1,74 @@
+@inject TokenProvider Token
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
+
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-name">🏥 VetSystem</div>
+        <div class="sidebar-brand-sub">Sistema veterinario</div>
+    </div>
+
+    <nav class="sidebar-nav">
+        @if (_isVet)
+        {
+            <div class="nav-section-label">Veterinario</div>
+            <NavLink class="nav-item" href="/vet-dashboard" Match="NavLinkMatch.All"
+                     ActiveClass="active">
+                <span class="nav-icon">🩺</span> Panel de control
+            </NavLink>
+            <NavLink class="nav-item" href="/notifications" ActiveClass="active">
+                <span class="nav-icon">🔔</span> Notificaciones
+            </NavLink>
+        }
+        else
+        {
+            <div class="nav-section-label">Propietario</div>
+            <NavLink class="nav-item" href="/owner-portal" Match="NavLinkMatch.All"
+                     ActiveClass="active">
+                <span class="nav-icon">🐾</span> Mis mascotas
+            </NavLink>
+            <NavLink class="nav-item" href="/notifications" ActiveClass="active">
+                <span class="nav-icon">🔔</span> Notificaciones
+            </NavLink>
+        }
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="sidebar-avatar">@_initials</div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name">@Token.User?.FullName</div>
+                <div class="sidebar-user-role">@(_isVet ? "Veterinario" : "Propietario")</div>
+            </div>
+        </div>
+        <button class="btn btn-ghost btn-sm btn-block" style="color:var(--color-sidebar-text)"
+                @onclick="Logout">
+            🚪 Cerrar sesión
+        </button>
+    </div>
+</aside>
+
+@code {
+    private bool _isVet;
+    private string _initials = "?";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        _isVet = state.User.IsInRole("Veterinarian");
+
+        var name = Token.User?.FullName ?? "";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        _initials = parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}"
+            : name.Length > 0 ? name[..1] : "?";
+
+        Token.OnChange += StateHasChanged;
+    }
+
+    private void Logout()
+    {
+        Token.ClearSession();
+        Nav.NavigateTo("/login");
+    }
+}

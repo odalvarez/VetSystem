@@ -1,0 +1,52 @@
+@* Fila de cita usada en la tabla de citas; el veterinario puede cambiar estado desde aquí *@
+<tr>
+    <td>
+        <strong>@Appointment.PatientName</strong>
+        @if (!string.IsNullOrEmpty(Appointment.OwnerName))
+        {
+            <div style="font-size:.78rem;color:var(--color-text-muted)">@Appointment.OwnerName</div>
+        }
+    </td>
+    <td>@Appointment.ScheduledAt.ToString("dd/MM/yyyy")</td>
+    <td>@Appointment.ScheduledAt.ToString("HH:mm")</td>
+    <td>@Appointment.DurationMinutes min</td>
+    <td><StatusBadge Status="@Appointment.Status" /></td>
+    @if (ShowActions)
+    {
+        <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                @foreach (var next in GetNextStatuses())
+                {
+                    <button class="btn btn-sm btn-secondary"
+                            @onclick="() => OnStatusChange.InvokeAsync((Appointment.Id, next))">
+                        @TranslateStatus(next)
+                    </button>
+                }
+            </div>
+        </td>
+    }
+</tr>
+
+@code {
+    [Parameter, EditorRequired] public AppointmentResponse Appointment { get; set; } = null!;
+    /// <summary>Muestra columna de acciones solo para el veterinario</summary>
+    [Parameter] public bool ShowActions { get; set; }
+    [Parameter] public EventCallback<(Guid Id, string Status)> OnStatusChange { get; set; }
+
+    // Solo las transiciones válidas según el estado actual (espeja el backend)
+    private IEnumerable<string> GetNextStatuses() => Appointment.Status.ToLowerInvariant() switch
+    {
+        "scheduled"  => ["Confirmed", "Cancelled"],
+        "confirmed"  => ["Completed", "NoShow", "Cancelled"],
+        _            => []
+    };
+
+    private static string TranslateStatus(string s) => s switch
+    {
+        "Confirmed"  => "Confirmar",
+        "Completed"  => "Completar",
+        "Cancelled"  => "Cancelar",
+        "NoShow"     => "No asistió",
+        _            => s
+    };
+}

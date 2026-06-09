@@ -1,0 +1,263 @@
+@page "/owner-portal"
+@attribute [Authorize(Roles = "Owner")]
+
+@inject PatientApiClient     PatientApi
+@inject AppointmentApiClient AppointmentApi
+@inject TokenProvider        Token
+
+<PageTitle>Portal del propietario — VetSystem</PageTitle>
+
+<div class="page-header">
+    <div class="page-title">🐾 Mis mascotas</div>
+    <div class="page-subtitle">Portal del propietario</div>
+</div>
+
+<div class="page-content">
+
+    @if (_loading)
+    {
+        <LoadingSpinner Message="Cargando…" />
+    }
+    else
+    {
+        @* ── Mascotas ── *@
+        <div class="card" style="margin-bottom:28px">
+            <div class="card-header">
+                <span class="card-title">Mis mascotas</span>
+                <button class="btn btn-primary btn-sm"
+                        @onclick="() => _showNewPatient = true">
+                    + Registrar mascota
+                </button>
+            </div>
+
+            <div class="card-body">
+                @if (_patients == null || !_patients.Any())
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🐾</div>
+                        <div class="empty-state-title">No tienes mascotas registradas</div>
+                        <div class="empty-state-sub">
+                            Registra tu primera mascota para acceder a las funciones del portal.
+                        </div>
+                        <button class="btn btn-primary" style="margin-top:16px"
+                                @onclick="() => _showNewPatient = true">
+                            Registrar mascota
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="patients-grid">
+                        @foreach (var p in _patients)
+                        {
+                            <PatientCard Patient="p"
+                                         OnSelect="EventCallback.Factory.Create(this, () => SelectPatient(p))" />
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* ── Historia clínica del paciente seleccionado (solo lectura) ── *@
+        @if (_selectedPatient != null)
+        {
+            <div class="card" style="margin-bottom:28px">
+                <div class="card-header">
+                    <span class="card-title">
+                        📋 Historia clínica — @_selectedPatient.Name
+                    </span>
+                    <button class="btn btn-ghost btn-sm"
+                            @onclick="() => _selectedPatient = null">✕ Cerrar</button>
+                </div>
+
+                @if (_records == null)
+                {
+                    <div class="card-body"><LoadingSpinner Message="Cargando historia…" /></div>
+                }
+                else if (!_records.Any())
+                {
+                    <div class="card-body">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <div class="empty-state-title">Sin registros clínicos</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-wrapper">
+                        <table class="vet-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Diagnóstico</th>
+                                    <th>Tratamiento</th>
+                                    <th>Peso</th>
+                                    <th>Temp.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in _records)
+                                {
+                                    <tr>
+                                        <td>@r.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                        <td><strong>@r.Diagnosis</strong></td>
+                                        <td>@r.Treatment</td>
+                                        <td>@(r.WeightKg.HasValue ? $"{r.WeightKg} kg" : "—")</td>
+                                        <td>@(r.TemperatureCelsius.HasValue ? $"{r.TemperatureCelsius}°C" : "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+
+        @* ── Citas ── *@
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Mis citas</span>
+                <button class="btn btn-primary btn-sm"
+                        @onclick="() => _showNewAppointment = true"
+                        disabled="@(!(_patients?.Any() ?? false))">
+                    + Solicitar cita
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+                @if (_appointments == null || !_appointments.Any())
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📅</div>
+                        <div class="empty-state-title">No tienes citas</div>
+                        @if (_patients?.Any() == true)
+                        {
+                            <div class="empty-state-sub">Solicita tu primera cita con el botón de arriba.</div>
+                        }
+                        else
+                        {
+                            <div class="empty-state-sub">Registra una mascota primero para poder solicitar citas.</div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <table class="vet-table">
+                        <thead>
+                            <tr>
+                                <th>Mascota</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Duración</th>
+                                <th>Estado</th>
+                                <th>Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in _appointments)
+                            {
+                                <tr>
+                                    <td><strong>@a.PatientName</strong></td>
+                                    <td>@a.ScheduledAt.ToString("dd/MM/yyyy")</td>
+                                    <td>@a.ScheduledAt.ToString("HH:mm")</td>
+                                    <td>@a.DurationMinutes min</td>
+                                    <td><StatusBadge Status="@a.Status" /></td>
+                                    <td style="color:var(--color-text-muted);font-size:.85rem">
+                                        @(a.Reason ?? "—")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<NewPatientModal Visible="_showNewPatient"
+                 OnSaved="EventCallback.Factory.Create(this, OnPatientSaved)"
+                 OnClose="EventCallback.Factory.Create(this, () => _showNewPatient = false)" />
+
+<NewAppointmentModal Visible="_showNewAppointment"
+                     OnSaved="EventCallback.Factory.Create(this, OnAppointmentSaved)"
+                     OnClose="EventCallback.Factory.Create(this, () => _showNewAppointment = false)" />
+
+@if (!string.IsNullOrEmpty(_toast))
+{
+    <div style="position:fixed;bottom:28px;right:28px;background:var(--color-success);color:white;
+                padding:12px 20px;border-radius:var(--radius-md);box-shadow:var(--shadow-md);
+                font-size:.875rem;font-weight:600;z-index:2000">
+        ✅ @_toast
+    </div>
+}
+
+@code {
+    private List<PatientResponse>?         _patients;
+    private List<AppointmentResponse>?     _appointments;
+    private List<ClinicalRecordResponse>?  _records;
+    private PatientResponse?               _selectedPatient;
+
+    private bool _loading          = true;
+    private bool _showNewPatient;
+    private bool _showNewAppointment;
+    private string? _toast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadPatients(), LoadAppointments());
+        _loading = false;
+    }
+
+    private async Task LoadPatients()
+    {
+        try
+        {
+            var result = await PatientApi.ListAsync(page: 1, pageSize: 100);
+            _patients = result?.Items ?? [];
+        }
+        catch { _patients = []; }
+    }
+
+    private async Task LoadAppointments()
+    {
+        try
+        {
+            _appointments = await AppointmentApi.ListAsync() ?? [];
+        }
+        catch { _appointments = []; }
+    }
+
+    private async Task SelectPatient(PatientResponse p)
+    {
+        _selectedPatient = p;
+        _records = null;
+        try
+        {
+            _records = await PatientApi.ListRecordsAsync(p.Id) ?? [];
+        }
+        catch { _records = []; }
+    }
+
+    private async Task OnPatientSaved()
+    {
+        await LoadPatients();
+        ShowToast("Mascota registrada correctamente.");
+    }
+
+    private async Task OnAppointmentSaved()
+    {
+        await LoadAppointments();
+        ShowToast("Cita solicitada correctamente.");
+    }
+
+    private async Task ShowToast(string msg)
+    {
+        _toast = msg;
+        StateHasChanged();
+        await Task.Delay(3000);
+        _toast = null;
+        StateHasChanged();
+    }
+}

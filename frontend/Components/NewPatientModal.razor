@@ -1,0 +1,145 @@
+@* Modal para que el propietario registre una nueva mascota *@
+@inject PatientApiClient PatientApi
+
+@if (Visible)
+{
+    <div class="modal-overlay" @onclick="HandleOverlayClick">
+        <div class="modal-box" @onclick:stopPropagation>
+            <div class="modal-header">
+                <span class="modal-title">🐾 Registrar nueva mascota</span>
+                <button class="btn-close" @onclick="Close">✕</button>
+            </div>
+
+            <div class="modal-body">
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger">@_error</div>
+                }
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre *</label>
+                        <input class="form-control @Cls(_request.Name)"
+                               @bind="_request.Name" placeholder="Nombre de la mascota" />
+                        @if (_submitted && string.IsNullOrWhiteSpace(_request.Name))
+                        { <div class="validation-message">Obligatorio.</div> }
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Especie *</label>
+                        <select class="form-control @Cls(_request.Species)" @bind="_request.Species">
+                            <option value="">— Selecciona —</option>
+                            <option value="Dog">Perro</option>
+                            <option value="Cat">Gato</option>
+                            <option value="Bird">Ave</option>
+                            <option value="Rabbit">Conejo</option>
+                            <option value="Other">Otro</option>
+                        </select>
+                        @if (_submitted && string.IsNullOrWhiteSpace(_request.Species))
+                        { <div class="validation-message">Obligatorio.</div> }
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Raza</label>
+                        <input class="form-control" @bind="_request.Breed" placeholder="Raza o mestizo" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Color</label>
+                        <input class="form-control" @bind="_request.Color" placeholder="Color del pelaje" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Sexo *</label>
+                        <select class="form-control @Cls(_request.Sex)" @bind="_request.Sex">
+                            <option value="">— Selecciona —</option>
+                            <option value="Male">Macho</option>
+                            <option value="Female">Hembra</option>
+                        </select>
+                        @if (_submitted && string.IsNullOrWhiteSpace(_request.Sex))
+                        { <div class="validation-message">Obligatorio.</div> }
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Edad (años) *</label>
+                        <input type="number" min="0" max="40" class="form-control @Cls2(_request.AgeYears)"
+                               @bind="_request.AgeYears" />
+                        @if (_submitted && _request.AgeYears < 0)
+                        { <div class="validation-message">Ingresa una edad válida.</div> }
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Peso (kg)</label>
+                        <input type="number" step="0.1" min="0" class="form-control"
+                               @bind="_request.WeightKg" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Microchip</label>
+                        <input class="form-control" @bind="_request.MicrochipNumber"
+                               placeholder="Número de microchip" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-ghost" @onclick="Close" disabled="@_saving">Cancelar</button>
+                <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
+                    @if (_saving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                    else { <span>Registrar mascota</span> }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private CreatePatientRequest _request = new();
+    private bool _submitted;
+    private bool _saving;
+    private string? _error;
+
+    protected override void OnParametersSet()
+    {
+        if (Visible) { _request = new(); _submitted = false; _error = null; }
+    }
+
+    private async Task Save()
+    {
+        _submitted = true;
+        if (string.IsNullOrWhiteSpace(_request.Name) ||
+            string.IsNullOrWhiteSpace(_request.Species) ||
+            string.IsNullOrWhiteSpace(_request.Sex))
+            return;
+
+        _saving = true;
+        _error = null;
+        try
+        {
+            await PatientApi.CreateAsync(_request);
+            await OnSaved.InvokeAsync();
+            await Close();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+    private async Task HandleOverlayClick() => await Close();
+
+    // Helpers de clase CSS para validación inline
+    private string Cls(string? v)  => _submitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
+    private string Cls2(int v)     => _submitted && v < 0 ? "invalid" : "";
+}

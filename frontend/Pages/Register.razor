@@ -1,0 +1,138 @@
+@page "/register"
+@inject AuthApiClient AuthApi
+@inject TokenProvider Token
+@inject NavigationManager Nav
+
+<PageTitle>Crear cuenta — VetSystem</PageTitle>
+
+<div class="auth-wrapper">
+    <div class="auth-card" style="max-width:480px">
+        <div class="auth-logo">
+            <span class="auth-logo-icon">🏥</span>
+            <div class="auth-logo-title">VetSystem</div>
+            <div class="auth-logo-sub">Crear nueva cuenta</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger">⚠️ @_error</div>
+        }
+        @if (!string.IsNullOrEmpty(_success))
+        {
+            <div class="alert alert-success">✅ @_success</div>
+        }
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Nombre *</label>
+                <input class="form-control @Cls(_request.FirstName)"
+                       @bind="_request.FirstName" placeholder="Nombre" />
+                @if (_submitted && string.IsNullOrWhiteSpace(_request.FirstName))
+                { <div class="validation-message">Obligatorio.</div> }
+            </div>
+            <div class="form-group">
+                <label class="form-label">Apellido *</label>
+                <input class="form-control @Cls(_request.LastName)"
+                       @bind="_request.LastName" placeholder="Apellido" />
+                @if (_submitted && string.IsNullOrWhiteSpace(_request.LastName))
+                { <div class="validation-message">Obligatorio.</div> }
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Correo electrónico *</label>
+            <input type="email" class="form-control @Cls(_request.Email)"
+                   @bind="_request.Email" placeholder="correo@ejemplo.com" />
+            @if (_submitted && string.IsNullOrWhiteSpace(_request.Email))
+            { <div class="validation-message">Obligatorio.</div> }
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Teléfono</label>
+            <input type="tel" class="form-control"
+                   @bind="_request.Phone" placeholder="+57 300 000 0000" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Rol *</label>
+            <select class="form-control" @bind="_request.Role">
+                <option value="Owner">Propietario de mascota</option>
+                <option value="Veterinarian">Veterinario</option>
+            </select>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Contraseña *</label>
+                <input type="password" class="form-control @Cls(_request.Password)"
+                       @bind="_request.Password" placeholder="Mínimo 6 caracteres" />
+                @if (_submitted && string.IsNullOrWhiteSpace(_request.Password))
+                { <div class="validation-message">Obligatorio.</div> }
+            </div>
+            <div class="form-group">
+                <label class="form-label">Confirmar contraseña *</label>
+                <input type="password"
+                       class="form-control @(_submitted && _confirm != _request.Password ? "invalid" : "")"
+                       @bind="_confirm" placeholder="Repite la contraseña" />
+                @if (_submitted && _confirm != _request.Password)
+                { <div class="validation-message">Las contraseñas no coinciden.</div> }
+            </div>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" @onclick="DoRegister" disabled="@_loading">
+            @if (_loading) { <span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block"></span> }
+            <span>Crear cuenta</span>
+        </button>
+
+        <div style="margin-top:20px;text-align:center;font-size:.85rem;color:var(--color-text-muted)">
+            ¿Ya tienes cuenta?
+            <a href="/login" style="font-weight:600">Inicia sesión</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest _request = new() { Role = "Owner" };
+    private string _confirm  = "";
+    private bool   _submitted;
+    private bool   _loading;
+    private string? _error;
+    private string? _success;
+
+    private async Task DoRegister()
+    {
+        _submitted = true;
+        _error = null;
+        _success = null;
+
+        if (string.IsNullOrWhiteSpace(_request.FirstName) ||
+            string.IsNullOrWhiteSpace(_request.LastName)  ||
+            string.IsNullOrWhiteSpace(_request.Email)     ||
+            string.IsNullOrWhiteSpace(_request.Password)  ||
+            _confirm != _request.Password)
+            return;
+
+        _loading = true;
+        try
+        {
+            await AuthApi.RegisterAsync(_request);
+            _success = "Cuenta creada con éxito. Redirigiendo al login…";
+            await Task.Delay(1800);
+            Nav.NavigateTo("/login");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            _error = "Ya existe una cuenta con ese correo.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string Cls(string? v) => _submitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
+}

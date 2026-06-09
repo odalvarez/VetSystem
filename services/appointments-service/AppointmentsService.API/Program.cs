@@ -4,6 +4,7 @@ using AppointmentsService.Application.Interfaces;
 using AppointmentsService.Application.Services;
 using AppointmentsService.Infrastructure.Data;
 using AppointmentsService.Infrastructure.Data.Repositories;
+using AppointmentsService.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -38,6 +39,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+
+// Cliente HTTP hacia notifications-service; incluye X-Internal-Key para pasar el middleware
+var notifBaseUrl    = builder.Configuration["NotificationsService:BaseUrl"]    ?? "http://notifications-service:5004";
+var notifInternalKey = builder.Configuration["NotificationsService:InternalKey"] ?? "dev-internal-key-change-in-production";
+builder.Services.AddHttpClient<INotificationClient, NotificationHttpClient>(c =>
+{
+    c.BaseAddress = new Uri(notifBaseUrl);
+    c.DefaultRequestHeaders.Add("X-Internal-Key", notifInternalKey);
+    // Evolution API a veces tarda; 10s es suficiente para no bloquear el hilo principal
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+
 builder.Services.AddScoped<AppointmentAppService>();
 
 var app = builder.Build();
