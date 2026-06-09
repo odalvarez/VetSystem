@@ -40,6 +40,14 @@ public class OwnerSummary
     public string Phone    { get; set; } = "";
 }
 
+public class VetSummary
+{
+    public Guid   Id       { get; set; }
+    public string FullName { get; set; } = "";
+    public string Email    { get; set; } = "";
+    public string Phone    { get; set; } = "";
+}
+
 public class UserProfile
 {
     public Guid     Id        { get; set; }
@@ -49,4 +57,48 @@ public class UserProfile
     public string   Phone     { get; set; } = "";
     public string   Role      { get; set; } = "";
     public DateTime CreatedAt { get; set; }
+}
+
+public class AdminUserItem
+{
+    public Guid     Id        { get; set; }
+    public string   FirstName { get; set; } = "";
+    public string   LastName  { get; set; } = "";
+    public string   Email     { get; set; } = "";
+    public string   Phone     { get; set; } = "";
+    public string   Role      { get; set; } = "";
+    public bool     IsActive  { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string   FullName  => $"{FirstName} {LastName}";
+}
+
+public class AdminPagedUsers
+{
+    public List<AdminUserItem> Items      { get; set; } = [];
+    public int                 TotalCount { get; set; }
+    public int                 Page       { get; set; }
+    public int                 PageSize   { get; set; }
+}
+
+public class AdminCreateUserRequest
+{
+    public string FirstName { get; set; } = "";
+    public string LastName  { get; set; } = "";
+    public string Email     { get; set; } = "";
+    public string Password  { get; set; } = "";
+    public string Phone     { get; set; } = "";
+    public string Role      { get; set; } = "Owner";
+}
+
+public class AdminUpdateUserRequest
+{
+    public string FirstName { get; set; } = "";
+    public string LastName  { get; set; } = "";
+    public string Phone     { get; set; } = "";
+    public string Role      { get; set; } = "";
+}
+
+public class AdminResetPasswordRequest
+{
+    public string NewPassword { get; set; } = "";
 }

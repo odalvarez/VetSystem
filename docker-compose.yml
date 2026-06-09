@@ -1,3 +1,18 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  VetSystem — Docker Compose
+#
+#  ⚠  COMANDOS QUE DESTRUYEN DATOS — NUNCA USAR EN PRODUCCIÓN:
+#     docker-compose down -v          ← elimina volúmenes (BD incluida)
+#     docker volume rm                ← elimina un volumen específico
+#     docker system prune --volumes   ← elimina TODO lo no usado
+#
+#  COMANDOS SEGUROS para reiniciar sin perder datos:
+#     docker-compose down             ← detiene y elimina contenedores, CONSERVA volúmenes
+#     docker-compose up -d            ← levanta todo
+#     docker-compose restart          ← reinicia contenedores en caliente
+#     docker-compose up -d --build    ← reconstruye imágenes, CONSERVA volúmenes
+# ══════════════════════════════════════════════════════════════════════════════
+
 services:
 
   # ──────────────────────────────────────────────────────────────────────
@@ -29,9 +44,9 @@ services:
     restart: unless-stopped
 
   # ──────────────────────────────────────────────────────────────────────
-  # Evolution API v1 — servidor WhatsApp Business
+  # Evolution API v1.8.7 — servidor WhatsApp Business
   # v1 guarda la sesión en disco; no necesita base de datos externa
-  # La instancia "vetsystem" se vincula escaneando el QR en http://localhost:8080
+  # La instancia "vetsystem" se vincula escaneando el QR en http://localhost:8080/manager
   # ──────────────────────────────────────────────────────────────────────
   evolution-api:
     image: atendai/evolution-api:v1.8.7
@@ -39,15 +54,18 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SERVER_URL:              "http://localhost:8080"
-      AUTHENTICATION_TYPE:     "apikey"
-      AUTHENTICATION_API_KEY:  "${EVOLUTION_API_KEY}"
-      DATABASE_ENABLED:        "false"
-      LOG_LEVEL:               "ERROR"
-      STORE_MESSAGES:          "true"
-      STORE_MESSAGE_UP:        "true"
-      STORE_CONTACTS:          "true"
-      STORE_CHATS:             "true"
+      SERVER_URL:             "http://localhost:8080"
+      AUTHENTICATION_TYPE:    "apikey"
+      AUTHENTICATION_API_KEY: "${EVOLUTION_API_KEY}"
+      # v1 guarda sesiones directamente en disco, sin DB externa
+      LOG_LEVEL:              "ERROR,WARN,LOG"
+      LOG_COLOR:              "false"
+      LOG_BAILEYS:            "error"
+      QRCODE_LIMIT:           "10"
+      QRCODE_COLOR:           "#198754"
+      # Versión actual de WhatsApp Web — actualizar si WhatsApp empieza a rechazar el QR
+      # Comando para obtener la versión actual: docker exec vetsystem-evolution node -e "require('/evolution/node_modules/baileys').fetchLatestWaWebVersion().then(v=>console.log(v.version.join(',')))"
+      CONFIG_SESSION_PHONE_VERSION: "2,3000,1041122824"
     volumes:
       - evolution_data:/evolution/instances
     networks:
@@ -57,7 +75,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 30s
     restart: unless-stopped
 
   # ──────────────────────────────────────────────────────────────────────
@@ -77,6 +95,8 @@ services:
       Jwt__Secret:                "${JWT_SECRET}"
       Jwt__Issuer:                "auth-service"
       Jwt__Audience:              "vetsystem"
+      AdminSeed__Email:           "vet@vetsystem.com"
+      AdminSeed__Password:        "Admin1234!"
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -226,6 +246,6 @@ networks:
 
 volumes:
   sqlserver_data:
-    # Los datos de SQL Server persisten entre reinicios del contenedor
+    # ⚠ NO ejecutar "docker-compose down -v" ni "docker volume rm" — contiene todos los datos
   evolution_data:
-    # La sesión de WhatsApp vinculada persiste; sin esto hay que re-escanear el QR
+    # ⚠ NO eliminar — contiene archivos de sesión de WhatsApp v1; requiere re-escanear QR si se borra

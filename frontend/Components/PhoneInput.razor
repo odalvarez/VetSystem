@@ -1,0 +1,294 @@
+@* Selector compacto de indicativo de país + campo de número local.
+   Emite el número completo (indicativo + dígitos) via ValueChanged.
+   Soporta pre-población: si Value llega con un indicativo conocido lo detecta automáticamente. *@
+
+<div class="phone-field">
+    <div class="phone-prefix" @onclick="TogglePicker">
+        +@_dial
+        <span class="phone-prefix-arrow">▾</span>
+        @if (_open)
+        {
+            <div class="phone-picker-overlay" @onclick="ClosePickerOverlay" @onclick:stopPropagation></div>
+            <div class="phone-picker-dropdown" @onclick:stopPropagation>
+                <input class="phone-picker-search"
+                       @bind="_search" @bind:event="oninput"
+                       placeholder="Buscar país…" />
+                <div class="phone-picker-list">
+                    @foreach (var c in Filtered)
+                    {
+                        <button class="phone-picker-option" type="button" @onclick="() => Pick(c)">
+                            <span class="phone-picker-iso">@c.Iso</span>
+                            <span class="phone-picker-name">@c.Name</span>
+                            <span class="phone-picker-dial">+@c.Dial</span>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    <input class="phone-number"
+           value="@_local"
+           @oninput="HandleLocal"
+           placeholder="@Placeholder"
+           inputmode="tel" />
+</div>
+
+@code {
+    // ── Parámetros ────────────────────────────────────────────────────────────
+
+    /// Número completo que se emite al padre (indicativo + número sin espacios).
+    [Parameter] public string  Value        { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string  Placeholder  { get; set; } = "3001234567";
+
+    // ── Estado interno ────────────────────────────────────────────────────────
+
+    private string _dial   = "57";   // indicativo activo (Colombia por defecto)
+    private string _local  = "";     // número local sin indicativo
+    private bool   _open   = false;
+    private string _search = "";
+
+    private string _lastValue = "";  // evita re-parsear si Value no cambió
+
+    // ── Ciclo de vida ─────────────────────────────────────────────────────────
+
+    protected override void OnParametersSet()
+    {
+        // Si llega un Value externo distinto al que nosotros emitimos, intentamos parsearlo
+        if (Value == _lastValue) return;
+        _lastValue = Value;
+
+        if (string.IsNullOrWhiteSpace(Value))
+        {
+            _local = "";
+            return;
+        }
+
+        // Buscamos el indicativo más largo que sea prefijo del valor
+        var stripped = Value.TrimStart('+');
+        var match = AllCountries
+            .OrderByDescending(c => c.Dial.Length)
+            .FirstOrDefault(c => stripped.StartsWith(c.Dial));
+
+        if (match is not null)
+        {
+            _dial  = match.Dial;
+            _local = stripped[match.Dial.Length..];
+        }
+        else
+        {
+            _local = stripped;
+        }
+    }
+
+    // ── Interacciones ─────────────────────────────────────────────────────────
+
+    private void TogglePicker() { _open = !_open; _search = ""; }
+    private void ClosePickerOverlay() { _open = false; _search = ""; }
+
+    private async Task Pick(Country c)
+    {
+        _dial  = c.Dial;
+        _open  = false;
+        _search = "";
+        await Emit();
+    }
+
+    private async Task HandleLocal(ChangeEventArgs e)
+    {
+        _local = e.Value?.ToString() ?? "";
+        await Emit();
+    }
+
+    private async Task Emit()
+    {
+        var digits = System.Text.RegularExpressions.Regex.Replace(_local, @"\D", "");
+        var full   = string.IsNullOrEmpty(digits) ? "" : _dial + digits;
+        _lastValue = full;
+        await ValueChanged.InvokeAsync(full);
+    }
+
+    // ── Búsqueda ──────────────────────────────────────────────────────────────
+
+    private IEnumerable<Country> Filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? AllCountries
+            : AllCountries.Where(c =>
+                c.Name.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                c.Dial.StartsWith(_search) ||
+                c.Iso.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    // ── Modelo ────────────────────────────────────────────────────────────────
+
+    private record Country(string Iso, string Name, string Dial);
+
+    private static readonly List<Country> AllCountries =
+    [
+        new("AF","Afganistán","93"),
+        new("AL","Albania","355"),
+        new("DE","Alemania","49"),
+        new("AD","Andorra","376"),
+        new("AO","Angola","244"),
+        new("SA","Arabia Saudita","966"),
+        new("DZ","Argelia","213"),
+        new("AR","Argentina","54"),
+        new("AM","Armenia","374"),
+        new("AU","Australia","61"),
+        new("AT","Austria","43"),
+        new("AZ","Azerbaiyán","994"),
+        new("BS","Bahamas","1242"),
+        new("BH","Baréin","973"),
+        new("BD","Bangladés","880"),
+        new("BB","Barbados","1246"),
+        new("BE","Bélgica","32"),
+        new("BZ","Belice","501"),
+        new("BJ","Benín","229"),
+        new("BO","Bolivia","591"),
+        new("BA","Bosnia y Herzegovina","387"),
+        new("BW","Botsuana","267"),
+        new("BR","Brasil","55"),
+        new("BN","Brunéi","673"),
+        new("BG","Bulgaria","359"),
+        new("BF","Burkina Faso","226"),
+        new("BI","Burundi","257"),
+        new("CV","Cabo Verde","238"),
+        new("KH","Camboya","855"),
+        new("CM","Camerún","237"),
+        new("CA","Canadá","1"),
+        new("QA","Catar","974"),
+        new("TD","Chad","235"),
+        new("CL","Chile","56"),
+        new("CN","China","86"),
+        new("CY","Chipre","357"),
+        new("CO","Colombia","57"),
+        new("KM","Comoras","269"),
+        new("CG","Congo","242"),
+        new("CD","Congo RDC","243"),
+        new("KR","Corea del Sur","82"),
+        new("KP","Corea del Norte","850"),
+        new("CR","Costa Rica","506"),
+        new("CI","Costa de Marfil","225"),
+        new("HR","Croacia","385"),
+        new("CU","Cuba","53"),
+        new("DK","Dinamarca","45"),
+        new("DJ","Yibuti","253"),
+        new("DM","Dominica","1767"),
+        new("EC","Ecuador","593"),
+        new("EG","Egipto","20"),
+        new("SV","El Salvador","503"),
+        new("AE","Emiratos Árabes Unidos","971"),
+        new("ER","Eritrea","291"),
+        new("SK","Eslovaquia","421"),
+        new("SI","Eslovenia","386"),
+        new("ES","España","34"),
+        new("US","Estados Unidos","1"),
+        new("EE","Estonia","372"),
+        new("ET","Etiopía","251"),
+        new("PH","Filipinas","63"),
+        new("FI","Finlandia","358"),
+        new("FJ","Fiyi","679"),
+        new("FR","Francia","33"),
+        new("GA","Gabón","241"),
+        new("GM","Gambia","220"),
+        new("GE","Georgia","995"),
+        new("GH","Ghana","233"),
+        new("GR","Grecia","30"),
+        new("GD","Granada","1473"),
+        new("GT","Guatemala","502"),
+        new("GN","Guinea","224"),
+        new("GW","Guinea-Bisáu","245"),
+        new("GQ","Guinea Ecuatorial","240"),
+        new("GY","Guyana","592"),
+        new("HT","Haití","509"),
+        new("HN","Honduras","504"),
+        new("HU","Hungría","36"),
+        new("IN","India","91"),
+        new("ID","Indonesia","62"),
+        new("IQ","Irak","964"),
+        new("IR","Irán","98"),
+        new("IE","Irlanda","353"),
+        new("IS","Islandia","354"),
+        new("IL","Israel","972"),
+        new("IT","Italia","39"),
+        new("JM","Jamaica","1876"),
+        new("JP","Japón","81"),
+        new("JO","Jordania","962"),
+        new("KZ","Kazajistán","7"),
+        new("KE","Kenia","254"),
+        new("KW","Kuwait","965"),
+        new("LA","Laos","856"),
+        new("LV","Letonia","371"),
+        new("LB","Líbano","961"),
+        new("LY","Libia","218"),
+        new("LI","Liechtenstein","423"),
+        new("LT","Lituania","370"),
+        new("LU","Luxemburgo","352"),
+        new("MK","Macedonia del Norte","389"),
+        new("MG","Madagascar","261"),
+        new("MY","Malasia","60"),
+        new("MW","Malaui","265"),
+        new("MV","Maldivas","960"),
+        new("ML","Malí","223"),
+        new("MT","Malta","356"),
+        new("MA","Marruecos","212"),
+        new("MU","Mauricio","230"),
+        new("MR","Mauritania","222"),
+        new("MX","México","52"),
+        new("MD","Moldavia","373"),
+        new("MC","Mónaco","377"),
+        new("MN","Mongolia","976"),
+        new("ME","Montenegro","382"),
+        new("MZ","Mozambique","258"),
+        new("NA","Namibia","264"),
+        new("NP","Nepal","977"),
+        new("NI","Nicaragua","505"),
+        new("NE","Níger","227"),
+        new("NG","Nigeria","234"),
+        new("NO","Noruega","47"),
+        new("NZ","Nueva Zelanda","64"),
+        new("OM","Omán","968"),
+        new("PK","Pakistán","92"),
+        new("PA","Panamá","507"),
+        new("PG","Papúa Nueva Guinea","675"),
+        new("PY","Paraguay","595"),
+        new("PE","Perú","51"),
+        new("PL","Polonia","48"),
+        new("PT","Portugal","351"),
+        new("GB","Reino Unido","44"),
+        new("DO","Rep. Dominicana","1809"),
+        new("CZ","Rep. Checa","420"),
+        new("RO","Rumania","40"),
+        new("RU","Rusia","7"),
+        new("RW","Ruanda","250"),
+        new("SN","Senegal","221"),
+        new("RS","Serbia","381"),
+        new("SL","Sierra Leona","232"),
+        new("SG","Singapur","65"),
+        new("SO","Somalia","252"),
+        new("LK","Sri Lanka","94"),
+        new("ZA","Sudáfrica","27"),
+        new("SD","Sudán","249"),
+        new("SS","Sudán del Sur","211"),
+        new("SE","Suecia","46"),
+        new("CH","Suiza","41"),
+        new("SR","Surinam","597"),
+        new("TH","Tailandia","66"),
+        new("TZ","Tanzania","255"),
+        new("TJ","Tayikistán","992"),
+        new("TL","Timor Oriental","670"),
+        new("TG","Togo","228"),
+        new("TT","Trinidad y Tobago","1868"),
+        new("TN","Túnez","216"),
+        new("TM","Turkmenistán","993"),
+        new("TR","Turquía","90"),
+        new("UA","Ucrania","380"),
+        new("UG","Uganda","256"),
+        new("UY","Uruguay","598"),
+        new("UZ","Uzbekistán","998"),
+        new("VE","Venezuela","58"),
+        new("VN","Vietnam","84"),
+        new("YE","Yemen","967"),
+        new("ZM","Zambia","260"),
+        new("ZW","Zimbabue","263"),
+    ];
+}

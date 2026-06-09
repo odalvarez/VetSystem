@@ -13,102 +13,110 @@
             <div class="auth-logo-sub">Crear nueva cuenta</div>
         </div>
 
-        @if (!string.IsNullOrEmpty(_error))
+        @if (_registered)
         {
-            <div class="alert alert-danger">⚠️ @_error</div>
+            <div style="text-align:center;padding:16px 0">
+                <div style="font-size:3rem;margin-bottom:12px">✅</div>
+                <div style="font-size:1.15rem;font-weight:600;color:var(--color-success);margin-bottom:8px">
+                    ¡Cuenta creada con éxito!
+                </div>
+                <div style="color:var(--color-text-muted);margin-bottom:24px;font-size:.9rem">
+                    Ya puedes iniciar sesión con tu correo y contraseña.
+                </div>
+                <button class="btn btn-primary btn-block btn-lg" @onclick='() => Nav.NavigateTo("/login")'>
+                    Ir al login
+                </button>
+            </div>
         }
-        @if (!string.IsNullOrEmpty(_success))
+        else
         {
-            <div class="alert alert-success">✅ @_success</div>
-        }
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="alert alert-danger">⚠️ @_error</div>
+            }
 
-        <div class="form-row">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Nombre *</label>
+                    <input class="form-control @Cls(_request.FirstName)"
+                           @bind="_request.FirstName" placeholder="Nombre" />
+                    @if (_submitted && string.IsNullOrWhiteSpace(_request.FirstName))
+                    { <div class="validation-message">Obligatorio.</div> }
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Apellido *</label>
+                    <input class="form-control @Cls(_request.LastName)"
+                           @bind="_request.LastName" placeholder="Apellido" />
+                    @if (_submitted && string.IsNullOrWhiteSpace(_request.LastName))
+                    { <div class="validation-message">Obligatorio.</div> }
+                </div>
+            </div>
+
             <div class="form-group">
-                <label class="form-label">Nombre *</label>
-                <input class="form-control @Cls(_request.FirstName)"
-                       @bind="_request.FirstName" placeholder="Nombre" />
-                @if (_submitted && string.IsNullOrWhiteSpace(_request.FirstName))
+                <label class="form-label">Correo electrónico *</label>
+                <input type="email" class="form-control @Cls(_request.Email)"
+                       @bind="_request.Email" placeholder="correo@ejemplo.com" />
+                @if (_submitted && string.IsNullOrWhiteSpace(_request.Email))
                 { <div class="validation-message">Obligatorio.</div> }
             </div>
+
             <div class="form-group">
-                <label class="form-label">Apellido *</label>
-                <input class="form-control @Cls(_request.LastName)"
-                       @bind="_request.LastName" placeholder="Apellido" />
-                @if (_submitted && string.IsNullOrWhiteSpace(_request.LastName))
-                { <div class="validation-message">Obligatorio.</div> }
+                <label class="form-label">Teléfono</label>
+                <PhoneInput @bind-Value="_request.Phone" Placeholder="3001234567" />
             </div>
-        </div>
 
-        <div class="form-group">
-            <label class="form-label">Correo electrónico *</label>
-            <input type="email" class="form-control @Cls(_request.Email)"
-                   @bind="_request.Email" placeholder="correo@ejemplo.com" />
-            @if (_submitted && string.IsNullOrWhiteSpace(_request.Email))
-            { <div class="validation-message">Obligatorio.</div> }
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Teléfono</label>
-            <input type="tel" class="form-control"
-                   @bind="_request.Phone" placeholder="+57 300 000 0000" />
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Rol *</label>
-            <select class="form-control" @bind="_request.Role">
-                <option value="Owner">Propietario de mascota</option>
-                <option value="Veterinarian">Veterinario</option>
-            </select>
-        </div>
-
-        <div class="form-row">
             <div class="form-group">
                 <label class="form-label">Contraseña *</label>
-                <input type="password" class="form-control @Cls(_request.Password)"
-                       @bind="_request.Password" placeholder="Mínimo 6 caracteres" />
-                @if (_submitted && string.IsNullOrWhiteSpace(_request.Password))
-                { <div class="validation-message">Obligatorio.</div> }
+                <input type="password"
+                       class="form-control @(_submitted && !PasswordStrength.IsValid(_request.Password) ? "invalid" : "")"
+                       value="@_request.Password"
+                       @oninput="e => _request.Password = e.Value?.ToString() ?? string.Empty"
+                       placeholder="Mínimo 6 caracteres" />
+                <PasswordStrength Password="@_request.Password" />
+                @if (_submitted && !PasswordStrength.IsValid(_request.Password))
+                { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
             </div>
+
             <div class="form-group">
                 <label class="form-label">Confirmar contraseña *</label>
                 <input type="password"
-                       class="form-control @(_submitted && _confirm != _request.Password ? "invalid" : "")"
-                       @bind="_confirm" placeholder="Repite la contraseña" />
-                @if (_submitted && _confirm != _request.Password)
-                { <div class="validation-message">Las contraseñas no coinciden.</div> }
+                       class="form-control @(!string.IsNullOrEmpty(_confirm) && _confirm != _request.Password ? "invalid" : "")"
+                       value="@_confirm"
+                       @oninput="e => _confirm = e.Value?.ToString() ?? string.Empty"
+                       placeholder="Repite la contraseña" />
+                <PasswordMatchHint Password="@_request.Password" Confirm="@_confirm" />
             </div>
-        </div>
 
-        <button class="btn btn-primary btn-block btn-lg" @onclick="DoRegister" disabled="@_loading">
-            @if (_loading) { <span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block"></span> }
-            <span>Crear cuenta</span>
-        </button>
+            <button class="btn btn-primary btn-block btn-lg" @onclick="DoRegister" disabled="@_loading">
+                @if (_loading) { <span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block"></span> }
+                <span>Crear cuenta</span>
+            </button>
 
-        <div style="margin-top:20px;text-align:center;font-size:.85rem;color:var(--color-text-muted)">
-            ¿Ya tienes cuenta?
-            <a href="/login" style="font-weight:600">Inicia sesión</a>
-        </div>
+            <div style="margin-top:20px;text-align:center;font-size:.85rem;color:var(--color-text-muted)">
+                ¿Ya tienes cuenta?
+                <a href="/login" style="font-weight:600">Inicia sesión</a>
+            </div>
+        }
     </div>
 </div>
 
 @code {
     private RegisterRequest _request = new() { Role = "Owner" };
-    private string _confirm  = "";
-    private bool   _submitted;
-    private bool   _loading;
+    private string  _confirm    = "";
+    private bool    _submitted;
+    private bool    _loading;
+    private bool    _registered;
     private string? _error;
-    private string? _success;
 
     private async Task DoRegister()
     {
         _submitted = true;
-        _error = null;
-        _success = null;
+        _error     = null;
 
         if (string.IsNullOrWhiteSpace(_request.FirstName) ||
             string.IsNullOrWhiteSpace(_request.LastName)  ||
             string.IsNullOrWhiteSpace(_request.Email)     ||
-            string.IsNullOrWhiteSpace(_request.Password)  ||
+            !PasswordStrength.IsValid(_request.Password)  ||
             _confirm != _request.Password)
             return;
 
@@ -116,9 +124,7 @@
         try
         {
             await AuthApi.RegisterAsync(_request);
-            _success = "Cuenta creada con éxito. Redirigiendo al login…";
-            await Task.Delay(1800);
-            Nav.NavigateTo("/login");
+            _registered = true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
         {

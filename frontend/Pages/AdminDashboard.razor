@@ -1,0 +1,1195 @@
+@page "/admin"
+@attribute [Authorize]
+@inject AuthApiClient        AuthApi
+@inject PatientApiClient     PatientApi
+@inject AppointmentApiClient AppointmentApi
+@inject SpeciesApiClient     SpeciesApi
+@inject TokenProvider        Token
+@inject NavigationManager    Nav
+
+<PageTitle>Administración — VetSystem</PageTitle>
+
+<div class="page-header">
+    <div class="page-title">⚙️ Panel de administración</div>
+    <div class="page-subtitle">Vista global del sistema</div>
+</div>
+
+<div class="page-content">
+
+    @* ── KPIs — cambian según la tab activa ── *@
+    <div class="stats-row">
+        @if (_tab == "users")
+        {
+            <div class="stat-card">
+                <div class="stat-label">Total usuarios</div>
+                <div class="stat-value">@_totalUsers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Usuarios activos</div>
+                <div class="stat-value" style="color:var(--color-success)">@_activeUsers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Usuarios inactivos</div>
+                <div class="stat-value" style="color:var(--color-danger)">@_inactiveUsers</div>
+            </div>
+        }
+        else if (_tab == "patients")
+        {
+            <div class="stat-card">
+                <div class="stat-label">Total mascotas</div>
+                <div class="stat-value">@(_patientStatsLoaded ? _statPatientsTotal.ToString() : "…")</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Machos</div>
+                <div class="stat-value" style="color:#3b82f6">@(_patientStatsLoaded ? _statPatientsMale.ToString() : "…")</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Hembras</div>
+                <div class="stat-value" style="color:#ec4899">@(_patientStatsLoaded ? _statPatientsFemale.ToString() : "…")</div>
+            </div>
+        }
+        else if (_tab == "appointments")
+        {
+            <div class="stat-card">
+                <div class="stat-label">Total citas</div>
+                <div class="stat-value">@(_apptStatsLoaded ? _statApptsTotal.ToString() : "…")</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pendientes</div>
+                <div class="stat-value" style="color:var(--color-warning)">@(_apptStatsLoaded ? _statApptsPending.ToString() : "…")</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Completadas</div>
+                <div class="stat-value" style="color:var(--color-success)">@(_apptStatsLoaded ? _statApptsCompleted.ToString() : "…")</div>
+            </div>
+        }
+        else if (_tab == "species")
+        {
+            <div class="stat-card">
+                <div class="stat-label">Total especies</div>
+                <div class="stat-value">@_speciesList.Count</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Con mascotas</div>
+                <div class="stat-value" style="color:var(--color-success)">@_speciesList.Count(s => s.PatientCount > 0)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Sin mascotas</div>
+                <div class="stat-value" style="color:var(--color-text-muted)">@_speciesList.Count(s => s.PatientCount == 0)</div>
+            </div>
+        }
+    </div>
+
+    @* ── Tabs ── *@
+    <div class="admin-tabs">
+        <button class="admin-tab @(_tab == "users" ? "active" : "")" @onclick='() => SwitchTab("users")'>
+            👥 Usuarios
+        </button>
+        <button class="admin-tab @(_tab == "patients" ? "active" : "")" @onclick='() => SwitchTab("patients")'>
+            🐾 Mascotas
+        </button>
+        <button class="admin-tab @(_tab == "appointments" ? "active" : "")" @onclick='() => SwitchTab("appointments")'>
+            📅 Citas
+        </button>
+        <button class="admin-tab @(_tab == "species" ? "active" : "")" @onclick='() => SwitchTab("species")'>
+            🦎 Especies
+        </button>
+    </div>
+
+    @* ═══════════════════════════════════════════════
+       TAB: USUARIOS
+       ═══════════════════════════════════════════════ *@
+    @if (_tab == "users")
+    {
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Usuarios</span>
+                <button class="btn btn-primary btn-sm" @onclick="OpenCreateModal">+ Nuevo usuario</button>
+                <div class="filters-bar" style="margin-bottom:0">
+                    <div class="search-input" style="min-width:200px">
+                        <span class="search-icon">🔍</span>
+                        <input class="form-control" placeholder="Buscar por nombre o correo…"
+                               value="@_search" @oninput="HandleSearchInput" />
+                    </div>
+                    <select class="filter-select" @bind="_roleFilter" @bind:after="ReloadUsers">
+                        <option value="">Todos los roles</option>
+                        <option value="Owner">Propietarios</option>
+                        <option value="Veterinarian">Veterinarios</option>
+                        <option value="Admin">Administradores</option>
+                    </select>
+                    <select class="filter-select" @bind="_activeFilter" @bind:after="ReloadUsers">
+                        <option value="">Todos los estados</option>
+                        <option value="true">Activos</option>
+                        <option value="false">Inactivos</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                @if (_usersLoading)
+                {
+                    <div style="padding:40px"><LoadingSpinner Message="Cargando usuarios…" /></div>
+                }
+                else if (_users.Count == 0)
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <div class="empty-state-title">Sin resultados</div>
+                        <div class="empty-state-sub">No hay usuarios para los filtros seleccionados.</div>
+                    </div>
+                }
+                else
+                {
+                    <table class="vet-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Correo</th>
+                                <th>Teléfono</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Registrado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var u in _users)
+                            {
+                                var user = u;
+                                <tr style="@(user.IsActive ? "" : "opacity:.6")">
+                                    <td><strong>@user.FullName</strong></td>
+                                    <td style="font-size:.85rem">@user.Email</td>
+                                    <td style="font-size:.85rem">@(string.IsNullOrEmpty(user.Phone) ? "—" : user.Phone)</td>
+                                    <td><span class="role-badge role-@user.Role.ToLower()">@RoleLabel(user.Role)</span></td>
+                                    <td>
+                                        @if (user.IsActive)
+                                        { <span class="badge badge-confirmed">Activo</span> }
+                                        else
+                                        { <span class="badge badge-cancelled">Inactivo</span> }
+                                    </td>
+                                    <td style="font-size:.8rem">@user.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @{ var isSelf = Token.User != null && user.Id == Token.User.Id; }
+                                        <div style="display:flex;gap:6px">
+                                            <span class="tip-wrap">
+                                                <button class="btn btn-sm"
+                                                        style="background:#dbeafe;color:#1e40af;border:1px solid #3b82f6"
+                                                        @onclick="() => OpenEditModal(user)">✏️</button>
+                                                <span class="tip-txt">Editar usuario</span>
+                                            </span>
+                                            @if (user.IsActive)
+                                            {
+                                                <span class="tip-wrap">
+                                                    <button class="btn btn-sm"
+                                                            style="background:#fff3cd;color:#856404;border:1px solid #ffc107;@(isSelf ? "opacity:.4;cursor:not-allowed;" : "")"
+                                                            disabled="@isSelf"
+                                                            @onclick="() => ToggleActive(user)">⏸</button>
+                                                    <span class="tip-txt">@(isSelf ? "No puedes desactivar tu propia cuenta" : "Desactivar usuario")</span>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="tip-wrap">
+                                                    <button class="btn btn-sm"
+                                                            style="background:#d1e7dd;color:#0f5132;border:1px solid #198754"
+                                                            @onclick="() => ToggleActive(user)">▶</button>
+                                                    <span class="tip-txt">Activar usuario</span>
+                                                </span>
+                                            }
+                                            <span class="tip-wrap">
+                                                <button class="btn btn-sm"
+                                                        style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b"
+                                                        @onclick="() => OpenResetModal(user)">🔑</button>
+                                                <span class="tip-txt">Resetear contraseña</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    @if (_usersTotal > _usersPageSize)
+                    {
+                        <div class="pagination" style="padding:16px 20px">
+                            <button class="page-btn" disabled="@(_usersPage == 1)" @onclick="UsersPrevPage">‹</button>
+                            <span class="page-btn active">@_usersPage / @UsersTotalPages</span>
+                            <button class="page-btn" disabled="@(_usersPage >= UsersTotalPages)" @onclick="UsersNextPage">›</button>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+
+    @* ═══════════════════════════════════════════════
+       TAB: MASCOTAS
+       ═══════════════════════════════════════════════ *@
+    @if (_tab == "patients")
+    {
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Todas las mascotas</span>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <button class="btn btn-primary btn-sm" @onclick="() => _showVetPatientModal = true">+ Registrar mascota</button>
+                    <div class="filters-bar" style="margin-bottom:0">
+                        <div class="search-input" style="min-width:200px">
+                            <span class="search-icon">🔍</span>
+                            <input class="form-control" placeholder="Buscar por nombre…"
+                                   value="@_patientsSearch" @oninput="HandlePatientsSearch" />
+                        </div>
+                        <select class="filter-select" @bind="_patientsSpecies" @bind:after="ReloadPatients">
+                            <option value="">Todas las especies</option>
+                            @foreach (var s in _speciesList)
+                            {
+                                <option value="@s.Slug">@s.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body" style="padding:0">
+                @if (_patientsLoading)
+                {
+                    <div style="padding:40px"><LoadingSpinner Message="Cargando mascotas…" /></div>
+                }
+                else if (_patients.Count == 0)
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🐾</div>
+                        <div class="empty-state-title">Sin resultados</div>
+                        <div class="empty-state-sub">No hay mascotas registradas con esos filtros.</div>
+                    </div>
+                }
+                else
+                {
+                    <div style="padding:20px">
+                        <div class="patients-grid">
+                            @foreach (var p in _patients)
+                            {
+                                <PatientCard Patient="p"
+                                             OnSelect="EventCallback.Factory.Create(this, () => OpenEditPatient(p))" />
+                            }
+                        </div>
+                        @if (_patientsTotal > _patientsPageSize)
+                        {
+                            <div class="pagination">
+                                <button class="page-btn" disabled="@(_patientsPage == 1)" @onclick="PatientsPrevPage">‹</button>
+                                <span class="page-btn active">@_patientsPage / @PatientsTotalPages</span>
+                                <span style="font-size:.8rem;color:var(--color-text-muted);margin-left:4px">(@_patientsTotal total)</span>
+                                <button class="page-btn" disabled="@(_patientsPage >= PatientsTotalPages)" @onclick="PatientsNextPage">›</button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* ═══════════════════════════════════════════════
+       TAB: CITAS
+       ═══════════════════════════════════════════════ *@
+    @if (_tab == "appointments")
+    {
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Todas las citas</span>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <button class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">+ Nueva cita</button>
+                    <div class="filters-bar" style="margin-bottom:0">
+                    <select class="filter-select" @bind="_apptsStatus" @bind:after="ReloadAppointments">
+                        <option value="">Todos los estados</option>
+                        <option value="Scheduled">Programadas</option>
+                        <option value="Confirmed">Confirmadas</option>
+                        <option value="Completed">Completadas</option>
+                        <option value="Cancelled">Canceladas</option>
+                        <option value="NoShow">No presentó</option>
+                    </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                @if (_apptsLoading)
+                {
+                    <div style="padding:40px"><LoadingSpinner Message="Cargando citas…" /></div>
+                }
+                else if (_appointments.Count == 0)
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📅</div>
+                        <div class="empty-state-title">Sin resultados</div>
+                        <div class="empty-state-sub">No hay citas con los filtros seleccionados.</div>
+                    </div>
+                }
+                else
+                {
+                    <table class="vet-table">
+                        <thead>
+                            <tr>
+                                <th>Mascota</th>
+                                <th>Propietario</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Duración</th>
+                                <th>Estado</th>
+                                <th>Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in _appointments)
+                            {
+                                <tr>
+                                    <td><strong>@a.PatientName</strong></td>
+                                    <td style="font-size:.85rem">@(a.OwnerName ?? "—")</td>
+                                    <td>@a.ScheduledAt.ToString("dd/MM/yyyy")</td>
+                                    <td>@a.ScheduledAt.ToString("HH:mm")</td>
+                                    <td>@a.DurationMinutes min</td>
+                                    <td><StatusBadge Status="@a.Status" /></td>
+                                    <td style="color:var(--color-text-muted);font-size:.85rem">@(a.Reason ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    @if (_apptsTotal > _apptsPageSize)
+                    {
+                        <div class="pagination" style="padding:16px 20px">
+                            <button class="page-btn" disabled="@(_apptsPage == 1)" @onclick="ApptsPrevPage">‹</button>
+                            <span class="page-btn active">@_apptsPage / @ApptsTotalPages</span>
+                            <span style="font-size:.8rem;color:var(--color-text-muted);margin-left:4px">(@_apptsTotal total)</span>
+                            <button class="page-btn" disabled="@(_apptsPage >= ApptsTotalPages)" @onclick="ApptsNextPage">›</button>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+
+    @* ═══════════════════════════════════════════════
+       TAB: ESPECIES
+       ═══════════════════════════════════════════════ *@
+    @if (_tab == "species")
+    {
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Especies</span>
+                <button class="btn btn-primary btn-sm" @onclick="OpenNewSpecies">+ Nueva especie</button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_speciesError))
+            { <div class="alert alert-danger" style="margin:16px 20px 0">⚠️ @_speciesError</div> }
+
+            @if (_speciesLoading)
+            {
+                <div style="padding:40px"><LoadingSpinner Message="Cargando especies…" /></div>
+            }
+            else
+            {
+                @* Formulario inline para nueva especie *@
+                @if (_showNewSpeciesForm)
+                {
+                    <div style="padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface-alt)">
+                        <div style="display:flex;gap:10px;align-items:center">
+                            <input class="form-control @(_speciesSubmitted && string.IsNullOrWhiteSpace(_newSpeciesName) ? "invalid" : "")"
+                                   style="max-width:320px"
+                                   placeholder="Nombre de la especie (ej. Tortuga)"
+                                   @bind="_newSpeciesName" @bind:event="oninput" />
+                            <button class="btn btn-primary btn-sm" @onclick="SaveNewSpecies" disabled="@_speciesSaving">
+                                @if (_speciesSaving) { <span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> }
+                                else { <span>Guardar</span> }
+                            </button>
+                            <button class="btn btn-ghost btn-sm" @onclick="CancelNewSpecies">Cancelar</button>
+                        </div>
+                        @if (_speciesSubmitted && string.IsNullOrWhiteSpace(_newSpeciesName))
+                        { <div class="validation-message" style="margin-top:4px">El nombre es obligatorio.</div> }
+                    </div>
+                }
+
+                <div class="table-wrapper">
+                    @if (_speciesList.Count == 0)
+                    {
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🦎</div>
+                            <div class="empty-state-title">Sin especies</div>
+                            <div class="empty-state-sub">Agrega la primera especie con el botón de arriba.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <table class="vet-table">
+                            <thead>
+                                <tr>
+                                    <th>Especie</th>
+                                    <th style="text-align:center">Mascotas</th>
+                                    <th>Creada</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in _speciesList)
+                                {
+                                    var sp = s;
+                                    <tr>
+                                        <td>
+                                            @if (_editingSpeciesId == sp.Id)
+                                            {
+                                                <input class="form-control"
+                                                       style="max-width:220px"
+                                                       @bind="_editSpeciesName" @bind:event="oninput" />
+                                            }
+                                            else
+                                            {
+                                                <strong>@SpeciesEmoji(sp.Slug) @sp.Name</strong>
+                                            }
+                                        </td>
+                                        <td style="text-align:center">
+                                            @if (sp.PatientCount > 0)
+                                            { <span class="badge badge-confirmed">@sp.PatientCount</span> }
+                                            else
+                                            { <span style="color:var(--color-text-muted)">0</span> }
+                                        </td>
+                                        <td style="font-size:.8rem">@sp.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <div style="display:flex;gap:6px">
+                                                @if (_editingSpeciesId == sp.Id)
+                                                {
+                                                    <button class="btn btn-sm"
+                                                            style="background:#d1e7dd;color:#0f5132;border:1px solid #198754"
+                                                            @onclick="() => SaveEditSpecies(sp.Id)"
+                                                            disabled="@_speciesSaving">
+                                                        @if (_speciesSaving) { <span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block"></span> }
+                                                        else { <span>✓</span> }
+                                                    </button>
+                                                    <button class="btn btn-sm btn-ghost" @onclick="CancelEditSpecies">✕</button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="tip-wrap">
+                                                        <button class="btn btn-sm"
+                                                                style="background:#dbeafe;color:#1e40af;border:1px solid #3b82f6"
+                                                                @onclick="() => StartEditSpecies(sp)">✏️</button>
+                                                        <span class="tip-txt">Editar especie</span>
+                                                    </span>
+                                                    <span class="tip-wrap">
+                                                        <button class="btn btn-sm"
+                                                                style="background:#fee2e2;color:#991b1b;border:1px solid #ef4444;@(sp.PatientCount > 0 ? "opacity:.4;cursor:not-allowed;" : "")"
+                                                                disabled="@(sp.PatientCount > 0)"
+                                                                @onclick="() => DeleteSpecies(sp.Id)">🗑️</button>
+                                                        <span class="tip-txt">@(sp.PatientCount > 0 ? $"Hay {sp.PatientCount} mascota(s) asignada(s) — no se puede eliminar" : "Eliminar especie")</span>
+                                                    </span>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+</div>
+
+@* ── Modal crear/editar usuario ── *@
+@if (_showUserModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-box" tabindex="-1" @ref="_userModalRef" @onkeydown="HandleModalKey" @onclick:stopPropagation>
+            <div class="modal-header">
+                <span class="modal-title">@(_editingUser == null ? "➕ Nuevo usuario" : "✏️ Editar usuario")</span>
+                <button class="btn-close" @onclick="CloseUserModal">✕</button>
+            </div>
+            <div class="modal-body">
+                @if (!string.IsNullOrEmpty(_modalError))
+                { <div class="alert alert-danger">⚠️ @_modalError</div> }
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre *</label>
+                        <input class="form-control @ModalCls(_formFirst)"
+                               @bind="_formFirst" placeholder="Nombre" />
+                        @if (_modalSubmitted && string.IsNullOrWhiteSpace(_formFirst))
+                        { <div class="validation-message">Obligatorio.</div> }
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Apellido *</label>
+                        <input class="form-control @ModalCls(_formLast)"
+                               @bind="_formLast" placeholder="Apellido" />
+                        @if (_modalSubmitted && string.IsNullOrWhiteSpace(_formLast))
+                        { <div class="validation-message">Obligatorio.</div> }
+                    </div>
+                </div>
+
+                @if (_editingUser == null)
+                {
+                    <div class="form-group">
+                        <label class="form-label">Correo electrónico *</label>
+                        <input type="email" class="form-control @ModalCls(_formEmail)"
+                               @bind="_formEmail" placeholder="correo@ejemplo.com" />
+                        @if (_modalSubmitted && string.IsNullOrWhiteSpace(_formEmail))
+                        { <div class="validation-message">Obligatorio.</div> }
+                    </div>
+                }
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Teléfono</label>
+                        <PhoneInput @bind-Value="_formPhone" Placeholder="3001234567" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rol *</label>
+                        <select class="form-control" @bind="_formRole">
+                            <option value="Owner">Propietario</option>
+                            <option value="Veterinarian">Veterinario</option>
+                            <option value="Admin">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+
+                @if (_editingUser == null)
+                {
+                    <div class="form-group">
+                        <label class="form-label">Contraseña *</label>
+                        <input type="password"
+                               class="form-control @(_modalSubmitted && !PasswordStrength.IsValid(_formPassword) ? "invalid" : "")"
+                               value="@_formPassword"
+                               @oninput="e => _formPassword = e.Value?.ToString() ?? string.Empty"
+                               placeholder="Mínimo 6 caracteres" />
+                        <PasswordStrength Password="@_formPassword" />
+                        @if (_modalSubmitted && !PasswordStrength.IsValid(_formPassword))
+                        { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirmar contraseña *</label>
+                        <input type="password"
+                               class="form-control @(!string.IsNullOrEmpty(_formConfirm) && _formConfirm != _formPassword ? "invalid" : "")"
+                               value="@_formConfirm"
+                               @oninput="e => _formConfirm = e.Value?.ToString() ?? string.Empty"
+                               placeholder="Repite la contraseña" />
+                        <PasswordMatchHint Password="@_formPassword" Confirm="@_formConfirm" />
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" @onclick="CloseUserModal" disabled="@_modalSaving">Cancelar</button>
+                <button class="btn btn-primary" @onclick="SaveUser" disabled="@_modalSaving">
+                    @if (_modalSaving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                    else { <span>@(_editingUser == null ? "Crear usuario" : "Guardar cambios")</span> }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Modal resetear contraseña ── *@
+@if (_showResetModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-box" style="max-width:420px" tabindex="-1" @ref="_resetModalRef" @onkeydown="HandleResetKey" @onclick:stopPropagation>
+            <div class="modal-header">
+                <span class="modal-title">🔑 Resetear contraseña</span>
+                <button class="btn-close" @onclick="() => _showResetModal = false">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:12px;color:var(--color-text-muted);font-size:.9rem">
+                    Usuario: <strong>@_resetTargetName</strong>
+                </p>
+                @if (!string.IsNullOrEmpty(_resetError))
+                { <div class="alert alert-danger">⚠️ @_resetError</div> }
+                <div class="form-group">
+                    <label class="form-label">Nueva contraseña *</label>
+                    <input type="password"
+                           class="form-control @(_resetSubmitted && !PasswordStrength.IsValid(_resetPassword) ? "invalid" : "")"
+                           value="@_resetPassword"
+                           @oninput="e => _resetPassword = e.Value?.ToString() ?? string.Empty"
+                           placeholder="Mínimo 6 caracteres" />
+                    <PasswordStrength Password="@_resetPassword" />
+                    @if (_resetSubmitted && !PasswordStrength.IsValid(_resetPassword))
+                    { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirmar *</label>
+                    <input type="password"
+                           class="form-control @(!string.IsNullOrEmpty(_resetConfirm) && _resetConfirm != _resetPassword ? "invalid" : "")"
+                           value="@_resetConfirm"
+                           @oninput="e => _resetConfirm = e.Value?.ToString() ?? string.Empty"
+                           placeholder="Repite la contraseña" />
+                    <PasswordMatchHint Password="@_resetPassword" Confirm="@_resetConfirm" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showResetModal = false">Cancelar</button>
+                <button class="btn btn-primary" @onclick="DoResetPassword" disabled="@_resetSaving">
+                    @if (_resetSaving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                    else { <span>Confirmar</span> }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal para que el admin registre una nueva mascota (igual que el vet) *@
+<VetNewPatientModal Visible="_showVetPatientModal"
+                    OnSaved="EventCallback.Factory.Create(this, OnPatientCreated)"
+                    OnClose="EventCallback.Factory.Create(this, () => _showVetPatientModal = false)" />
+
+@* Modal para editar los datos de una mascota existente *@
+<EditPatientModal Visible="_showEditPatientModal"
+                  Patient="_editingPatient"
+                  OnSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
+                  OnClose="EventCallback.Factory.Create(this, () => { _showEditPatientModal = false; _editingPatient = null; })" />
+
+@* Modal para que el admin cree una nueva cita *@
+<NewAppointmentModal Visible="_showNewAppointmentModal"
+                     OnSaved="EventCallback.Factory.Create(this, async () => { await ReloadAppointments(); await LoadStats(); })"
+                     OnClose="EventCallback.Factory.Create(this, () => _showNewAppointmentModal = false)" />
+
+@if (!string.IsNullOrEmpty(_toast))
+{
+    <div style="position:fixed;bottom:28px;right:28px;background:var(--color-success);color:white;
+                padding:12px 20px;border-radius:var(--radius-md);box-shadow:var(--shadow-md);
+                font-size:.875rem;font-weight:600;z-index:2000">
+        ✅ @_toast
+    </div>
+}
+
+@code {
+    // ── Tab state ──────────────────────────────────────────────────────────────
+    private string _tab = "users";
+
+    // ── KPI usuarios ─────────────────────────────────────────────────────────
+    private int _totalUsers;
+    private int _activeUsers;
+    private int _inactiveUsers;
+
+    // ── KPI mascotas ─────────────────────────────────────────────────────────
+    private int  _statPatientsTotal;
+    private int  _statPatientsMale;
+    private int  _statPatientsFemale;
+    private bool _patientStatsLoaded;
+
+    // ── KPI citas ─────────────────────────────────────────────────────────────
+    private int  _statApptsTotal;
+    private int  _statApptsPending;
+    private int  _statApptsCompleted;
+    private bool _apptStatsLoaded;
+
+    // ── Users tab ─────────────────────────────────────────────────────────────
+    private List<AdminUserItem> _users       = [];
+    private int    _usersTotal;
+    private int    _usersPage     = 1;
+    private int    _usersPageSize = 15;
+    private bool   _usersLoading  = true;
+    private string _search        = "";
+    private string _roleFilter    = "";
+    private string _activeFilter  = "";
+
+    private int UsersTotalPages => (int)Math.Ceiling((double)_usersTotal / _usersPageSize);
+
+    // ── Patients tab ──────────────────────────────────────────────────────────
+    private List<PatientResponse> _patients      = [];
+    private int    _patientsTotal;
+    private int    _patientsPage     = 1;
+    private int    _patientsPageSize = 15;
+    private bool   _patientsLoading  = false;
+    private string _patientsSearch   = "";
+    private string _patientsSpecies  = "";
+
+    private int  PatientsTotalPages       => (int)Math.Ceiling((double)_patientsTotal / _patientsPageSize);
+    private bool           _showVetPatientModal     = false;
+    private bool           _showNewAppointmentModal = false;
+    private bool           _showEditPatientModal    = false;
+    private PatientResponse? _editingPatient        = null;
+
+    // ── Appointments tab ──────────────────────────────────────────────────────
+    private List<AppointmentResponse> _appointments = [];
+    private int    _apptsTotal;
+    private int    _apptsPage     = 1;
+    private int    _apptsPageSize = 15;
+    private bool   _apptsLoading  = false;
+    private string _apptsStatus   = "";
+
+    private int ApptsTotalPages => (int)Math.Ceiling((double)_apptsTotal / _apptsPageSize);
+
+    // ── User modal ────────────────────────────────────────────────────────────
+    private bool           _showUserModal;
+    private AdminUserItem? _editingUser;
+    private string         _formFirst    = "";
+    private string         _formLast     = "";
+    private string         _formEmail    = "";
+    private string         _formPhone    = "";
+    private string         _formRole     = "Owner";
+    private string         _formPassword = "";
+    private string         _formConfirm  = "";
+    private bool           _modalSubmitted;
+    private bool           _modalSaving;
+    private string?        _modalError;
+    private ElementReference _userModalRef;
+    private bool           _userModalPrev;
+
+    // ── Reset modal ───────────────────────────────────────────────────────────
+    private bool   _showResetModal;
+    private Guid   _resetTargetId;
+    private string _resetTargetName = "";
+    private string _resetPassword   = "";
+    private string _resetConfirm    = "";
+    private bool   _resetSaving;
+    private bool   _resetSubmitted;
+    private string? _resetError;
+    private ElementReference _resetModalRef;
+    private bool   _resetModalPrev;
+
+    private string? _toast;
+
+    // ── Species tab ────────────────────────────────────────────────────────────
+    private List<SpeciesResponse> _speciesList       = [];
+    private bool                  _speciesLoading    = false;
+    private string?               _speciesError;
+
+    // Formulario nueva especie
+    private bool   _showNewSpeciesForm = false;
+    private string _newSpeciesName     = "";
+    private bool   _speciesSubmitted   = false;
+    private bool   _speciesSaving      = false;
+
+    // Edición inline
+    private Guid   _editingSpeciesId = Guid.Empty;
+    private string _editSpeciesName  = "";
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        var role = Token.User?.Role ?? "";
+        if (!role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("/", replace: true);
+            return;
+        }
+        await Task.WhenAll(LoadUsers(), LoadStats(), LoadSpecies());
+    }
+
+    private async Task SwitchTab(string tab)
+    {
+        _tab = tab;
+        if (tab == "patients")
+        {
+            var tasks = new List<Task>();
+            if (_patients.Count == 0 && !_patientsLoading) tasks.Add(LoadPatients());
+            if (!_patientStatsLoaded)                      tasks.Add(LoadPatientStats());
+            if (tasks.Any()) await Task.WhenAll(tasks);
+        }
+        else if (tab == "appointments")
+        {
+            var tasks = new List<Task>();
+            if (_appointments.Count == 0 && !_apptsLoading) tasks.Add(LoadAppointments());
+            if (!_apptStatsLoaded)                          tasks.Add(LoadApptStats());
+            if (tasks.Any()) await Task.WhenAll(tasks);
+        }
+        else if (tab == "species" && _speciesList.Count == 0 && !_speciesLoading)
+            await LoadSpecies();
+    }
+
+    // ── Users ──────────────────────────────────────────────────────────────────
+
+    private async Task LoadUsers()
+    {
+        _usersLoading = true;
+        bool? active = _activeFilter switch { "true" => true, "false" => false, _ => null };
+        var result = await AuthApi.AdminListUsersAsync(_roleFilter, _search, active, _usersPage, _usersPageSize);
+        _users      = result.Items;
+        _usersTotal = result.TotalCount;
+        _usersLoading = false;
+    }
+
+    private async Task LoadStats()
+    {
+        var all        = await AuthApi.AdminListUsersAsync(page: 1, pageSize: 9999);
+        _totalUsers    = all.TotalCount;
+        _activeUsers   = all.Items.Count(u => u.IsActive);
+        _inactiveUsers = all.Items.Count(u => !u.IsActive);
+    }
+
+    private async Task LoadPatientStats()
+    {
+        // Carga todos los pacientes para poder desagregar por sexo en el cliente
+        var all = await PatientApi.ListAsync(page: 1, pageSize: 9999);
+        if (all is null) return;
+        _statPatientsTotal  = all.TotalCount;
+        _statPatientsMale   = all.Items.Count(p => p.Sex.Equals("male",   StringComparison.OrdinalIgnoreCase));
+        _statPatientsFemale = all.Items.Count(p => p.Sex.Equals("female", StringComparison.OrdinalIgnoreCase));
+        _patientStatsLoaded = true;
+    }
+
+    private async Task LoadApptStats()
+    {
+        // Tres llamadas ligeras (pageSize=1) para obtener conteos por estado sin traer todos los registros
+        var total     = await AppointmentApi.ListPagedAsync(page: 1, pageSize: 1);
+        var pending   = await AppointmentApi.ListPagedAsync(status: "Scheduled", page: 1, pageSize: 1);
+        var completed = await AppointmentApi.ListPagedAsync(status: "Completed",  page: 1, pageSize: 1);
+        _statApptsTotal     = total?.TotalCount     ?? 0;
+        _statApptsPending   = pending?.TotalCount   ?? 0;
+        _statApptsCompleted = completed?.TotalCount ?? 0;
+        _apptStatsLoaded    = true;
+    }
+
+    private async Task ReloadUsers() { _usersPage = 1; await LoadUsers(); }
+
+    private System.Threading.CancellationTokenSource? _searchCts;
+    private void HandleSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _searchCts?.Cancel();
+        _searchCts = new();
+        var cts = _searchCts;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(400, cts.Token);
+            if (!cts.Token.IsCancellationRequested)
+                await InvokeAsync(async () => { _usersPage = 1; await LoadUsers(); StateHasChanged(); });
+        }, cts.Token);
+    }
+
+    private async Task UsersPrevPage() { _usersPage--; await LoadUsers(); }
+    private async Task UsersNextPage() { _usersPage++; await LoadUsers(); }
+
+    // ── Patients ───────────────────────────────────────────────────────────────
+
+    private async Task LoadPatients()
+    {
+        _patientsLoading = true;
+        var result = await PatientApi.ListAsync(
+            page: _patientsPage, pageSize: _patientsPageSize,
+            species: string.IsNullOrEmpty(_patientsSpecies) ? null : _patientsSpecies,
+            search:  string.IsNullOrEmpty(_patientsSearch)  ? null : _patientsSearch);
+        _patients      = result?.Items ?? [];
+        _patientsTotal = result?.TotalCount ?? 0;
+        _patientsLoading = false;
+    }
+
+    private async Task ReloadPatients() { _patientsPage = 1; await LoadPatients(); }
+
+    private System.Threading.CancellationTokenSource? _patientSearchCts;
+    private void HandlePatientsSearch(ChangeEventArgs e)
+    {
+        _patientsSearch = e.Value?.ToString() ?? "";
+        _patientSearchCts?.Cancel();
+        _patientSearchCts = new();
+        var cts = _patientSearchCts;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(400, cts.Token);
+            if (!cts.Token.IsCancellationRequested)
+                await InvokeAsync(async () => { _patientsPage = 1; await LoadPatients(); StateHasChanged(); });
+        }, cts.Token);
+    }
+
+    private async Task PatientsPrevPage() { _patientsPage--; await LoadPatients(); }
+    private async Task PatientsNextPage() { _patientsPage++; await LoadPatients(); }
+
+    private void OpenEditPatient(PatientResponse p)
+    {
+        _editingPatient      = p;
+        _showEditPatientModal = true;
+    }
+
+    private async Task OnPatientCreated()
+    {
+        await ReloadPatients();
+        await LoadPatientStats();
+        ShowToast("Mascota registrada correctamente.");
+    }
+
+    private async Task OnPatientUpdated()
+    {
+        await ReloadPatients();
+        ShowToast("Mascota actualizada correctamente.");
+    }
+
+    // ── Appointments ───────────────────────────────────────────────────────────
+
+    private async Task LoadAppointments()
+    {
+        _apptsLoading = true;
+        var result = await AppointmentApi.ListPagedAsync(
+            status:   string.IsNullOrEmpty(_apptsStatus) ? null : _apptsStatus,
+            page:     _apptsPage,
+            pageSize: _apptsPageSize);
+        _appointments = result?.Items ?? [];
+        _apptsTotal   = result?.TotalCount ?? 0;
+        _apptsLoading = false;
+    }
+
+    private async Task ReloadAppointments() { _apptsPage = 1; await LoadAppointments(); }
+
+    private async Task ApptsPrevPage() { _apptsPage--; await LoadAppointments(); }
+    private async Task ApptsNextPage() { _apptsPage++; await LoadAppointments(); }
+
+    // ── Create / Edit user ─────────────────────────────────────────────────────
+
+    private void OpenCreateModal()
+    {
+        _editingUser    = null;
+        _formFirst      = _formLast = _formEmail = _formPhone = _formPassword = _formConfirm = "";
+        _formRole       = "Owner";
+        _modalError     = null;
+        _modalSubmitted = false;
+        _showUserModal  = true;
+    }
+
+    private void OpenEditModal(AdminUserItem user)
+    {
+        _editingUser    = user;
+        _formFirst      = user.FirstName;
+        _formLast       = user.LastName;
+        _formEmail      = user.Email;
+        _formPhone      = user.Phone;
+        _formRole       = char.ToUpper(user.Role[0]) + user.Role[1..];
+        _formPassword   = _formConfirm = "";
+        _modalError     = null;
+        _modalSubmitted = false;
+        _showUserModal  = true;
+    }
+
+    private void CloseUserModal() => _showUserModal = false;
+
+    private async Task SaveUser()
+    {
+        _modalSubmitted = true;
+        _modalError     = null;
+
+        if (string.IsNullOrWhiteSpace(_formFirst) || string.IsNullOrWhiteSpace(_formLast)) return;
+        if (_editingUser == null)
+        {
+            if (string.IsNullOrWhiteSpace(_formEmail)) return;
+            if (!PasswordStrength.IsValid(_formPassword) || _formPassword != _formConfirm) return;
+        }
+
+        _modalSaving = true;
+        try
+        {
+            if (_editingUser == null)
+            {
+                await AuthApi.AdminCreateUserAsync(new AdminCreateUserRequest
+                {
+                    FirstName = _formFirst, LastName = _formLast,
+                    Email     = _formEmail, Password = _formPassword,
+                    Phone     = _formPhone, Role     = _formRole
+                });
+                ShowToast("Usuario creado correctamente.");
+            }
+            else
+            {
+                await AuthApi.AdminUpdateUserAsync(_editingUser.Id, new AdminUpdateUserRequest
+                {
+                    FirstName = _formFirst, LastName = _formLast,
+                    Phone     = _formPhone, Role     = _formRole
+                });
+                ShowToast("Usuario actualizado correctamente.");
+            }
+            CloseUserModal();
+            await LoadUsers();
+            await LoadStats();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            _modalError = "Ya existe un usuario con ese correo.";
+        }
+        catch (Exception ex)
+        {
+            _modalError = ex.Message;
+        }
+        finally { _modalSaving = false; }
+    }
+
+    // ── Toggle active ──────────────────────────────────────────────────────────
+
+    private async Task ToggleActive(AdminUserItem user)
+    {
+        try
+        {
+            await AuthApi.AdminSetActiveAsync(user.Id, !user.IsActive);
+            await LoadUsers();
+            await LoadStats();
+            ShowToast(user.IsActive ? "Usuario desactivado." : "Usuario activado.");
+        }
+        catch (Exception ex) { ShowToast($"Error: {ex.Message}"); }
+    }
+
+    // ── Reset password ─────────────────────────────────────────────────────────
+
+    private void OpenResetModal(AdminUserItem user)
+    {
+        _resetTargetId   = user.Id;
+        _resetTargetName = user.FullName;
+        _resetPassword   = _resetConfirm = "";
+        _resetError      = null;
+        _resetSubmitted  = false;
+        _showResetModal  = true;
+    }
+
+    private async Task DoResetPassword()
+    {
+        _resetSubmitted = true;
+        _resetError     = null;
+        if (!PasswordStrength.IsValid(_resetPassword))
+        { _resetError = "La contraseña no cumple los requisitos mínimos."; return; }
+        if (_resetPassword != _resetConfirm)
+        { _resetError = "Las contraseñas no coinciden."; return; }
+
+        _resetSaving = true;
+        try
+        {
+            await AuthApi.AdminResetPasswordAsync(_resetTargetId, _resetPassword);
+            _showResetModal = false;
+            ShowToast("Contraseña actualizada.");
+        }
+        catch (Exception ex) { _resetError = ex.Message; }
+        finally { _resetSaving = false; }
+    }
+
+    // ── Species ────────────────────────────────────────────────────────────────
+
+    private async Task LoadSpecies()
+    {
+        _speciesLoading = true;
+        _speciesError   = null;
+        try   { _speciesList = await SpeciesApi.GetAllAsync(); }
+        catch { _speciesError = "No se pudieron cargar las especies."; }
+        finally { _speciesLoading = false; }
+    }
+
+    private void OpenNewSpecies()
+    {
+        _showNewSpeciesForm = true;
+        _newSpeciesName     = "";
+        _speciesSubmitted   = false;
+        _speciesError       = null;
+        CancelEditSpecies();
+    }
+
+    private void CancelNewSpecies()
+    {
+        _showNewSpeciesForm = false;
+        _newSpeciesName     = "";
+        _speciesSubmitted   = false;
+    }
+
+    private async Task SaveNewSpecies()
+    {
+        _speciesSubmitted = true;
+        if (string.IsNullOrWhiteSpace(_newSpeciesName)) return;
+
+        _speciesSaving = true;
+        _speciesError  = null;
+        try
+        {
+            await SpeciesApi.CreateAsync(new CreateSpeciesRequest { Name = _newSpeciesName });
+            _showNewSpeciesForm = false;
+            _newSpeciesName     = "";
+            _speciesSubmitted   = false;
+            await LoadSpecies();
+            ShowToast("Especie creada.");
+        }
+        catch (Exception ex) { _speciesError = ex.Message; }
+        finally { _speciesSaving = false; }
+    }
+
+    private void StartEditSpecies(SpeciesResponse s)
+    {
+        _editingSpeciesId = s.Id;
+        _editSpeciesName  = s.Name;
+        _showNewSpeciesForm = false;
+        _speciesError = null;
+    }
+
+    private void CancelEditSpecies()
+    {
+        _editingSpeciesId = Guid.Empty;
+        _editSpeciesName  = "";
+    }
+
+    private async Task SaveEditSpecies(Guid id)
+    {
+        if (string.IsNullOrWhiteSpace(_editSpeciesName)) return;
+
+        _speciesSaving = true;
+        _speciesError  = null;
+        try
+        {
+            await SpeciesApi.UpdateAsync(id, new UpdateSpeciesRequest { Name = _editSpeciesName });
+            CancelEditSpecies();
+            await LoadSpecies();
+            ShowToast("Especie actualizada.");
+        }
+        catch (Exception ex) { _speciesError = ex.Message; }
+        finally { _speciesSaving = false; }
+    }
+
+    private async Task DeleteSpecies(Guid id)
+    {
+        _speciesError = null;
+        try
+        {
+            await SpeciesApi.DeleteAsync(id);
+            await LoadSpecies();
+            ShowToast("Especie eliminada.");
+        }
+        catch (Exception ex) { _speciesError = ex.Message; }
+    }
+
+    private static string SpeciesEmoji(string slug) => slug switch
+    {
+        "dog"    => "🐶",
+        "cat"    => "🐱",
+        "bird"   => "🦜",
+        "rabbit" => "🐰",
+        "other"  => "🐾",
+        _        => "🦎"
+    };
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private static string RoleLabel(string role) => role.ToLower() switch
+    {
+        "veterinarian" => "Veterinario",
+        "owner"        => "Propietario",
+        "admin"        => "Administrador",
+        _              => role
+    };
+
+    private static string SpeciesLabel(string species) => species.ToLower() switch
+    {
+        "dog"    => "Perro",
+        "cat"    => "Gato",
+        "bird"   => "Ave",
+        "rabbit" => "Conejo",
+        _        => "Otro"
+    };
+
+    private string ModalCls(string? v) => _modalSubmitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
+
+    private async Task HandleModalKey(KeyboardEventArgs e)  { if (e.Key == "Escape") CloseUserModal(); }
+    private async Task HandleResetKey(KeyboardEventArgs e)  { if (e.Key == "Escape") _showResetModal = false; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_showUserModal  && !_userModalPrev)  await _userModalRef.FocusAsync();
+        _userModalPrev  = _showUserModal;
+        if (_showResetModal && !_resetModalPrev) await _resetModalRef.FocusAsync();
+        _resetModalPrev = _showResetModal;
+    }
+
+    private async void ShowToast(string msg)
+    {
+        _toast = msg;
+        StateHasChanged();
+        await Task.Delay(3000);
+        _toast = null;
+        StateHasChanged();
+    }
+}
