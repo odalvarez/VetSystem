@@ -39,6 +39,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew                = TimeSpan.Zero,
             RoleClaimType            = System.Security.Claims.ClaimTypes.Role
         };
+        opt.UseSecurityTokenValidators = true;
         opt.Events = new JwtBearerEvents
         {
             OnMessageReceived = ctx =>
@@ -52,14 +53,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IPatientRepository, PatientRepository>();
+builder.Services.AddScoped<ISpeciesRepository, SpeciesRepository>();
+builder.Services.AddScoped<IConsultationLogRepository, ConsultationLogRepository>();
 builder.Services.AddScoped<PatientAppService>();
+builder.Services.AddScoped<SpeciesAppService>();
+builder.Services.AddScoped<ConsultationLogAppService>();
 
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PatientsDbContext>();
-    await db.Database.MigrateAsync();
+    await MigrateWithRetryAsync(db.Database);
 }
 
 app.UseCors();
@@ -70,3 +75,14 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+static async Task MigrateWithRetryAsync(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade database)
+{
+    for (int attempt = 1; attempt <= 3; attempt++)
+    {
+        try { await database.MigrateAsync(); return; }
+        catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 1801 && attempt < 3)
+        { await Task.Delay(TimeSpan.FromSeconds(attempt * 2)); }
+    }
+    await database.MigrateAsync();
+}

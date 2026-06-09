@@ -48,14 +48,15 @@ public class PatientsController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> List(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] int    page     = 1,
+        [FromQuery] int    pageSize = 20,
         [FromQuery] string? species = null,
-        [FromQuery] string? search = null,
+        [FromQuery] string? search  = null,
+        [FromQuery] Guid?   ownerId = null,
         CancellationToken ct = default)
     {
-        // owner solo ve las suyas; veterinarian ve todas
-        Guid? ownerFilter = IsOwner() ? GetCaller().Id : null;
+        // owner solo ve las suyas; veterinarian ve todas o filtra por dueño específico
+        Guid? ownerFilter = IsOwner() ? GetCaller().Id : ownerId;
         var result = await _svc.ListAsync(ownerFilter, species, search, page, pageSize, ct);
         return Ok(result);
     }
@@ -78,7 +79,7 @@ public class PatientsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Veterinarian")]
+    [Authorize(Roles = "Veterinarian,Admin")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await _svc.DeleteAsync(id, ct);
@@ -86,7 +87,7 @@ public class PatientsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/records")]
-    [Authorize(Roles = "Veterinarian")]
+    [Authorize(Roles = "Veterinarian,Admin")]
     public async Task<IActionResult> AddRecord(
         Guid id, [FromBody] CreateClinicalRecordRequest req, CancellationToken ct)
     {

@@ -1,4 +1,4 @@
 namespace PatientsService.Domain.Enums;
 
-public enum Species { Dog, Cat, Bird, Rabbit, Other }
-public enum Sex     { Male, Female }
+// Species ya no es un enum — vive en la tabla Species administrada por el admin
+public enum Sex { Male, Female }
