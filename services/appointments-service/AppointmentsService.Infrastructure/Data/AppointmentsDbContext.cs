@@ -23,12 +23,12 @@ public class AppointmentsDbContext : DbContext
 
             // Columna estrecha + CHECK bloquean estados inválidos a nivel de BD
             e.Property(a => a.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
-            e.HasCheckConstraint("CK_Appointments_Status",
-                "[Status] IN ('Scheduled', 'Confirmed', 'Completed', 'Cancelled', 'NoShow')");
+            e.ToTable(t => t.HasCheckConstraint("CK_Appointments_Status",
+                "[Status] IN ('Scheduled', 'Confirmed', 'Completed', 'Cancelled', 'NoShow')"));
 
             // La misma regla de negocio que valida la entidad, replicada en la BD
-            e.HasCheckConstraint("CK_Appointments_Duration",
-                "[DurationMinutes] >= 10 AND [DurationMinutes] <= 480");
+            e.ToTable(t => t.HasCheckConstraint("CK_Appointments_Duration",
+                "[DurationMinutes] >= 10 AND [DurationMinutes] <= 480"));
 
             // Índices de consulta frecuente
             e.HasIndex(a => new { a.VeterinarianId, a.ScheduledAt })

@@ -24,10 +24,10 @@ public class PatientsDbContext : DbContext
             e.Property(p => p.Species).IsRequired().HasMaxLength(50);
 
             e.Property(p => p.Sex).HasConversion<string>().IsRequired().HasMaxLength(10);
-            e.HasCheckConstraint("CK_Patients_Sex", "[Sex] IN ('Male', 'Female')");
+            e.ToTable(t => t.HasCheckConstraint("CK_Patients_Sex", "[Sex] IN ('Male', 'Female')"));
 
             e.Property(p => p.Weight).HasColumnType("decimal(6,2)");
-            e.HasCheckConstraint("CK_Patients_Weight", "[Weight] > 0");
+            e.ToTable(t => t.HasCheckConstraint("CK_Patients_Weight", "[Weight] > 0"));
 
             e.Property(p => p.Color).HasMaxLength(100);
             e.Property(p => p.MicrochipNumber).HasMaxLength(50);
