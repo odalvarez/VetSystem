@@ -23,15 +23,15 @@
             </div>
 
             @* ── Tabs ── *@
-            <div class="admin-tabs" style="margin-bottom:0;padding:0 26px;flex-shrink:0">
+            <div style="display:flex;justify-content:center;border-bottom:2px solid var(--color-border);flex-shrink:0;padding:0 26px">
                 <button class="admin-tab @(_tab == "data"    ? "active" : "")" @onclick='() => SwitchTab("data")'>
                     📋 Datos
                 </button>
                 <button class="admin-tab @(_tab == "logs"    ? "active" : "")" @onclick='() => SwitchTab("logs")'>
-                    📝 Bitácoras @if (_logCount > 0) { <span style="margin-left:4px;font-size:.72rem;background:var(--color-primary-light);color:var(--color-primary);padding:1px 7px;border-radius:10px">@_logCount</span> }
+                    📝 Bitácoras @if (_logCount > 0) { <span class="tab-count">@_logCount</span> }
                 </button>
                 <button class="admin-tab @(_tab == "records" ? "active" : "")" @onclick='() => SwitchTab("records")'>
-                    🏥 Historia clínica @if (_recordCount > 0) { <span style="margin-left:4px;font-size:.72rem;background:var(--color-primary-light);color:var(--color-primary);padding:1px 7px;border-radius:10px">@_recordCount</span> }
+                    🏥 Historia clínica @if (_recordCount > 0) { <span class="tab-count">@_recordCount</span> }
                 </button>
             </div>
 
@@ -80,7 +80,7 @@
                             <div class="form-hint">Edad: <strong>@AgeLabel(_edit.BirthDate)</strong></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Peso (kg)</label>
+                            <label class="form-label">Peso (kg) *</label>
                             <input type="number" step="0.01" min="0.01" class="form-control"
                                    @bind="_edit.WeightKg" disabled="@IsOwner" />
                         </div>
@@ -100,7 +100,7 @@
                     {
                         <div style="display:flex;justify-content:flex-end;margin-top:8px">
                             <button class="btn btn-primary" @onclick="SaveData" disabled="@_saving">
-                                @if (_saving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                                @if (_saving) { <span class="spinner spinner-sm"></span> }
                                 else { <span>Guardar cambios</span> }
                             </button>
                         </div>
@@ -208,7 +208,7 @@
                                             <button class="btn btn-sm btn-danger"
                                                     @onclick="() => _ = CloseLogAsync(_selectedLog)"
                                                     disabled="@_closingLog">
-                                                @if (_closingLog) { <span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> }
+                                                @if (_closingLog) { <span class="spinner spinner-sm"></span> }
                                                 else { <span>🔒 Cerrar bitácora</span> }
                                             </button>
                                         }
@@ -326,7 +326,7 @@
                                 <div style="display:flex;gap:10px;justify-content:flex-end">
                                     <button class="btn btn-ghost" @onclick="() => _showRecordForm = false">Cancelar</button>
                                     <button class="btn btn-primary" @onclick="SaveRecord" disabled="@_savingRecord">
-                                        @if (_savingRecord) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                                        @if (_savingRecord) { <span class="spinner spinner-sm"></span> }
                                         else { <span>Guardar entrada</span> }
                                     </button>
                                 </div>
@@ -474,7 +474,7 @@
         };
     }
 
-    private async Task SwitchTab(string tab)
+    private void SwitchTab(string tab)
     {
         _tab = tab;
         // Limpia el panel de referencia si el usuario sale del tab de HC manualmente
