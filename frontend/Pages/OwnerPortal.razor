@@ -52,68 +52,12 @@
                         @foreach (var p in _patients)
                         {
                             <PatientCard Patient="p"
-                                         OnSelect="EventCallback.Factory.Create(this, () => SelectPatient(p))" />
+                                         OnSelect="EventCallback.Factory.Create(this, () => OpenDetail(p))" />
                         }
                     </div>
                 }
             </div>
         </div>
-
-        @* ── Historia clínica del paciente seleccionado (solo lectura) ── *@
-        @if (_selectedPatient != null)
-        {
-            <div class="card" style="margin-bottom:28px">
-                <div class="card-header">
-                    <span class="card-title">
-                        📋 Historia clínica — @_selectedPatient.Name
-                    </span>
-                    <button class="btn btn-ghost btn-sm"
-                            @onclick="() => _selectedPatient = null">✕ Cerrar</button>
-                </div>
-
-                @if (_records == null)
-                {
-                    <div class="card-body"><LoadingSpinner Message="Cargando historia…" /></div>
-                }
-                else if (!_records.Any())
-                {
-                    <div class="card-body">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">📋</div>
-                            <div class="empty-state-title">Sin registros clínicos</div>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="table-wrapper">
-                        <table class="vet-table">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Diagnóstico</th>
-                                    <th>Tratamiento</th>
-                                    <th>Peso</th>
-                                    <th>Temp.</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var r in _records)
-                                {
-                                    <tr>
-                                        <td>@r.CreatedAt.ToString("dd/MM/yyyy")</td>
-                                        <td><strong>@r.Diagnosis</strong></td>
-                                        <td>@r.Treatment</td>
-                                        <td>@(r.WeightKg.HasValue ? $"{r.WeightKg} kg" : "—")</td>
-                                        <td>@(r.TemperatureCelsius.HasValue ? $"{r.TemperatureCelsius}°C" : "—")</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </div>
-        }
 
         @* ── Citas ── *@
         <div class="card">
@@ -159,12 +103,12 @@
                             @foreach (var a in _appointments)
                             {
                                 <tr>
-                                    <td><strong>@a.PatientName</strong></td>
-                                    <td>@a.ScheduledAt.ToString("dd/MM/yyyy")</td>
-                                    <td>@a.ScheduledAt.ToString("HH:mm")</td>
-                                    <td>@a.DurationMinutes min</td>
-                                    <td><StatusBadge Status="@a.Status" /></td>
-                                    <td style="color:var(--color-text-muted);font-size:.85rem">
+                                    <td data-label="Mascota"><strong>@a.PatientName</strong></td>
+                                    <td data-label="Fecha">@a.ScheduledAt.ToString("dd/MM/yyyy")</td>
+                                    <td data-label="Hora">@a.ScheduledAt.ToString("HH:mm")</td>
+                                    <td data-label="Duración">@a.DurationMinutes min</td>
+                                    <td data-label="Estado"><StatusBadge Status="@a.Status" /></td>
+                                    <td data-label="Motivo" style="color:var(--color-text-muted);font-size:.85rem">
                                         @(a.Reason ?? "—")
                                     </td>
                                 </tr>
@@ -185,24 +129,26 @@
                      OnSaved="EventCallback.Factory.Create(this, OnAppointmentSaved)"
                      OnClose="EventCallback.Factory.Create(this, () => _showNewAppointment = false)" />
 
+@* El PatientDetailModal detecta el rol Owner internamente y deshabilita escritura *@
+<PatientDetailModal Visible="_showDetail"
+                    Patient="_selectedPatient"
+                    OnPatientSaved="EventCallback.Factory.Create(this, OnPatientSaved)"
+                    OnClose="EventCallback.Factory.Create(this, () => { _showDetail = false; _selectedPatient = null; })" />
+
 @if (!string.IsNullOrEmpty(_toast))
 {
-    <div style="position:fixed;bottom:28px;right:28px;background:var(--color-success);color:white;
-                padding:12px 20px;border-radius:var(--radius-md);box-shadow:var(--shadow-md);
-                font-size:.875rem;font-weight:600;z-index:2000">
-        ✅ @_toast
-    </div>
+    <div class="toast-snack">✅ @_toast</div>
 }
 
 @code {
-    private List<PatientResponse>?         _patients;
-    private List<AppointmentResponse>?     _appointments;
-    private List<ClinicalRecordResponse>?  _records;
-    private PatientResponse?               _selectedPatient;
+    private List<PatientResponse>?      _patients;
+    private List<AppointmentResponse>?  _appointments;
+    private PatientResponse?            _selectedPatient;
 
-    private bool _loading          = true;
-    private bool _showNewPatient;
-    private bool _showNewAppointment;
+    private bool    _loading            = true;
+    private bool    _showNewPatient;
+    private bool    _showNewAppointment;
+    private bool    _showDetail;
     private string? _toast;
 
     protected override async Task OnInitializedAsync()
@@ -243,28 +189,22 @@
         catch { _appointments = []; }
     }
 
-    private async Task SelectPatient(PatientResponse p)
+    private void OpenDetail(PatientResponse p)
     {
         _selectedPatient = p;
-        _records = null;
-        try
-        {
-            var paged = await PatientApi.ListRecordsAsync(p.Id);
-            _records = paged?.Items?.ToList() ?? [];
-        }
-        catch { _records = []; }
+        _showDetail      = true;
     }
 
     private async Task OnPatientSaved()
     {
         await LoadPatients();
-        ShowToast("Mascota registrada correctamente.");
+        await ShowToast("Mascota registrada correctamente.");
     }
 
     private async Task OnAppointmentSaved()
     {
         await LoadAppointments();
-        ShowToast("Cita solicitada correctamente.");
+        await ShowToast("Cita solicitada correctamente.");
     }
 
     private async Task ShowToast(string msg)
