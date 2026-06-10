@@ -68,7 +68,7 @@
                     }
 
                     <button class="btn btn-primary" @onclick="SendNotification" disabled="@_sending">
-                        @if (_sending) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                        @if (_sending) { <span class="spinner spinner-sm"></span> }
                         else { <span>Enviar @(_notifType == "whatsapp" ? "WhatsApp" : "Email")</span> }
                     </button>
                 </div>
@@ -91,7 +91,7 @@
         {
             @* Barra de filtros *@
             <div class="card-body" style="padding-bottom:0;border-bottom:1px solid var(--color-border)">
-                <div class="filters-bar" style="flex-wrap:wrap;gap:10px">
+                <div class="filters-bar">
 
                     @* Tipo *@
                     <select class="filter-select" @bind="_filterType">
@@ -108,17 +108,19 @@
                         <option value="failed">Fallida</option>
                     </select>
 
-                    @* Fecha desde *@
-                    <input type="date" class="filter-select"
-                           style="min-width:140px"
-                           @bind="_filterFrom"
-                           title="Desde" />
+                    @* Fecha desde — label visible porque placeholder no funciona en date inputs móviles *@
+                    <label class="date-filter-label">
+                        <span>Desde</span>
+                        <input type="date" class="filter-select"
+                               @bind="_filterFrom" />
+                    </label>
 
                     @* Fecha hasta *@
-                    <input type="date" class="filter-select"
-                           style="min-width:140px"
-                           @bind="_filterTo"
-                           title="Hasta" />
+                    <label class="date-filter-label">
+                        <span>Hasta</span>
+                        <input type="date" class="filter-select"
+                               @bind="_filterTo" />
+                    </label>
 
                     @* Búsqueda por destinatario — solo para admin y veterinario *@
                     <AuthorizeView Roles="Veterinarian,Admin">
@@ -185,19 +187,18 @@
                             @foreach (var n in FilteredHistory)
                             {
                                 <tr>
-                                    <td><StatusBadge Status="@n.Type" /></td>
-                                    <td style="font-size:.85rem">@n.Recipient</td>
-                                    <td><StatusBadge Status="@n.Status" /></td>
-                                    <td style="font-size:.82rem;color:var(--color-text-muted)">
+                                    <td data-label="Tipo"><StatusBadge Status="@n.Type" /></td>
+                                    <td data-label="Destinatario" style="font-size:.85rem">@n.Recipient</td>
+                                    <td data-label="Estado"><StatusBadge Status="@n.Status" /></td>
+                                    <td data-label="Creada" style="font-size:.82rem;color:var(--color-text-muted)">
                                         @n.CreatedAt.ToLocalTime().ToString("dd/MM/yy HH:mm")
                                     </td>
-                                    <td style="font-size:.82rem;color:var(--color-text-muted)">
+                                    <td data-label="Enviada" style="font-size:.82rem;color:var(--color-text-muted)">
                                         @(n.SentAt.HasValue ? n.SentAt.Value.ToLocalTime().ToString("dd/MM/yy HH:mm") : "—")
                                     </td>
-                                    <td>
+                                    <td data-label="" class="td-actions">
                                         <span class="tip-wrap">
-                                            <button class="btn btn-sm"
-                                                    style="background:#dbeafe;color:#1e40af;border:1px solid #3b82f6"
+                                            <button class="btn btn-sm btn-icon-view"
                                                     @onclick="() => OpenDetail(n)">👁</button>
                                             <span class="tip-txt">Ver detalle</span>
                                         </span>

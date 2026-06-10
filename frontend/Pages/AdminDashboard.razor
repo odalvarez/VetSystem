@@ -104,8 +104,8 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Usuarios</span>
-                <button class="btn btn-primary btn-sm" @onclick="OpenCreateModal">+ Nuevo usuario</button>
-                <div class="filters-bar" style="margin-bottom:0">
+                <div class="filters-bar mb-0">
+                    <button class="btn btn-primary btn-sm" @onclick="OpenCreateModal">+ Nuevo usuario</button>
                     <div class="search-input" style="min-width:200px">
                         <span class="search-icon">🔍</span>
                         <input class="form-control" placeholder="Buscar por nombre o correo…"
@@ -128,7 +128,7 @@
             <div class="table-wrapper">
                 @if (_usersLoading)
                 {
-                    <div style="padding:40px"><LoadingSpinner Message="Cargando usuarios…" /></div>
+                    <div class="loading-pad"><LoadingSpinner Message="Cargando usuarios…" /></div>
                 }
                 else if (_users.Count == 0)
                 {
@@ -157,52 +157,47 @@
                             {
                                 var user = u;
                                 <tr style="@(user.IsActive ? "" : "opacity:.6")">
-                                    <td><strong>@user.FullName</strong></td>
-                                    <td style="font-size:.85rem">@user.Email</td>
-                                    <td style="font-size:.85rem">@(string.IsNullOrEmpty(user.Phone) ? "—" : user.Phone)</td>
-                                    <td><span class="role-badge role-@user.Role.ToLower()">@RoleLabel(user.Role)</span></td>
-                                    <td>
+                                    <td data-label="Nombre"><strong>@user.FullName</strong></td>
+                                    <td data-label="Correo" style="font-size:.85rem">@user.Email</td>
+                                    <td data-label="Teléfono" style="font-size:.85rem">@(string.IsNullOrEmpty(user.Phone) ? "—" : user.Phone)</td>
+                                    <td data-label="Rol"><span class="role-badge role-@user.Role.ToLower()">@RoleLabel(user.Role)</span></td>
+                                    <td data-label="Estado">
                                         @if (user.IsActive)
                                         { <span class="badge badge-confirmed">Activo</span> }
                                         else
                                         { <span class="badge badge-cancelled">Inactivo</span> }
                                     </td>
-                                    <td style="font-size:.8rem">@user.CreatedAt.ToString("dd/MM/yyyy")</td>
-                                    <td>
+                                    <td data-label="Registrado" style="font-size:.8rem">@user.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                    <td data-label="Acciones" class="td-actions">
                                         @{ var isSelf = Token.User != null && user.Id == Token.User.Id; }
-                                        <div style="display:flex;gap:6px">
+                                        <span class="tip-wrap">
+                                            <button class="btn btn-sm btn-icon-edit"
+                                                    @onclick="() => OpenEditModal(user)">✏️</button>
+                                            <span class="tip-txt">Editar usuario</span>
+                                        </span>
+                                        @if (user.IsActive)
+                                        {
                                             <span class="tip-wrap">
-                                                <button class="btn btn-sm"
-                                                        style="background:#dbeafe;color:#1e40af;border:1px solid #3b82f6"
-                                                        @onclick="() => OpenEditModal(user)">✏️</button>
-                                                <span class="tip-txt">Editar usuario</span>
+                                                <button class="btn btn-sm btn-icon-deact"
+                                                        style="@(isSelf ? "opacity:.4;cursor:not-allowed;" : "")"
+                                                        disabled="@isSelf"
+                                                        @onclick="() => ToggleActive(user)">⏸</button>
+                                                <span class="tip-txt">@(isSelf ? "No puedes desactivar tu propia cuenta" : "Desactivar usuario")</span>
                                             </span>
-                                            @if (user.IsActive)
-                                            {
-                                                <span class="tip-wrap">
-                                                    <button class="btn btn-sm"
-                                                            style="background:#fff3cd;color:#856404;border:1px solid #ffc107;@(isSelf ? "opacity:.4;cursor:not-allowed;" : "")"
-                                                            disabled="@isSelf"
-                                                            @onclick="() => ToggleActive(user)">⏸</button>
-                                                    <span class="tip-txt">@(isSelf ? "No puedes desactivar tu propia cuenta" : "Desactivar usuario")</span>
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="tip-wrap">
-                                                    <button class="btn btn-sm"
-                                                            style="background:#d1e7dd;color:#0f5132;border:1px solid #198754"
-                                                            @onclick="() => ToggleActive(user)">▶</button>
-                                                    <span class="tip-txt">Activar usuario</span>
-                                                </span>
-                                            }
+                                        }
+                                        else
+                                        {
                                             <span class="tip-wrap">
-                                                <button class="btn btn-sm"
-                                                        style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b"
-                                                        @onclick="() => OpenResetModal(user)">🔑</button>
-                                                <span class="tip-txt">Resetear contraseña</span>
+                                                <button class="btn btn-sm btn-icon-activate"
+                                                        @onclick="() => ToggleActive(user)">▶</button>
+                                                <span class="tip-txt">Activar usuario</span>
                                             </span>
-                                        </div>
+                                        }
+                                        <span class="tip-wrap">
+                                            <button class="btn btn-sm btn-icon-reset"
+                                                    @onclick="() => OpenResetModal(user)">🔑</button>
+                                            <span class="tip-txt">Resetear contraseña</span>
+                                        </span>
                                     </td>
                                 </tr>
                             }
@@ -211,7 +206,7 @@
 
                     @if (_usersTotal > _usersPageSize)
                     {
-                        <div class="pagination" style="padding:16px 20px">
+                        <div class="pagination pagination-padded">
                             <button class="page-btn" disabled="@(_usersPage == 1)" @onclick="UsersPrevPage">‹</button>
                             <span class="page-btn active">@_usersPage / @UsersTotalPages</span>
                             <button class="page-btn" disabled="@(_usersPage >= UsersTotalPages)" @onclick="UsersNextPage">›</button>
@@ -230,9 +225,9 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Todas las mascotas</span>
-                <div style="display:flex;align-items:center;gap:12px">
+                <div class="card-header-actions">
                     <button class="btn btn-primary btn-sm" @onclick="() => _showVetPatientModal = true">+ Registrar mascota</button>
-                    <div class="filters-bar" style="margin-bottom:0">
+                    <div class="filters-bar mb-0">
                         <div class="search-input" style="min-width:200px">
                             <span class="search-icon">🔍</span>
                             <input class="form-control" placeholder="Buscar por nombre…"
@@ -252,7 +247,7 @@
             <div class="card-body" style="padding:0">
                 @if (_patientsLoading)
                 {
-                    <div style="padding:40px"><LoadingSpinner Message="Cargando mascotas…" /></div>
+                    <div class="loading-pad"><LoadingSpinner Message="Cargando mascotas…" /></div>
                 }
                 else if (_patients.Count == 0)
                 {
@@ -264,7 +259,7 @@
                 }
                 else
                 {
-                    <div style="padding:20px">
+                    <div class="grid-pad">
                         <div class="patients-grid">
                             @foreach (var p in _patients)
                             {
@@ -295,9 +290,9 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Todas las citas</span>
-                <div style="display:flex;align-items:center;gap:12px">
+                <div class="card-header-actions">
                     <button class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">+ Nueva cita</button>
-                    <div class="filters-bar" style="margin-bottom:0">
+                    <div class="filters-bar mb-0">
                     <select class="filter-select" @bind="_apptsStatus" @bind:after="ReloadAppointments">
                         <option value="">Todos los estados</option>
                         <option value="Scheduled">Programadas</option>
@@ -313,7 +308,7 @@
             <div class="table-wrapper">
                 @if (_apptsLoading)
                 {
-                    <div style="padding:40px"><LoadingSpinner Message="Cargando citas…" /></div>
+                    <div class="loading-pad"><LoadingSpinner Message="Cargando citas…" /></div>
                 }
                 else if (_appointments.Count == 0)
                 {
@@ -341,13 +336,13 @@
                             @foreach (var a in _appointments)
                             {
                                 <tr>
-                                    <td><strong>@a.PatientName</strong></td>
-                                    <td style="font-size:.85rem">@(a.OwnerName ?? "—")</td>
-                                    <td>@a.ScheduledAt.ToString("dd/MM/yyyy")</td>
-                                    <td>@a.ScheduledAt.ToString("HH:mm")</td>
-                                    <td>@a.DurationMinutes min</td>
-                                    <td><StatusBadge Status="@a.Status" /></td>
-                                    <td style="color:var(--color-text-muted);font-size:.85rem">@(a.Reason ?? "—")</td>
+                                    <td data-label="Mascota"><strong>@a.PatientName</strong></td>
+                                    <td data-label="Propietario" style="font-size:.85rem">@(a.OwnerName ?? "—")</td>
+                                    <td data-label="Fecha">@a.ScheduledAt.ToString("dd/MM/yyyy")</td>
+                                    <td data-label="Hora">@a.ScheduledAt.ToString("HH:mm")</td>
+                                    <td data-label="Duración">@a.DurationMinutes min</td>
+                                    <td data-label="Estado"><StatusBadge Status="@a.Status" /></td>
+                                    <td data-label="Motivo" style="color:var(--color-text-muted);font-size:.85rem">@(a.Reason ?? "—")</td>
                                 </tr>
                             }
                         </tbody>
@@ -355,7 +350,7 @@
 
                     @if (_apptsTotal > _apptsPageSize)
                     {
-                        <div class="pagination" style="padding:16px 20px">
+                        <div class="pagination pagination-padded">
                             <button class="page-btn" disabled="@(_apptsPage == 1)" @onclick="ApptsPrevPage">‹</button>
                             <span class="page-btn active">@_apptsPage / @ApptsTotalPages</span>
                             <span style="font-size:.8rem;color:var(--color-text-muted);margin-left:4px">(@_apptsTotal total)</span>
@@ -383,7 +378,7 @@
 
             @if (_speciesLoading)
             {
-                <div style="padding:40px"><LoadingSpinner Message="Cargando especies…" /></div>
+                <div class="loading-pad"><LoadingSpinner Message="Cargando especies…" /></div>
             }
             else
             {
@@ -397,7 +392,7 @@
                                    placeholder="Nombre de la especie (ej. Tortuga)"
                                    @bind="_newSpeciesName" @bind:event="oninput" />
                             <button class="btn btn-primary btn-sm" @onclick="SaveNewSpecies" disabled="@_speciesSaving">
-                                @if (_speciesSaving) { <span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> }
+                                @if (_speciesSaving) { <span class="spinner spinner-sm"></span> }
                                 else { <span>Guardar</span> }
                             </button>
                             <button class="btn btn-ghost btn-sm" @onclick="CancelNewSpecies">Cancelar</button>
@@ -432,7 +427,7 @@
                                 {
                                     var sp = s;
                                     <tr>
-                                        <td>
+                                        <td data-label="Especie">
                                             @if (_editingSpeciesId == sp.Id)
                                             {
                                                 <input class="form-control"
@@ -444,43 +439,39 @@
                                                 <strong>@SpeciesEmoji(sp.Slug) @sp.Name</strong>
                                             }
                                         </td>
-                                        <td style="text-align:center">
+                                        <td data-label="Mascotas">
                                             @if (sp.PatientCount > 0)
                                             { <span class="badge badge-confirmed">@sp.PatientCount</span> }
                                             else
                                             { <span style="color:var(--color-text-muted)">0</span> }
                                         </td>
-                                        <td style="font-size:.8rem">@sp.CreatedAt.ToString("dd/MM/yyyy")</td>
-                                        <td>
-                                            <div style="display:flex;gap:6px">
-                                                @if (_editingSpeciesId == sp.Id)
-                                                {
-                                                    <button class="btn btn-sm"
-                                                            style="background:#d1e7dd;color:#0f5132;border:1px solid #198754"
-                                                            @onclick="() => SaveEditSpecies(sp.Id)"
-                                                            disabled="@_speciesSaving">
-                                                        @if (_speciesSaving) { <span class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block"></span> }
-                                                        else { <span>✓</span> }
-                                                    </button>
-                                                    <button class="btn btn-sm btn-ghost" @onclick="CancelEditSpecies">✕</button>
-                                                }
-                                                else
-                                                {
-                                                    <span class="tip-wrap">
-                                                        <button class="btn btn-sm"
-                                                                style="background:#dbeafe;color:#1e40af;border:1px solid #3b82f6"
-                                                                @onclick="() => StartEditSpecies(sp)">✏️</button>
-                                                        <span class="tip-txt">Editar especie</span>
-                                                    </span>
-                                                    <span class="tip-wrap">
-                                                        <button class="btn btn-sm"
-                                                                style="background:#fee2e2;color:#991b1b;border:1px solid #ef4444;@(sp.PatientCount > 0 ? "opacity:.4;cursor:not-allowed;" : "")"
-                                                                disabled="@(sp.PatientCount > 0)"
-                                                                @onclick="() => DeleteSpecies(sp.Id)">🗑️</button>
-                                                        <span class="tip-txt">@(sp.PatientCount > 0 ? $"Hay {sp.PatientCount} mascota(s) asignada(s) — no se puede eliminar" : "Eliminar especie")</span>
-                                                    </span>
-                                                }
-                                            </div>
+                                        <td data-label="Creada" style="font-size:.8rem">@sp.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                        <td data-label="Acciones" class="td-actions">
+                                            @if (_editingSpeciesId == sp.Id)
+                                            {
+                                                <button class="btn btn-sm btn-icon-save"
+                                                        @onclick="() => SaveEditSpecies(sp.Id)"
+                                                        disabled="@_speciesSaving">
+                                                    @if (_speciesSaving) { <span class="spinner spinner-sm"></span> }
+                                                    else { <span>✓</span> }
+                                                </button>
+                                                <button class="btn btn-sm btn-ghost" @onclick="CancelEditSpecies">✕</button>
+                                            }
+                                            else
+                                            {
+                                                <span class="tip-wrap">
+                                                    <button class="btn btn-sm btn-icon-edit"
+                                                            @onclick="() => StartEditSpecies(sp)">✏️</button>
+                                                    <span class="tip-txt">Editar especie</span>
+                                                </span>
+                                                <span class="tip-wrap">
+                                                    <button class="btn btn-sm btn-icon-delete"
+                                                            style="@(sp.PatientCount > 0 ? "opacity:.4;cursor:not-allowed;" : "")"
+                                                            disabled="@(sp.PatientCount > 0)"
+                                                            @onclick="() => DeleteSpecies(sp.Id)">🗑️</button>
+                                                    <span class="tip-txt">@(sp.PatientCount > 0 ? $"Hay {sp.PatientCount} mascota(s) asignada(s) — no se puede eliminar" : "Eliminar especie")</span>
+                                                </span>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -577,7 +568,7 @@
             <div class="modal-footer">
                 <button class="btn btn-ghost" @onclick="CloseUserModal" disabled="@_modalSaving">Cancelar</button>
                 <button class="btn btn-primary" @onclick="SaveUser" disabled="@_modalSaving">
-                    @if (_modalSaving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                    @if (_modalSaving) { <span class="spinner spinner-sm"></span> }
                     else { <span>@(_editingUser == null ? "Crear usuario" : "Guardar cambios")</span> }
                 </button>
             </div>
@@ -624,7 +615,7 @@
             <div class="modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showResetModal = false">Cancelar</button>
                 <button class="btn btn-primary" @onclick="DoResetPassword" disabled="@_resetSaving">
-                    @if (_resetSaving) { <span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> }
+                    @if (_resetSaving) { <span class="spinner spinner-sm"></span> }
                     else { <span>Confirmar</span> }
                 </button>
             </div>
@@ -637,11 +628,11 @@
                     OnSaved="EventCallback.Factory.Create(this, OnPatientCreated)"
                     OnClose="EventCallback.Factory.Create(this, () => _showVetPatientModal = false)" />
 
-@* Modal para editar los datos de una mascota existente *@
-<EditPatientModal Visible="_showEditPatientModal"
-                  Patient="_editingPatient"
-                  OnSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
-                  OnClose="EventCallback.Factory.Create(this, () => { _showEditPatientModal = false; _editingPatient = null; })" />
+@* Modal de detalle: datos, bitácoras e historia clínica *@
+<PatientDetailModal Visible="_showEditPatientModal"
+                    Patient="_editingPatient"
+                    OnPatientSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
+                    OnClose="EventCallback.Factory.Create(this, () => { _showEditPatientModal = false; _editingPatient = null; })" />
 
 @* Modal para que el admin cree una nueva cita *@
 <NewAppointmentModal Visible="_showNewAppointmentModal"
@@ -650,11 +641,7 @@
 
 @if (!string.IsNullOrEmpty(_toast))
 {
-    <div style="position:fixed;bottom:28px;right:28px;background:var(--color-success);color:white;
-                padding:12px 20px;border-radius:var(--radius-md);box-shadow:var(--shadow-md);
-                font-size:.875rem;font-weight:600;z-index:2000">
-        ✅ @_toast
-    </div>
+    <div class="toast-snack">✅ @_toast</div>
 }
 
 @code {
@@ -1162,19 +1149,10 @@
         _              => role
     };
 
-    private static string SpeciesLabel(string species) => species.ToLower() switch
-    {
-        "dog"    => "Perro",
-        "cat"    => "Gato",
-        "bird"   => "Ave",
-        "rabbit" => "Conejo",
-        _        => "Otro"
-    };
-
     private string ModalCls(string? v) => _modalSubmitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
 
-    private async Task HandleModalKey(KeyboardEventArgs e)  { if (e.Key == "Escape") CloseUserModal(); }
-    private async Task HandleResetKey(KeyboardEventArgs e)  { if (e.Key == "Escape") _showResetModal = false; }
+    private Task HandleModalKey(KeyboardEventArgs e)  { if (e.Key == "Escape") CloseUserModal(); return Task.CompletedTask; }
+    private Task HandleResetKey(KeyboardEventArgs e)  { if (e.Key == "Escape") _showResetModal = false; return Task.CompletedTask; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

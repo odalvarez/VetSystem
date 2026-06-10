@@ -50,9 +50,9 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Pacientes</span>
-                <div style="display:flex;align-items:center;gap:12px">
+                <div class="card-header-actions">
                     <button class="btn btn-primary btn-sm" @onclick="() => _showVetPatientModal = true">+ Registrar mascota</button>
-                    <div class="filters-bar" style="margin-bottom:0">
+                    <div class="filters-bar mb-0">
                         <div class="search-input" style="min-width:180px">
                             <span class="search-icon">🔍</span>
                             <input class="form-control" placeholder="Buscar por nombre…"
@@ -114,7 +114,7 @@
             <div class="card-body" style="padding:0">
                 @if (_patientsLoading)
                 {
-                    <div style="padding:40px"><LoadingSpinner Message="Cargando pacientes…" /></div>
+                    <div class="loading-pad"><LoadingSpinner Message="Cargando pacientes…" /></div>
                 }
                 else if (_patients == null || !_patients.Any())
                 {
@@ -126,7 +126,7 @@
                 }
                 else
                 {
-                    <div style="padding:20px">
+                    <div class="grid-pad">
                         <div class="patients-grid">
                             @foreach (var p in _patients)
                             {
@@ -156,9 +156,9 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Citas</span>
-                <div style="display:flex;align-items:center;gap:12px">
+                <div class="card-header-actions">
                     <button class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">+ Nueva cita</button>
-                    <div class="filters-bar" style="margin-bottom:0">
+                    <div class="filters-bar mb-0">
                         <select class="filter-select" @bind="_statusFilter" @bind:after="LoadAppointments">
                             <option value="">Todos los estados</option>
                             <option value="Scheduled">Programadas</option>
@@ -167,15 +167,21 @@
                             <option value="Cancelled">Canceladas</option>
                             <option value="NoShow">No asistió</option>
                         </select>
-                        <input type="date" class="filter-select" @bind="_fromFilter" @bind:after="LoadAppointments" />
-                        <input type="date" class="filter-select" @bind="_toFilter"   @bind:after="LoadAppointments" />
+                        <label class="date-filter-label">
+                            <span>Desde</span>
+                            <input type="date" class="filter-select" @bind="_fromFilter" @bind:after="LoadAppointments" />
+                        </label>
+                        <label class="date-filter-label">
+                            <span>Hasta</span>
+                            <input type="date" class="filter-select" @bind="_toFilter" @bind:after="LoadAppointments" />
+                        </label>
                     </div>
                 </div>
             </div>
             <div class="table-wrapper">
                 @if (_apptsLoading)
                 {
-                    <div style="padding:40px"><LoadingSpinner Message="Cargando citas…" /></div>
+                    <div class="loading-pad"><LoadingSpinner Message="Cargando citas…" /></div>
                 }
                 else if (_appointments == null || !_appointments.Any())
                 {
@@ -232,11 +238,7 @@
 
 @if (!string.IsNullOrEmpty(_toast))
 {
-    <div style="position:fixed;bottom:28px;right:28px;background:var(--color-success);color:white;
-                padding:12px 20px;border-radius:var(--radius-md);box-shadow:var(--shadow-md);
-                font-size:.875rem;font-weight:600;z-index:2000">
-        ✅ @_toast
-    </div>
+    <div class="toast-snack">✅ @_toast</div>
 }
 
 @code {
@@ -279,7 +281,10 @@
     protected override async Task OnInitializedAsync()
     {
         var role = Token.User?.Role ?? "";
-        if (!role.Equals("Veterinarian", StringComparison.OrdinalIgnoreCase))
+        // Admin también tiene acceso completo al panel de veterinario
+        var isVetOrAdmin = role.Equals("Veterinarian", StringComparison.OrdinalIgnoreCase)
+                        || role.Equals("Admin",        StringComparison.OrdinalIgnoreCase);
+        if (!isVetOrAdmin)
         {
             Nav.NavigateTo("/owner-portal", replace: true);
             return;
