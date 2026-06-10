@@ -16,6 +16,8 @@
     --color-accent-light:   #FFF0E8;
 
     --color-bg:             #F0F4F8;
+    --color-surface-alt:    #F8FAFC;   /* fondo de sección alternativa dentro de cards */
+    --color-bg-secondary:   #F0F4F8;   /* alias del fondo de página, usado en pre-wrap y phone-prefix */
     --color-surface:        #FFFFFF;
     --color-sidebar:        #0D3B47;
     --color-sidebar-hover:  #164D5C;
@@ -87,14 +89,14 @@ a:hover { color: var(--color-primary-dark); }
 /* --- Sidebar --- */
 .sidebar {
     width: 240px;
-    min-height: 100vh;
+    height: 100%;
     background: var(--gradient-sidebar);
     display: flex;
     flex-direction: column;
     position: fixed;
     top: 0; left: 0;
     z-index: 100;
-    transition: width var(--transition);
+    transition: transform var(--transition);
 }
 
 .sidebar-brand {
@@ -225,6 +227,9 @@ a:hover { color: var(--color-primary-dark); }
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    /* Sin esto, flexbox no permite que el item se encoja por debajo de su min-content-width
+       y todo el contenido se desborda horizontalmente en pantallas pequeñas */
+    min-width: 0;
 }
 
 .page-header {
@@ -344,6 +349,14 @@ a:hover { color: var(--color-primary-dark); }
 .vet-table td {
     padding: 13px 16px;
     vertical-align: middle;
+}
+
+/* Celda de acciones: siempre flex con gap uniforme, tanto en desktop como en móvil tarjeta */
+.vet-table td.td-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 /* ============================================================
@@ -730,6 +743,26 @@ select.form-control {
     min-width: 140px;
 }
 .filter-select:focus { border-color: var(--color-primary); }
+
+/* Etiqueta visible encima de date inputs — placeholder no funciona en móviles para type="date" */
+.date-filter-label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 140px;
+}
+.date-filter-label span {
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--color-text-muted);
+    padding-left: 2px;
+}
+.date-filter-label .filter-select {
+    min-width: 0;
+    width: 100%;
+}
 
 /* ── Owner autocomplete ── */
 .owner-search-wrap  { position: relative; }
@@ -1218,7 +1251,7 @@ select.form-control {
 /* ============================================================
    RESPONSIVE — TABLET Y MÓVIL (≤ 768px)
    ============================================================ */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 
     /* Muestra el hamburguer */
     .nav-toggle { display: flex; }
@@ -1239,6 +1272,12 @@ select.form-control {
     /* Espacio superior para el botón hamburger */
     .page-header {
         padding: 14px 16px 12px 60px;
+    }
+
+    /* El brand del sidebar necesita espacio a la izquierda para no quedar
+       tapado por el botón hamburger (fixed, left:12px, width:40px → 52px totales) */
+    .sidebar-brand {
+        padding-left: 60px;
     }
 
     .page-content { padding: 16px; }
@@ -1272,10 +1311,90 @@ select.form-control {
     /* Filters bar: los selects no tienen ancho mínimo forzado */
     .filter-select { min-width: 0; flex: 1 1 130px; }
     .search-input  { min-width: 0; flex: 1 1 180px; }
+    .date-filter-label { min-width: 0; flex: 1 1 130px; }
 
-    /* Tablas: el overflow-x ya está definido en .table-wrapper */
-    .vet-table { font-size: .8rem; }
-    .vet-table td, .vet-table th { padding: 10px 12px; }
+    /* Tablas: en tablet se convierten en tarjetas (ver bloque ≤ 768px abajo) */
+}
+
+/* ============================================================
+   RESPONSIVE — TABLAS MODO TARJETA (≤ 768px)
+   Cada fila se convierte en una tarjeta con etiquetas visibles.
+   Requiere data-label en cada <td>.
+   ============================================================ */
+@media (max-width: 1024px) {
+
+    /* El wrapper y la card contenedora son transparentes para que el fondo
+       de la página se vea en los gaps entre tarjetas-fila */
+    .table-wrapper {
+        border: none;
+        background: transparent;
+        border-radius: 0;
+    }
+
+    .card {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    .card-header {
+        background: transparent;
+        border-bottom: none;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    /* Aplanamos la tabla para poder usar display:block en filas y celdas */
+    .vet-table,
+    .vet-table tbody,
+    .vet-table tr,
+    .vet-table td { display: block; width: 100%; }
+
+    /* Encabezado oculto: las etiquetas vienen de data-label */
+    .vet-table thead { display: none; }
+
+    /* Cada fila → tarjeta */
+    .vet-table tbody tr {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        margin-bottom: 12px;
+        padding: 4px 0;
+        box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+
+    /* Cada celda → fila con etiqueta a la izquierda y valor a la derecha */
+    .vet-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 16px;
+        border-bottom: 1px solid var(--color-border-light);
+        font-size: .875rem;
+        gap: 12px;
+    }
+
+    .vet-table td:last-child { border-bottom: none; }
+
+    /* Etiqueta generada desde data-label */
+    .vet-table td::before {
+        content: attr(data-label);
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--color-text-muted);
+        flex-shrink: 0;
+        min-width: 80px;
+    }
+
+    /* Celda sin etiqueta (acciones, etc.) */
+    .vet-table td[data-label=""]::before { display: none; }
+    .vet-table td[data-label=""] { justify-content: flex-end; }
+
+    /* Celdas de acciones: botones en fila con wrap */
+    .vet-table td.td-actions { padding: 12px 16px; }
+    .vet-table td.td-actions::before { width: 100%; margin-bottom: 4px; }
 }
 
 /* ============================================================
@@ -1299,9 +1418,6 @@ select.form-control {
     /* Botones en modal footer se apilan */
     .modal-footer { flex-direction: column-reverse; }
     .modal-footer .btn { width: 100%; }
-
-    /* Reducir padding de celdas en tablas */
-    .vet-table td, .vet-table th { padding: 8px 10px; }
 }
 
 /* ============================================================
@@ -1406,3 +1522,80 @@ select.form-control {
 .record-entry-body {
     padding: 14px 16px;
 }
+
+/* ============================================================
+   CLASES UTILITARIAS — eliminan inline styles repetidos
+   ============================================================ */
+
+/* Margen cero (anula el margin-bottom de .filters-bar cuando va dentro de card-header) */
+.mb-0 { margin-bottom: 0 !important; }
+
+/* Fila de controles en el card-header (botón + filters-bar) */
+.card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Wrapper de spinner de carga dentro de tabla o card */
+.loading-pad { padding: 40px; }
+
+/* Wrapper de patients-grid / pagination dentro de card-body */
+.grid-pad { padding: 20px; }
+
+/* Paginación dentro de table-wrapper con separación del borde */
+.pagination-padded { padding: 16px 20px; }
+
+/* Spinner pequeño para usar dentro de botones */
+.spinner-sm {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Toast tipo snackbar (éxito) — fijo abajo-derecha */
+.toast-snack {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--color-success);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    font-size: .875rem;
+    font-weight: 600;
+    z-index: 2000;
+    animation: slideUp .2s ease;
+}
+
+/* Badge contador en pestañas */
+.tab-count {
+    margin-left: 4px;
+    font-size: .72rem;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    padding: 1px 7px;
+    border-radius: 10px;
+}
+
+/* ── Botones de acción icónicos en tablas ──
+   Se usan junto a .btn y .btn-sm para no duplicar padding/font */
+.btn-icon-edit   { background: #dbeafe; color: #1e40af; border: 1px solid #3b82f6; }
+.btn-icon-view   { background: #dbeafe; color: #1e40af; border: 1px solid #3b82f6; }
+.btn-icon-save,
+.btn-icon-activate { background: #d1e7dd; color: #0f5132; border: 1px solid #198754; }
+.btn-icon-deact  { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+.btn-icon-reset  { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+.btn-icon-delete { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+
+.btn-icon-edit:hover:not(:disabled)     { background: #bfdbfe; }
+.btn-icon-view:hover:not(:disabled)     { background: #bfdbfe; }
+.btn-icon-save:hover:not(:disabled),
+.btn-icon-activate:hover:not(:disabled) { background: #bbf7d0; }
+.btn-icon-deact:hover:not(:disabled)    { background: #fde68a; }
+.btn-icon-reset:hover:not(:disabled)    { background: #fde68a; }
+.btn-icon-delete:hover:not(:disabled)   { background: #fecaca; }
