@@ -52,14 +52,4 @@ public class AppointmentApiClient
         }
     }
 
-    public async Task<List<AvailabilityResponse>?> GetAvailabilityAsync(
-        Guid veterinarianId, DateTime date)
-    {
-        try
-        {
-            return await _http.GetFromJsonAsync<List<AvailabilityResponse>>(
-                $"api/appointments/availability?veterinarianId={veterinarianId}&date={date:yyyy-MM-dd}");
-        }
-        catch { return null; }
-    }
 }

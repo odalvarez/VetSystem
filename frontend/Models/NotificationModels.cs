@@ -26,17 +26,6 @@ public class SendEmailRequest
     public string Body    { get; set; } = "";
 }
 
-public class ScheduleReminderRequest
-{
-    public Guid         AppointmentId { get; set; }
-    public string       PatientName   { get; set; } = "";
-    public string       OwnerName     { get; set; } = "";
-    public string       OwnerPhone    { get; set; } = "";
-    public string       OwnerEmail    { get; set; } = "";
-    public DateTime     ScheduledAt   { get; set; }
-    public List<string> Channels      { get; set; } = new();
-}
-
 public class ApiError
 {
     public string? Title  { get; set; }
