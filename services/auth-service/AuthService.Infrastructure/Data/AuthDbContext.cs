@@ -24,8 +24,8 @@ public class AuthDbContext : DbContext
 
             // Columna estrecha + CHECK garantizan que nunca entre un rol inventado
             e.Property(u => u.Role).HasConversion<string>().IsRequired().HasMaxLength(20);
-            e.HasCheckConstraint("CK_Users_Role",
-                "[Role] IN ('Owner', 'Veterinarian', 'Admin')");
+            e.ToTable(t => t.HasCheckConstraint("CK_Users_Role",
+                "[Role] IN ('Owner', 'Veterinarian', 'Admin')"));
 
             e.Property(u => u.IsActive).HasDefaultValue(true);
 
