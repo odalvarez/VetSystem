@@ -1,28 +1,26 @@
 @* Fila de cita usada en la tabla de citas; el veterinario puede cambiar estado desde aquí *@
 <tr>
-    <td>
+    <td data-label="Paciente">
         <strong>@Appointment.PatientName</strong>
         @if (!string.IsNullOrEmpty(Appointment.OwnerName))
         {
             <div style="font-size:.78rem;color:var(--color-text-muted)">@Appointment.OwnerName</div>
         }
     </td>
-    <td>@Appointment.ScheduledAt.ToString("dd/MM/yyyy")</td>
-    <td>@Appointment.ScheduledAt.ToString("HH:mm")</td>
-    <td>@Appointment.DurationMinutes min</td>
-    <td><StatusBadge Status="@Appointment.Status" /></td>
+    <td data-label="Fecha">@Appointment.ScheduledAt.ToString("dd/MM/yyyy")</td>
+    <td data-label="Hora">@Appointment.ScheduledAt.ToString("HH:mm")</td>
+    <td data-label="Duración">@Appointment.DurationMinutes min</td>
+    <td data-label="Estado"><StatusBadge Status="@Appointment.Status" /></td>
     @if (ShowActions)
     {
-        <td>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-                @foreach (var next in GetNextStatuses())
-                {
-                    <button class="btn btn-sm btn-secondary"
-                            @onclick="() => OnStatusChange.InvokeAsync((Appointment.Id, next))">
-                        @TranslateStatus(next)
-                    </button>
-                }
-            </div>
+        <td data-label="Acciones" class="td-actions">
+            @foreach (var next in GetNextStatuses())
+            {
+                <button class="btn btn-sm btn-secondary"
+                        @onclick="() => OnStatusChange.InvokeAsync((Appointment.Id, next))">
+                    @TranslateStatus(next)
+                </button>
+            }
         </td>
     }
 </tr>
