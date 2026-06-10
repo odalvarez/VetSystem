@@ -34,11 +34,10 @@ public class AuthController : ControllerBase
 
         // El JWT nunca llega al navegador como dato legible: vive solo en la cookie httpOnly.
         // JS no puede acceder a ella, por lo que XSS no puede robar el token.
-        // TODO producción: cambiar Secure = true cuando el servidor opere con HTTPS.
         Response.Cookies.Append("vetsys_jwt", result.AccessToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure   = false,
+            Secure   = true,
             SameSite = SameSiteMode.Strict,
             Expires  = DateTimeOffset.UtcNow.AddSeconds(result.ExpiresIn),
             Path     = "/"
