@@ -79,12 +79,6 @@ public class AuthApiClient
         catch { return new(); }
     }
 
-    public async Task<AdminUserItem?> AdminGetUserAsync(Guid id)
-    {
-        try { return await _http.GetFromJsonAsync<AdminUserItem>($"api/auth/admin/users/{id}"); }
-        catch { return null; }
-    }
-
     public async Task<AdminUserItem> AdminCreateUserAsync(AdminCreateUserRequest req)
     {
         var res = await _http.PostAsJsonAsync("api/auth/admin/users", req);

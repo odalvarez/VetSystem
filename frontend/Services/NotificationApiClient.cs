@@ -46,14 +46,4 @@ public class NotificationApiClient
             throw new Exception(err?.Detail ?? $"Error {(int)res.StatusCode}");
         }
     }
-
-    public async Task ScheduleReminderAsync(ScheduleReminderRequest req)
-    {
-        var res = await _http.PostAsJsonAsync("api/notifications/reminder", req);
-        if (!res.IsSuccessStatusCode)
-        {
-            var err = await res.Content.ReadFromJsonAsync<ApiError>();
-            throw new Exception(err?.Detail ?? $"Error {(int)res.StatusCode}");
-        }
-    }
 }

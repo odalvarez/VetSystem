@@ -67,12 +67,6 @@ public class User
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void SetRole(UserRole role)
-    {
-        Role      = role;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
     public void AdminUpdate(string firstName, string lastName, string phone, UserRole role)
     {
         FirstName = firstName.Trim();

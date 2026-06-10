@@ -9,12 +9,12 @@ public class ConsultationLogApiClient
 
     public ConsultationLogApiClient(HttpClient http) => _http = http;
 
-    public async Task<PagedResult<ConsultationLogResponse>> ListAsync(
+    public async Task<PagedResponse<ConsultationLogResponse>> ListAsync(
         Guid patientId, int page = 1, int pageSize = 20)
     {
         try
         {
-            return await _http.GetFromJsonAsync<PagedResult<ConsultationLogResponse>>(
+            return await _http.GetFromJsonAsync<PagedResponse<ConsultationLogResponse>>(
                 $"api/patients/{patientId}/logs?page={page}&pageSize={pageSize}")
                 ?? new();
         }
@@ -59,13 +59,4 @@ public class ConsultationLogApiClient
         catch { detail = $"Error {(int)resp.StatusCode}"; }
         throw new Exception(detail);
     }
-}
-
-// Tipo genérico de paginación que el backend devuelve
-public class PagedResult<T>
-{
-    public IEnumerable<T> Items      { get; set; } = [];
-    public int             TotalCount { get; set; }
-    public int             Page       { get; set; }
-    public int             PageSize   { get; set; }
 }

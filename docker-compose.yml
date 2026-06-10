@@ -95,8 +95,8 @@ services:
       Jwt__Secret:                "${JWT_SECRET}"
       Jwt__Issuer:                "auth-service"
       Jwt__Audience:              "vetsystem"
-      AdminSeed__Email:           "vet@vetsystem.com"
-      AdminSeed__Password:        "Admin1234!"
+      AdminSeed__Email:           "${ADMIN_SEED_EMAIL}"
+      AdminSeed__Password:        "${ADMIN_SEED_PASSWORD}"
     depends_on:
       sqlserver:
         condition: service_healthy
