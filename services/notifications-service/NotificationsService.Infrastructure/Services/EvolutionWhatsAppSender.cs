@@ -26,9 +26,9 @@ public class EvolutionWhatsAppSender : IWhatsAppSender
     {
         var payload = JsonSerializer.Serialize(new
         {
-            number  = to,
-            options = new { delay = 1200 },
-            textMessage = new { text = message }
+            number = to,
+            text   = message,
+            delay  = 1200
         });
 
         var response = await _http.PostAsync(

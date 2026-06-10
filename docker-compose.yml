@@ -44,30 +44,80 @@ services:
     restart: unless-stopped
 
   # ──────────────────────────────────────────────────────────────────────
-  # Evolution API v1.8.7 — servidor WhatsApp Business
-  # v1 guarda la sesión en disco; no necesita base de datos externa
-  # La instancia "vetsystem" se vincula escaneando el QR en http://localhost:8080/manager
+  # Redis — caché en memoria para Evolution API v2
+  # Almacena estado de sesión WhatsApp y QR activo; si se reinicia Evolution reconecta sola
+  # ──────────────────────────────────────────────────────────────────────
+  redis-evolution:
+    image: redis:7-alpine
+    container_name: vetsystem-redis-evolution
+    command: redis-server --save "" --appendonly no
+    networks:
+      - vetsystem
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────────────────────────────
+  # PostgreSQL — base de datos exclusiva de Evolution API v2
+  # Los 4 microservicios .NET siguen usando SQL Server; esta instancia es solo para Evolution
+  # ──────────────────────────────────────────────────────────────────────
+  postgres-evolution:
+    image: postgres:16-alpine
+    container_name: vetsystem-postgres-evolution
+    environment:
+      POSTGRES_USER:     "evolution"
+      POSTGRES_PASSWORD: "${POSTGRES_EVOLUTION_PASSWORD}"
+      POSTGRES_DB:       "evolution"
+    volumes:
+      - postgres_evolution_data:/var/lib/postgresql/data
+    networks:
+      - vetsystem
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Evolution API v2 — servidor WhatsApp Business
+  # v2 requiere PostgreSQL; la sesión se escanea en http://localhost:8080/manager
   # ──────────────────────────────────────────────────────────────────────
   evolution-api:
-    image: atendai/evolution-api:v1.8.7
+    image: evoapicloud/evolution-api:v2.3.7
     container_name: vetsystem-evolution
     ports:
       - "8080:8080"
     environment:
-      SERVER_URL:             "http://localhost:8080"
-      AUTHENTICATION_TYPE:    "apikey"
-      AUTHENTICATION_API_KEY: "${EVOLUTION_API_KEY}"
-      # v1 guarda sesiones directamente en disco, sin DB externa
-      LOG_LEVEL:              "ERROR,WARN,LOG"
-      LOG_COLOR:              "false"
-      LOG_BAILEYS:            "error"
-      QRCODE_LIMIT:           "10"
-      QRCODE_COLOR:           "#198754"
-      # Versión actual de WhatsApp Web — actualizar si WhatsApp empieza a rechazar el QR
-      # Comando para obtener la versión actual: docker exec vetsystem-evolution node -e "require('/evolution/node_modules/baileys').fetchLatestWaWebVersion().then(v=>console.log(v.version.join(',')))"
-      CONFIG_SESSION_PHONE_VERSION: "2,3000,1041122824"
-    volumes:
-      - evolution_data:/evolution/instances
+      SERVER_URL:                        "http://localhost:8080"
+      AUTHENTICATION_API_KEY:            "${EVOLUTION_API_KEY}"
+      DATABASE_ENABLED:                  "true"
+      DATABASE_PROVIDER:                 "postgresql"
+      DATABASE_CONNECTION_URI:           "postgresql://evolution:${POSTGRES_EVOLUTION_PASSWORD}@postgres-evolution:5432/evolution"
+      DATABASE_SAVE_DATA_INSTANCE:       "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE:    "false"
+      DATABASE_SAVE_MESSAGE_UPDATE:      "false"
+      DATABASE_SAVE_DATA_CONTACTS:       "false"
+      DATABASE_SAVE_DATA_CHATS:          "false"
+      DATABASE_SAVE_DATA_LABELS:         "false"
+      DATABASE_SAVE_DATA_HISTORIC:       "false"
+      CACHE_REDIS_ENABLED:               "true"
+      CACHE_REDIS_URI:                   "redis://redis-evolution:6379"
+      CACHE_REDIS_PREFIX_KEY:            "evolution"
+      CACHE_REDIS_SAVE_INSTANCES:        "true"
+      CONFIG_SESSION_PHONE_VERSION:      "2,2413,51"
+      LOG_LEVEL:                         "ERROR"
+      LOG_COLOR:                         "false"
+      QRCODE_LIMIT:                      "10"
+    depends_on:
+      postgres-evolution:
+        condition: service_healthy
+      redis-evolution:
+        condition: service_healthy
     networks:
       - vetsystem
     healthcheck:
@@ -247,5 +297,5 @@ networks:
 volumes:
   sqlserver_data:
     # ⚠ NO ejecutar "docker-compose down -v" ni "docker volume rm" — contiene todos los datos
-  evolution_data:
-    # ⚠ NO eliminar — contiene archivos de sesión de WhatsApp v1; requiere re-escanear QR si se borra
+  postgres_evolution_data:
+    # ⚠ NO eliminar — contiene la sesión de WhatsApp de Evolution API v2; requiere re-escanear QR si se borra
