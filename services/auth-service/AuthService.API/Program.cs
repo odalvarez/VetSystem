@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using AuthService.API;
 using Microsoft.OpenApi.Models;
 using AuthService.API.Middleware;
 using AuthService.Application.Interfaces;
@@ -137,6 +138,9 @@ using (var scope = app.Services.CreateScope())
         await db.SaveChangesAsync();
     }
 }
+
+if (app.Configuration["SeedReset"] == "true")
+    await DatabaseSeeder.ResetAndSeedAsync(app.Services);
 
 app.UseCors();
 app.UseSwagger();
