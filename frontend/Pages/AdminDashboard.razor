@@ -549,7 +549,7 @@
                                class="form-control @(_modalSubmitted && !PasswordStrength.IsValid(_formPassword) ? "invalid" : "")"
                                value="@_formPassword"
                                @oninput="e => _formPassword = e.Value?.ToString() ?? string.Empty"
-                               placeholder="Mínimo 6 caracteres" />
+                               placeholder="Mínimo 8 caracteres" />
                         <PasswordStrength Password="@_formPassword" />
                         @if (_modalSubmitted && !PasswordStrength.IsValid(_formPassword))
                         { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
@@ -597,7 +597,7 @@
                            class="form-control @(_resetSubmitted && !PasswordStrength.IsValid(_resetPassword) ? "invalid" : "")"
                            value="@_resetPassword"
                            @oninput="e => _resetPassword = e.Value?.ToString() ?? string.Empty"
-                           placeholder="Mínimo 6 caracteres" />
+                           placeholder="Mínimo 8 caracteres" />
                     <PasswordStrength Password="@_resetPassword" />
                     @if (_resetSubmitted && !PasswordStrength.IsValid(_resetPassword))
                     { <div class="validation-message">La contraseña no cumple los requisitos.</div> }

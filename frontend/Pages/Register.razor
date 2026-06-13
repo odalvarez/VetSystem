@@ -71,7 +71,7 @@
                        class="form-control @(_submitted && !PasswordStrength.IsValid(_request.Password) ? "invalid" : "")"
                        value="@_request.Password"
                        @oninput="e => _request.Password = e.Value?.ToString() ?? string.Empty"
-                       placeholder="Mínimo 6 caracteres" />
+                       placeholder="Mínimo 8 caracteres" />
                 <PasswordStrength Password="@_request.Password" />
                 @if (_submitted && !PasswordStrength.IsValid(_request.Password))
                 { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
