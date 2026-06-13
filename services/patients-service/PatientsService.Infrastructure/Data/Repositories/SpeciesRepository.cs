@@ -22,12 +22,13 @@ public class SpeciesRepository : ISpeciesRepository
     public Task<Species?> GetBySlugAsync(string slug, CancellationToken ct) =>
         _db.Species.FirstOrDefaultAsync(s => s.Slug == slug && s.IsActive && !s.IsDeleted, ct);
 
-    public Task<int> CountPatientsBySlugAsync(string slug, CancellationToken ct) =>
-        _db.Patients.CountAsync(p => p.Species == slug && !p.IsDeleted, ct);
+    public Task<int> CountPatientsByIdAsync(Guid speciesId, CancellationToken ct) =>
+        _db.Patients.CountAsync(p => p.SpeciesId == speciesId && !p.IsDeleted, ct);
 
-    public Task<Dictionary<string, int>> GetPatientCountsBySlugAsync(CancellationToken ct) =>
+    public Task<Dictionary<Guid, int>> GetPatientCountsByIdAsync(CancellationToken ct) =>
         _db.Patients
-           .GroupBy(p => p.Species)
+           .Where(p => !p.IsDeleted)
+           .GroupBy(p => p.SpeciesId)
            .Select(g => new { g.Key, Count = g.Count() })
            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
 

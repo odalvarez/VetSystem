@@ -7,8 +7,7 @@ public class Patient
 {
     public Guid      Id              { get; private set; }
     public string    Name            { get; private set; } = default!;
-    /// Slug de la especie, ej. "dog", "cat" — referencia lógica a la tabla Species
-    public string    Species         { get; private set; } = default!;
+    public Guid      SpeciesId       { get; private set; }
     public string    Breed           { get; private set; } = default!;
     public DateOnly  BirthDate       { get; private set; }
     public Sex       Sex             { get; private set; }
@@ -29,7 +28,7 @@ public class Patient
     private Patient() { }
 
     public static Patient Create(
-        string name, string species, string breed,
+        string name, Guid speciesId, string breed,
         DateOnly birthDate, Sex sex, decimal weight,
         Guid ownerId, string ownerName, string ownerPhone = "",
         string? color = null, string? microchipNumber = null)
@@ -44,7 +43,7 @@ public class Patient
         {
             Id              = Guid.NewGuid(),
             Name            = name.Trim(),
-            Species         = species,
+            SpeciesId       = speciesId,
             Breed           = breed.Trim(),
             BirthDate       = birthDate,
             Sex             = sex,

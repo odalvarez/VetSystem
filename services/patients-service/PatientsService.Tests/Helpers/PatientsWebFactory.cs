@@ -50,10 +50,10 @@ public class PatientsWebFactory : WebApplicationFactory<Program>
         using var scope = host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PatientsDbContext>();
 
-        // Los tests usan "Canine" y "Feline" como valor de Species
+        // Los tests envían Species="Canine"/"Feline" → slug resultante es "canine"/"feline"
         db.Species.AddRange(
-            Species.Create("Canine"),
-            Species.Create("Feline")
+            Species.Create("Canine", "canine"),
+            Species.Create("Feline", "feline")
         );
         db.SaveChanges();
 
