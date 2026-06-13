@@ -71,4 +71,24 @@ public class PatientApiClient
         }
         return (await res.Content.ReadFromJsonAsync<ClinicalRecordResponse>())!;
     }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var res = await _http.DeleteAsync($"api/patients/{id}");
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = await res.Content.ReadFromJsonAsync<ApiError>();
+            throw new Exception(err?.Detail ?? $"Error {(int)res.StatusCode}");
+        }
+    }
+
+    public async Task DeleteByOwnerAsync(Guid ownerId)
+    {
+        var res = await _http.DeleteAsync($"api/patients/by-owner/{ownerId}");
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = await res.Content.ReadFromJsonAsync<ApiError>();
+            throw new Exception(err?.Detail ?? $"Error {(int)res.StatusCode}");
+        }
+    }
 }

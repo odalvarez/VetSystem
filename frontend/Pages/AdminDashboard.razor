@@ -198,6 +198,13 @@
                                                     @onclick="() => OpenResetModal(user)">🔑</button>
                                             <span class="tip-txt">Resetear contraseña</span>
                                         </span>
+                                        <span class="tip-wrap">
+                                            <button class="btn btn-sm btn-icon-delete"
+                                                    style="@(isSelf ? "opacity:.4;cursor:not-allowed;" : "")"
+                                                    disabled="@isSelf"
+                                                    @onclick="() => OpenDeleteUserConfirm(user)">🗑️</button>
+                                            <span class="tip-txt">@(isSelf ? "No puedes eliminar tu propia cuenta" : "Eliminar usuario")</span>
+                                        </span>
                                     </td>
                                 </tr>
                             }
@@ -382,39 +389,42 @@
             }
             else
             {
-                @* Formulario inline para nueva especie *@
                 @if (_showNewSpeciesForm)
                 {
                     <div style="padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface-alt)">
-                        <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
-                            <div>
-                                <label class="form-label" style="font-size:.8rem;margin-bottom:4px">Ícono</label>
-                                <div class="emoji-picker">
-                                    @foreach (var e in AvailableIcons)
-                                    {
-                                        var icon = e;
-                                        <button type="button"
-                                                class="emoji-option @(_newSpeciesIcon == icon ? "selected" : "")"
-                                                @onclick="() => _newSpeciesIcon = icon">@icon</button>
-                                    }
-                                </div>
-                            </div>
-                            <div style="flex:1;min-width:200px">
-                                <label class="form-label" style="font-size:.8rem;margin-bottom:4px">Nombre *</label>
-                                <input class="form-control @(_speciesSubmitted && string.IsNullOrWhiteSpace(_newSpeciesName) ? "invalid" : "")"
-                                       placeholder="Nombre de la especie (ej. Tortuga)"
-                                       @bind="_newSpeciesName" @bind:event="oninput" />
-                                @if (_speciesSubmitted && string.IsNullOrWhiteSpace(_newSpeciesName))
-                                { <div class="validation-message" style="margin-top:4px">El nombre es obligatorio.</div> }
-                            </div>
-                            <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:2px">
-                                <button class="btn btn-primary btn-sm" @onclick="SaveNewSpecies" disabled="@_speciesSaving">
-                                    @if (_speciesSaving) { <span class="spinner spinner-sm"></span> }
-                                    else { <span>Guardar</span> }
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                            <div class="icon-dropdown-wrap">
+                                <button type="button" class="icon-dropdown-trigger"
+                                        @onclick="() => _newIconPickerOpen = !_newIconPickerOpen">
+                                    <span>@_newSpeciesIcon</span>
+                                    <span class="icon-dropdown-arrow">▾</span>
                                 </button>
-                                <button class="btn btn-ghost btn-sm" @onclick="CancelNewSpecies">Cancelar</button>
+                                @if (_newIconPickerOpen)
+                                {
+                                    <div class="icon-dropdown-backdrop" @onclick="() => _newIconPickerOpen = false"></div>
+                                    <div class="icon-dropdown-panel">
+                                        @foreach (var e in AvailableIcons)
+                                        {
+                                            var icon = e;
+                                            <button type="button"
+                                                    class="emoji-option @(_newSpeciesIcon == icon ? "selected" : "")"
+                                                    @onclick="() => { _newSpeciesIcon = icon; _newIconPickerOpen = false; }">@icon</button>
+                                        }
+                                    </div>
+                                }
                             </div>
+                            <input class="form-control @(_speciesSubmitted && string.IsNullOrWhiteSpace(_newSpeciesName) ? "invalid" : "")"
+                                   style="flex:1;min-width:180px;max-width:320px"
+                                   placeholder="Nombre de la especie (ej. Tortuga)"
+                                   @bind="_newSpeciesName" @bind:event="oninput" />
+                            <button class="btn btn-primary btn-sm" @onclick="SaveNewSpecies" disabled="@_speciesSaving">
+                                @if (_speciesSaving) { <span class="spinner spinner-sm"></span> }
+                                else { <span>Guardar</span> }
+                            </button>
+                            <button class="btn btn-ghost btn-sm" @onclick="CancelNewSpecies">Cancelar</button>
                         </div>
+                        @if (_speciesSubmitted && string.IsNullOrWhiteSpace(_newSpeciesName))
+                        { <div class="validation-message" style="margin-top:6px">El nombre es obligatorio.</div> }
                     </div>
                 }
 
@@ -446,18 +456,29 @@
                                         <td data-label="Especie">
                                             @if (_editingSpeciesId == sp.Id)
                                             {
-                                                <div style="display:flex;flex-direction:column;gap:6px">
-                                                    <div class="emoji-picker">
-                                                        @foreach (var e in AvailableIcons)
+                                                <div style="display:flex;gap:8px;align-items:center">
+                                                    <div class="icon-dropdown-wrap">
+                                                        <button type="button" class="icon-dropdown-trigger"
+                                                                @onclick="() => _editIconPickerOpen = !_editIconPickerOpen">
+                                                            <span>@_editSpeciesIcon</span>
+                                                            <span class="icon-dropdown-arrow">▾</span>
+                                                        </button>
+                                                        @if (_editIconPickerOpen)
                                                         {
-                                                            var icon = e;
-                                                            <button type="button"
-                                                                    class="emoji-option @(_editSpeciesIcon == icon ? "selected" : "")"
-                                                                    @onclick="() => _editSpeciesIcon = icon">@icon</button>
+                                                            <div class="icon-dropdown-backdrop" @onclick="() => _editIconPickerOpen = false"></div>
+                                                            <div class="icon-dropdown-panel">
+                                                                @foreach (var e in AvailableIcons)
+                                                                {
+                                                                    var icon = e;
+                                                                    <button type="button"
+                                                                            class="emoji-option @(_editSpeciesIcon == icon ? "selected" : "")"
+                                                                            @onclick="() => { _editSpeciesIcon = icon; _editIconPickerOpen = false; }">@icon</button>
+                                                                }
+                                                            </div>
                                                         }
                                                     </div>
                                                     <input class="form-control"
-                                                           style="max-width:220px"
+                                                           style="max-width:200px"
                                                            @bind="_editSpeciesName" @bind:event="oninput" />
                                                 </div>
                                             }
@@ -650,6 +671,34 @@
     </div>
 }
 
+@* ── Modal confirmación eliminar usuario ── *@
+@if (_showDeleteUserConfirm)
+{
+    <div class="modal-overlay">
+        <div class="modal-box" style="max-width:420px" @onclick:stopPropagation>
+            <div class="modal-header">
+                <span class="modal-title">🗑️ Eliminar usuario</span>
+                <button class="btn-close" @onclick="() => _showDeleteUserConfirm = false">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:8px">¿Eliminar a <strong>@_deleteUserTarget?.FullName</strong>?</p>
+                <p style="color:var(--color-text-muted);font-size:.875rem">
+                    Esta acción también eliminará todas sus mascotas del sistema. No se perderán datos — es un borrado suave.
+                </p>
+                @if (!string.IsNullOrEmpty(_deleteUserError))
+                { <div class="alert alert-danger" style="margin-top:12px">⚠️ @_deleteUserError</div> }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showDeleteUserConfirm = false" disabled="@_deleteUserSaving">Cancelar</button>
+                <button class="btn btn-danger" @onclick="ConfirmDeleteUser" disabled="@_deleteUserSaving">
+                    @if (_deleteUserSaving) { <span class="spinner spinner-sm"></span> }
+                    else { <span>Eliminar</span> }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @* Modal para que el admin registre una nueva mascota (igual que el vet) *@
 <VetNewPatientModal Visible="_showVetPatientModal"
                     OnSaved="EventCallback.Factory.Create(this, OnPatientCreated)"
@@ -659,6 +708,7 @@
 <PatientDetailModal Visible="_showEditPatientModal"
                     Patient="_editingPatient"
                     OnPatientSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
+                    OnPatientDeleted="EventCallback.Factory.Create(this, OnPatientDeletedFromModal)"
                     OnClose="EventCallback.Factory.Create(this, () => { _showEditPatientModal = false; _editingPatient = null; })" />
 
 @* Modal para que el admin cree una nueva cita *@
@@ -768,13 +818,15 @@
     private bool   _showNewSpeciesForm = false;
     private string _newSpeciesName     = "";
     private string _newSpeciesIcon     = "🐾";
+    private bool   _newIconPickerOpen  = false;
     private bool   _speciesSubmitted   = false;
     private bool   _speciesSaving      = false;
 
     // Edición inline
-    private Guid   _editingSpeciesId = Guid.Empty;
-    private string _editSpeciesName  = "";
-    private string _editSpeciesIcon  = "🐾";
+    private Guid   _editingSpeciesId  = Guid.Empty;
+    private string _editSpeciesName   = "";
+    private string _editSpeciesIcon   = "🐾";
+    private bool   _editIconPickerOpen = false;
 
     private static readonly string[] AvailableIcons =
     [
@@ -933,6 +985,15 @@
         ShowToast("Mascota actualizada correctamente.");
     }
 
+    private async Task OnPatientDeletedFromModal()
+    {
+        _showEditPatientModal = false;
+        _editingPatient       = null;
+        await ReloadPatients();
+        await LoadPatientStats();
+        ShowToast("Mascota eliminada correctamente.");
+    }
+
     // ── Appointments ───────────────────────────────────────────────────────────
 
     private async Task LoadAppointments()
@@ -1029,6 +1090,41 @@
         finally { _modalSaving = false; }
     }
 
+    // ── Delete user ────────────────────────────────────────────────────────────
+
+    private bool           _showDeleteUserConfirm = false;
+    private AdminUserItem? _deleteUserTarget;
+    private bool           _deleteUserSaving;
+    private string?        _deleteUserError;
+
+    private void OpenDeleteUserConfirm(AdminUserItem user)
+    {
+        _deleteUserTarget  = user;
+        _deleteUserError   = null;
+        _deleteUserSaving  = false;
+        _showDeleteUserConfirm = true;
+    }
+
+    private async Task ConfirmDeleteUser()
+    {
+        if (_deleteUserTarget is null) return;
+        _deleteUserSaving = true;
+        _deleteUserError  = null;
+        try
+        {
+            // Primero soft-delete de todas las mascotas del usuario
+            await PatientApi.DeleteByOwnerAsync(_deleteUserTarget.Id);
+            // Luego soft-delete del usuario
+            await AuthApi.AdminDeleteUserAsync(_deleteUserTarget.Id);
+            _showDeleteUserConfirm = false;
+            await LoadUsers();
+            await LoadStats();
+            ShowToast("Usuario y sus mascotas eliminados.");
+        }
+        catch (Exception ex) { _deleteUserError = ex.Message; }
+        finally { _deleteUserSaving = false; }
+    }
+
     // ── Toggle active ──────────────────────────────────────────────────────────
 
     private async Task ToggleActive(AdminUserItem user)
@@ -1091,6 +1187,7 @@
         _showNewSpeciesForm = true;
         _newSpeciesName     = "";
         _newSpeciesIcon     = "🐾";
+        _newIconPickerOpen  = false;
         _speciesSubmitted   = false;
         _speciesError       = null;
         CancelEditSpecies();
@@ -1101,6 +1198,7 @@
         _showNewSpeciesForm = false;
         _newSpeciesName     = "";
         _newSpeciesIcon     = "🐾";
+        _newIconPickerOpen  = false;
         _speciesSubmitted   = false;
     }
 
@@ -1136,9 +1234,10 @@
 
     private void CancelEditSpecies()
     {
-        _editingSpeciesId = Guid.Empty;
-        _editSpeciesName  = "";
-        _editSpeciesIcon  = "🐾";
+        _editingSpeciesId  = Guid.Empty;
+        _editSpeciesName   = "";
+        _editSpeciesIcon   = "🐾";
+        _editIconPickerOpen = false;
     }
 
     private async Task SaveEditSpecies(Guid id)

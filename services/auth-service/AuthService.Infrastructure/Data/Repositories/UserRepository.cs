@@ -19,7 +19,7 @@ public class UserRepository : IUserRepository
         _db.Users.FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant() && !u.IsDeleted, ct);
 
     public Task<bool> EmailExistsAsync(string email, CancellationToken ct) =>
-        _db.Users.AnyAsync(u => u.Email == email.ToLowerInvariant() && !u.IsDeleted, ct);
+        _db.Users.AnyAsync(u => u.Email == email.ToLowerInvariant(), ct);
 
     public async Task<IEnumerable<User>> ListByRoleAsync(UserRole role, CancellationToken ct) =>
         await _db.Users.Where(u => u.Role == role && !u.IsDeleted).OrderBy(u => u.LastName).ToListAsync(ct);

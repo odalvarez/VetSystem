@@ -47,7 +47,6 @@ public class PatientsController : ControllerBase
 
         if (IsOwner())
         {
-            // El owner crea su propia mascota; los datos del dueño vienen del JWT
             var caller = GetCaller();
             ownerId    = caller.Id;
             ownerName  = caller.Name;
@@ -55,7 +54,6 @@ public class PatientsController : ControllerBase
         }
         else
         {
-            // El veterinario debe proveer el OwnerId del dueño en el request
             if (req.OwnerId is null || string.IsNullOrWhiteSpace(req.OwnerName))
                 return BadRequest(new { detail = "El veterinario debe indicar OwnerId y OwnerName al registrar una mascota." });
 
@@ -92,7 +90,6 @@ public class PatientsController : ControllerBase
         [FromQuery] Guid?   ownerId = null,
         CancellationToken ct = default)
     {
-        // owner solo ve las suyas; veterinarian ve todas o filtra por dueño específico
         Guid? ownerFilter = IsOwner() ? GetCaller().Id : ownerId;
         var result = await _svc.ListAsync(ownerFilter, species, search, page, pageSize, ct);
         return Ok(result);
@@ -146,18 +143,18 @@ public class PatientsController : ControllerBase
     }
 
     /// <summary>
-    /// Elimina una mascota y toda su historia clínica asociada de forma permanente.
-    /// Esta es la única operación de borrado físico permitida en el sistema.
-    /// Solo disponible para Veterinarian y Admin.
+    /// Marca una mascota como eliminada (soft delete). La mascota deja de aparecer en el sistema
+    /// pero sus datos e historia clínica se conservan en la base de datos.
+    /// Solo disponible para Admin.
     /// </summary>
     /// <param name="id">ID (GUID) de la mascota a eliminar.</param>
     /// <param name="ct">Token de cancelación.</param>
-    /// <response code="204">Mascota y su historia clínica eliminadas correctamente.</response>
+    /// <response code="204">Mascota marcada como eliminada correctamente.</response>
     /// <response code="401">No autenticado.</response>
-    /// <response code="403">Rol no autorizado (solo Veterinarian y Admin).</response>
+    /// <response code="403">Rol no autorizado (solo Admin).</response>
     /// <response code="404">Mascota no encontrada.</response>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Veterinarian,Admin")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -165,6 +162,27 @@ public class PatientsController : ControllerBase
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await _svc.DeleteAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Marca como eliminadas (soft delete) todas las mascotas de un dueño específico.
+    /// Se usa como paso previo cuando se elimina un usuario del sistema.
+    /// Solo disponible para Admin.
+    /// </summary>
+    /// <param name="ownerId">ID (GUID) del dueño cuyas mascotas se eliminarán.</param>
+    /// <param name="ct">Token de cancelación.</param>
+    /// <response code="204">Mascotas del dueño marcadas como eliminadas.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">Rol no autorizado (solo Admin).</response>
+    [HttpDelete("by-owner/{ownerId:guid}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteByOwner(Guid ownerId, CancellationToken ct)
+    {
+        await _svc.DeleteByOwnerAsync(ownerId, ct);
         return NoContent();
     }
 
