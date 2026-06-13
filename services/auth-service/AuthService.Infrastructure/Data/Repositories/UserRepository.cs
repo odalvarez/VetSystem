@@ -13,22 +13,22 @@ public class UserRepository : IUserRepository
     public UserRepository(AuthDbContext db) => _db = db;
 
     public Task<User?> GetByIdAsync(Guid id, CancellationToken ct) =>
-        _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        _db.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted, ct);
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken ct) =>
-        _db.Users.FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant(), ct);
+        _db.Users.FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant() && !u.IsDeleted, ct);
 
     public Task<bool> EmailExistsAsync(string email, CancellationToken ct) =>
-        _db.Users.AnyAsync(u => u.Email == email.ToLowerInvariant(), ct);
+        _db.Users.AnyAsync(u => u.Email == email.ToLowerInvariant() && !u.IsDeleted, ct);
 
     public async Task<IEnumerable<User>> ListByRoleAsync(UserRole role, CancellationToken ct) =>
-        await _db.Users.Where(u => u.Role == role).OrderBy(u => u.LastName).ToListAsync(ct);
+        await _db.Users.Where(u => u.Role == role && !u.IsDeleted).OrderBy(u => u.LastName).ToListAsync(ct);
 
     public async Task<(IEnumerable<User> Data, int Total)> ListAllAsync(
         string? role, string? search, bool? isActive,
         int page, int pageSize, CancellationToken ct)
     {
-        var q = _db.Users.AsQueryable();
+        var q = _db.Users.Where(u => !u.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, true, out var r))
             q = q.Where(u => u.Role == r);
@@ -53,6 +53,13 @@ public class UserRepository : IUserRepository
 
     public Task UpdateAsync(User user, CancellationToken ct)
     {
+        _db.Users.Update(user);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(User user, CancellationToken ct)
+    {
+        user.SoftDelete();
         _db.Users.Update(user);
         return Task.CompletedTask;
     }

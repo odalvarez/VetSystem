@@ -20,6 +20,8 @@ public class Patient
     public string    OwnerPhone      { get; private set; } = "";
     public DateTime  CreatedAt       { get; private set; }
     public DateTime  UpdatedAt       { get; private set; }
+    public bool      IsDeleted       { get; private set; }
+    public DateTime? DeletedAt       { get; private set; }
 
     public ICollection<ClinicalRecord>   ClinicalRecords   { get; private set; } = new List<ClinicalRecord>();
     public ICollection<ConsultationLog>  ConsultationLogs  { get; private set; } = new List<ConsultationLog>();
@@ -55,6 +57,13 @@ public class Patient
             CreatedAt       = DateTime.UtcNow,
             UpdatedAt       = DateTime.UtcNow
         };
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Update(string name, string breed, DateOnly birthDate, Sex sex, decimal weight,

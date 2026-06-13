@@ -11,13 +11,13 @@ public class PatientRepository : IPatientRepository
     public PatientRepository(PatientsDbContext db) => _db = db;
 
     public Task<Patient?> GetByIdAsync(Guid id, CancellationToken ct) =>
-        _db.Patients.FirstOrDefaultAsync(p => p.Id == id, ct);
+        _db.Patients.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct);
 
     public async Task<(IEnumerable<Patient> Data, int Total)> ListAsync(
         Guid? ownerId, string? species, string? search,
         int page, int pageSize, CancellationToken ct)
     {
-        var q = _db.Patients.AsQueryable();
+        var q = _db.Patients.Where(p => !p.IsDeleted);
 
         if (ownerId.HasValue)
             q = q.Where(p => p.OwnerId == ownerId.Value);
@@ -47,7 +47,8 @@ public class PatientRepository : IPatientRepository
 
     public Task DeleteAsync(Patient patient, CancellationToken ct)
     {
-        _db.Patients.Remove(patient);
+        patient.SoftDelete();
+        _db.Patients.Update(patient);
         return Task.CompletedTask;
     }
 

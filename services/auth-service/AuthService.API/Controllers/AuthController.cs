@@ -352,6 +352,25 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Elimina (soft delete) un usuario. Solo Admin.</summary>
+    /// <response code="204">Usuario eliminado.</response>
+    /// <response code="400">El administrador intentó eliminarse a sí mismo.</response>
+    /// <response code="401">No autenticado.</response>
+    /// <response code="403">Rol no autorizado (solo Admin).</response>
+    /// <response code="404">Usuario no encontrado.</response>
+    [HttpDelete("admin/users/{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AdminDeleteUser(Guid id, CancellationToken ct)
+    {
+        await _auth.AdminDeleteUserAsync(id, GetCurrentUserId(), ct);
+        return NoContent();
+    }
+
     private Guid GetCurrentUserId()
     {
         var sub = User.FindFirstValue(ClaimTypes.NameIdentifier)

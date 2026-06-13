@@ -212,6 +212,18 @@ public class AuthApplicationService
         await _users.SaveChangesAsync(ct);
     }
 
+    public async Task AdminDeleteUserAsync(Guid id, Guid requesterId, CancellationToken ct)
+    {
+        var user = await _users.GetByIdAsync(id, ct)
+            ?? throw new NotFoundException("Usuario no encontrado.");
+
+        if (user.Id == requesterId)
+            throw new ValidationException("No puedes eliminar tu propia cuenta.");
+
+        await _users.DeleteAsync(user, ct);
+        await _users.SaveChangesAsync(ct);
+    }
+
     // Aplica las mismas reglas que el frontend para que el backend sea la fuente de verdad
     private static void ValidatePasswordStrength(string password)
     {
