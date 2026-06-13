@@ -1,5 +1,6 @@
 using System.Text;
 using AppointmentsService.API.Middleware;
+using Microsoft.OpenApi.Models;
 using AppointmentsService.Application.Interfaces;
 using AppointmentsService.Application.Services;
 using AppointmentsService.Infrastructure.Data;
@@ -13,6 +14,38 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title       = "VetSystem — Appointments Service",
+        Version     = "v1",
+        Description = "Gestión de citas, agenda del veterinario y consulta de disponibilidad de horarios. Un Owner solo ve y gestiona sus propias citas."
+    });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name         = "Authorization",
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "bearer",
+        BearerFormat = "JWT",
+        In           = ParameterLocation.Header,
+        Description  = "JWT obtenido desde POST /api/auth/login. Formato: Bearer {token}"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+    var xmlPath = Path.Combine(AppContext.BaseDirectory,
+        $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml");
+    options.IncludeXmlComments(xmlPath);
+});
 
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.WithOrigins("http://localhost", "https://localhost")
@@ -45,6 +78,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = ctx =>
             {
+                // Swagger UI envía el token en el header; el navegador lo envía en la cookie httpOnly
+                if (ctx.Request.Headers.TryGetValue("Authorization", out var auth) &&
+                    auth.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Token = auth.ToString()["Bearer ".Length..].Trim();
+                    return Task.CompletedTask;
+                }
                 ctx.Token = ctx.Request.Cookies["vetsys_jwt"];
                 return Task.CompletedTask;
             }
@@ -76,6 +116,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.UseSwagger();
+app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "AppointmentsService v1"));
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
