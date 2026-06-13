@@ -21,7 +21,7 @@ public class ScheduleReminderRequest
     [Required] public string   PatientName   { get; set; } = default!;
     [Required] public string   OwnerName     { get; set; } = default!;
     [Required] public string   OwnerPhone    { get; set; } = default!;
-    [Required] [EmailAddress]  public string OwnerEmail { get; set; } = default!;
+    [EmailAddress] public string? OwnerEmail { get; set; }
     [Required] public DateTime ScheduledAt   { get; set; }
     [Required] public List<string> Channels  { get; set; } = default!;
 }

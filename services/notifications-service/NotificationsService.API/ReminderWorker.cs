@@ -97,9 +97,9 @@ public class ReminderWorker : BackgroundService
             // Marcamos como enviado aunque algún canal haya fallado; el log queda como evidencia
             job.MarkSent();
             await repo.UpdateReminderAsync(job, ct);
+            // Guardamos por job para que un fallo de BD no genere reenvíos duplicados en el siguiente ciclo
+            await repo.SaveChangesAsync(ct);
         }
-
-        await repo.SaveChangesAsync(ct);
     }
 
     private static string BuildReminderMessage(string ownerName, string patientName, DateTime appointmentAt)

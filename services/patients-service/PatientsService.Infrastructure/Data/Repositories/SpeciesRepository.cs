@@ -25,6 +25,12 @@ public class SpeciesRepository : ISpeciesRepository
     public Task<int> CountPatientsBySlugAsync(string slug, CancellationToken ct) =>
         _db.Patients.CountAsync(p => p.Species == slug, ct);
 
+    public Task<Dictionary<string, int>> GetPatientCountsBySlugAsync(CancellationToken ct) =>
+        _db.Patients
+           .GroupBy(p => p.Species)
+           .Select(g => new { g.Key, Count = g.Count() })
+           .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+
     public async Task AddAsync(Species species, CancellationToken ct) =>
         await _db.Species.AddAsync(species, ct);
 

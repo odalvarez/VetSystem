@@ -7,7 +7,7 @@ public class ReminderJob
     public string   PatientName     { get; private set; } = default!;
     public string   OwnerName       { get; private set; } = default!;
     public string   OwnerPhone      { get; private set; } = default!;
-    public string   OwnerEmail      { get; private set; } = default!;
+    public string?  OwnerEmail      { get; private set; }
     public DateTime AppointmentAt   { get; private set; }
     public DateTime ScheduledSendAt { get; private set; }
     public string   Channels        { get; private set; } = default!;
@@ -18,7 +18,7 @@ public class ReminderJob
 
     public static ReminderJob Create(
         Guid appointmentId, string patientName, string ownerName,
-        string ownerPhone, string ownerEmail, DateTime appointmentAt,
+        string ownerPhone, string? ownerEmail, DateTime appointmentAt,
         IEnumerable<string> channels)
     {
         return new ReminderJob

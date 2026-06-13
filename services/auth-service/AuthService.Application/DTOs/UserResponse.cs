@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AuthService.Application.DTOs;
 
 public class UserResponse
@@ -66,12 +68,12 @@ public class AdminPagedUsers
 
 public class AdminCreateUserRequest
 {
-    public string FirstName { get; set; } = default!;
-    public string LastName  { get; set; } = default!;
-    public string Email     { get; set; } = default!;
-    public string Password  { get; set; } = default!;
-    public string Phone     { get; set; } = "";
-    public string Role      { get; set; } = "Owner";
+    [Required] [MaxLength(50)]  public string FirstName { get; set; } = default!;
+    [Required] [MaxLength(50)]  public string LastName  { get; set; } = default!;
+    [Required] [EmailAddress]   public string Email     { get; set; } = default!;
+    [Required] [MinLength(8)]   public string Password  { get; set; } = default!;
+    [MaxLength(20)]             public string Phone     { get; set; } = "";
+    public string Role { get; set; } = "Owner";
 }
 
 public class AdminUpdateUserRequest

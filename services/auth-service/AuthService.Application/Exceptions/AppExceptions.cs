@@ -1,4 +1,4 @@
-namespace AuthService.Application.Services;
+namespace AuthService.Application.Exceptions;
 
 public class ConflictException     : Exception { public ConflictException(string msg)     : base(msg) {} }
 public class NotFoundException     : Exception { public NotFoundException(string msg)     : base(msg) {} }

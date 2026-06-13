@@ -102,7 +102,6 @@ public class NotificationsController : ControllerBase
     /// </summary>
     /// <param name="page">Número de página (default 1).</param>
     /// <param name="pageSize">Registros por página (default 50).</param>
-    /// <param name="phone">Teléfono del propietario para filtrar notificaciones de WhatsApp (solo relevante si el caller es Owner).</param>
     /// <param name="ct">Token de cancelación.</param>
     /// <returns>Lista de notificaciones con estado, tipo de canal y timestamps.</returns>
     /// <response code="200">Lista devuelta correctamente.</response>
@@ -111,21 +110,23 @@ public class NotificationsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<NotificationStatusResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ListAll(
-        [FromQuery] int    page     = 1,
-        [FromQuery] int    pageSize = 50,
-        [FromQuery] string? phone   = null,
+        [FromQuery] int page     = 1,
+        [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
     {
-        var role  = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        pageSize = Math.Min(pageSize, 200);
+
+        var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
         IReadOnlyList<string>? recipientFilter = null;
 
         // El propietario solo ve las notificaciones enviadas a su correo o su teléfono
         if (role.Equals("Owner", StringComparison.OrdinalIgnoreCase))
         {
             var email    = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+            var phone    = User.FindFirst("phone")?.Value ?? "";
             var contacts = new List<string>();
             if (!string.IsNullOrWhiteSpace(email)) contacts.Add(email);
-            if (!string.IsNullOrWhiteSpace(phone))  contacts.Add(phone);
+            if (!string.IsNullOrWhiteSpace(phone)) contacts.Add(phone);
             recipientFilter = contacts;
         }
 

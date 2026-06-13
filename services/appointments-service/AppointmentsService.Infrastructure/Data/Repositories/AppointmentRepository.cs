@@ -40,12 +40,12 @@ public class AppointmentRepository : IAppointmentRepository
     public async Task<IEnumerable<Appointment>> GetOverlappingAsync(
         Guid veterinarianId, DateTime start, DateTime end, Guid? excludeId, CancellationToken ct)
     {
-        // Dos intervalos solapan si uno empieza antes de que el otro termine
+        // Dos intervalos solapan si uno empieza antes de que el otro termine y termina después de que el otro empiece
         var q = _db.Appointments.Where(a =>
             a.VeterinarianId == veterinarianId &&
             a.Status != AppointmentStatus.Cancelled &&
             a.ScheduledAt < end &&
-            EF.Functions.DateDiffMinute(a.ScheduledAt, start) < a.DurationMinutes);
+            a.ScheduledAt.AddMinutes(a.DurationMinutes) > start);
 
         if (excludeId.HasValue)
             q = q.Where(a => a.Id != excludeId.Value);

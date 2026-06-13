@@ -105,7 +105,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>();
-    await MigrateWithRetryAsync(db.Database);
+    if (!app.Environment.IsEnvironment("Testing"))
+        await MigrateWithRetryAsync(db.Database);
 }
 
 // InternalKeyMiddleware debe estar antes de Authentication para rechazar temprano

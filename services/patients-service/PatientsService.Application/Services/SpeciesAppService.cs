@@ -13,17 +13,9 @@ public class SpeciesAppService
 
     public async Task<List<SpeciesResponse>> ListAsync(CancellationToken ct)
     {
-        var list = await _repo.ListActiveAsync(ct);
-
-        // EF Core no soporta operaciones concurrentes en el mismo DbContext;
-        // los conteos se hacen secuencialmente para evitar "A second operation was started"
-        var results = new List<SpeciesResponse>(list.Count);
-        foreach (var s in list)
-        {
-            var count = await _repo.CountPatientsBySlugAsync(s.Slug, ct);
-            results.Add(Map(s, count));
-        }
-        return results;
+        var list   = await _repo.ListActiveAsync(ct);
+        var counts = await _repo.GetPatientCountsBySlugAsync(ct);
+        return list.Select(s => Map(s, counts.GetValueOrDefault(s.Slug, 0))).ToList();
     }
 
     public async Task<SpeciesResponse> CreateAsync(CreateSpeciesRequest req, CancellationToken ct)

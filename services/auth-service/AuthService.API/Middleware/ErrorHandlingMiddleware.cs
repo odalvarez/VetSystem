@@ -1,5 +1,5 @@
 using System.Text.Json;
-using AuthService.Application.Services;
+using AuthService.Application.Exceptions;
 
 namespace AuthService.API.Middleware;
 

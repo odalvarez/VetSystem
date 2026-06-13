@@ -1,4 +1,5 @@
 using AuthService.Application.DTOs;
+using AuthService.Application.Exceptions;
 using AuthService.Application.Interfaces;
 using AuthService.Domain.Entities;
 using AuthService.Domain.Enums;
@@ -214,8 +215,8 @@ public class AuthApplicationService
     // Aplica las mismas reglas que el frontend para que el backend sea la fuente de verdad
     private static void ValidatePasswordStrength(string password)
     {
-        if (password.Length < 6)
-            throw new ValidationException("La contraseña debe tener al menos 6 caracteres.");
+        if (password.Length < 8)
+            throw new ValidationException("La contraseña debe tener al menos 8 caracteres.");
         if (!password.Any(char.IsUpper))
             throw new ValidationException("La contraseña debe incluir al menos una mayúscula.");
         if (!password.Any(char.IsDigit))
