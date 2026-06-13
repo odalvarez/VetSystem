@@ -9,6 +9,7 @@ public class Species
     public string   Name      { get; private set; } = default!;
     /// Identificador técnico en minúsculas, ej. "dog", "tortuga"
     public string   Slug      { get; private set; } = default!;
+    public string    Icon       { get; private set; } = "🐾";
     public bool      IsActive   { get; private set; }
     public DateTime  CreatedAt  { get; private set; }
     public bool      IsDeleted  { get; private set; }
@@ -19,7 +20,7 @@ public class Species
     public static Species Create(string name) => Create(name, GenerateSlug(name));
 
     // Permite especificar el slug explícitamente — usado por el seeder de datos iniciales
-    public static Species Create(string name, string slug)
+    public static Species Create(string name, string slug, string icon = "🐾")
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("El nombre de la especie es obligatorio.");
@@ -29,6 +30,7 @@ public class Species
             Id        = Guid.NewGuid(),
             Name      = name.Trim(),
             Slug      = slug.Trim().ToLowerInvariant(),
+            Icon      = string.IsNullOrWhiteSpace(icon) ? "🐾" : icon.Trim(),
             IsActive  = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -41,12 +43,14 @@ public class Species
         DeletedAt = DateTime.UtcNow;
     }
 
-    public void Update(string name)
+    public void Update(string name, string? icon = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("El nombre de la especie es obligatorio.");
 
         Name = name.Trim();
+        if (icon is not null)
+            Icon = string.IsNullOrWhiteSpace(icon) ? "🐾" : icon.Trim();
         // El slug no cambia para no romper referencias en Patients
     }
 

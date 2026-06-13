@@ -26,7 +26,7 @@ public class SpeciesAppService
         if (existing is not null)
             throw new ValidationException($"Ya existe una especie con el identificador '{slug}'.");
 
-        var species = Species.Create(req.Name);
+        var species = Species.Create(req.Name, slug, req.Icon);
         await _repo.AddAsync(species, ct);
         await _repo.SaveChangesAsync(ct);
         return Map(species, 0);
@@ -37,7 +37,7 @@ public class SpeciesAppService
         var species = await _repo.GetByIdAsync(id, ct)
             ?? throw new NotFoundException("Especie no encontrada.");
 
-        species.Update(req.Name);
+        species.Update(req.Name, req.Icon);
         await _repo.SaveChangesAsync(ct);
 
         var count = await _repo.CountPatientsBySlugAsync(species.Slug, ct);
@@ -63,6 +63,7 @@ public class SpeciesAppService
         Id           = s.Id,
         Name         = s.Name,
         Slug         = s.Slug,
+        Icon         = s.Icon,
         IsActive     = s.IsActive,
         PatientCount = patientCount,
         CreatedAt    = s.CreatedAt

@@ -465,4 +465,56 @@ public class PatientsControllerTests : IClassFixture<PatientsWebFactory>
         var resp  = await owner.DeleteAsync($"/api/species/{species!.Id}");
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
+
+    // ── Especies — campo Icon ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CreateSpecies_WithCustomIcon_IconInResponse()
+    {
+        var admin  = ClientAs(PatientsWebFactory.AdminId, "admin@test.com", "Admin");
+        var resp   = await admin.PostAsJsonAsync("/api/species", new CreateSpeciesRequest { Name = "Tortuga", Icon = "🐢" });
+        var species = await resp.Content.ReadFromJsonAsync<SpeciesResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+        Assert.Equal("🐢", species!.Icon);
+    }
+
+    [Fact]
+    public async Task CreateSpecies_WithoutIcon_DefaultsToFootprint()
+    {
+        var admin   = ClientAs(PatientsWebFactory.AdminId, "admin@test.com", "Admin");
+        var resp    = await admin.PostAsJsonAsync("/api/species", new CreateSpeciesRequest { Name = "Hamster" });
+        var species = await resp.Content.ReadFromJsonAsync<SpeciesResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+        Assert.Equal("🐾", species!.Icon);
+    }
+
+    [Fact]
+    public async Task UpdateSpecies_WithNewIcon_IconUpdated()
+    {
+        var admin  = ClientAs(PatientsWebFactory.AdminId, "admin@test.com", "Admin");
+        var create = await admin.PostAsJsonAsync("/api/species", new CreateSpeciesRequest { Name = "IconUpdate", Icon = "🐾" });
+        var species = await create.Content.ReadFromJsonAsync<SpeciesResponse>();
+
+        var resp    = await admin.PutAsJsonAsync($"/api/species/{species!.Id}", new UpdateSpeciesRequest { Name = "IconUpdate", Icon = "🦊" });
+        var updated = await resp.Content.ReadFromJsonAsync<SpeciesResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        Assert.Equal("🦊", updated!.Icon);
+    }
+
+    [Fact]
+    public async Task UpdateSpecies_WithNullIcon_IconUnchanged()
+    {
+        var admin  = ClientAs(PatientsWebFactory.AdminId, "admin@test.com", "Admin");
+        var create = await admin.PostAsJsonAsync("/api/species", new CreateSpeciesRequest { Name = "IconStay", Icon = "🐍" });
+        var species = await create.Content.ReadFromJsonAsync<SpeciesResponse>();
+
+        var resp    = await admin.PutAsJsonAsync($"/api/species/{species!.Id}", new UpdateSpeciesRequest { Name = "IconStay", Icon = null });
+        var updated = await resp.Content.ReadFromJsonAsync<SpeciesResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        Assert.Equal("🐍", updated!.Icon);
+    }
 }

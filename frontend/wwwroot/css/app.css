@@ -1599,3 +1599,36 @@ select.form-control {
 .btn-icon-deact:hover:not(:disabled)    { background: #fde68a; }
 .btn-icon-reset:hover:not(:disabled)    { background: #fde68a; }
 .btn-icon-delete:hover:not(:disabled)   { background: #fecaca; }
+
+/* ── Emoji picker de especies ── */
+.emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 280px;
+}
+
+.emoji-option {
+    width: 34px;
+    height: 34px;
+    font-size: 1.2rem;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    background: var(--color-surface);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, background .15s;
+    padding: 0;
+}
+
+.emoji-option:hover {
+    background: var(--color-surface-alt);
+    border-color: var(--color-border);
+}
+
+.emoji-option.selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light, #eff6ff);
+}
