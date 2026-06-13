@@ -33,6 +33,10 @@ public class AuthApplicationService
         if (!Enum.TryParse<UserRole>(req.Role, ignoreCase: true, out var role))
             throw new ValidationException("Rol inválido.");
 
+        // El registro público es exclusivo para propietarios; veterinarios y admins los crea el admin
+        if (role != UserRole.Owner)
+            throw new ValidationException("El registro público solo está disponible para propietarios.");
+
         var user = User.Create(
             req.FirstName, req.LastName,
             req.Email, _hasher.Hash(req.Password),

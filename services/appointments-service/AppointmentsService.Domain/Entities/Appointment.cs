@@ -23,12 +23,9 @@ public class Appointment
 
     private static readonly HashSet<(AppointmentStatus From, AppointmentStatus To)> AllowedTransitions = new()
     {
-        (AppointmentStatus.Scheduled,  AppointmentStatus.Confirmed),
+        (AppointmentStatus.Scheduled,  AppointmentStatus.Completed),
         (AppointmentStatus.Scheduled,  AppointmentStatus.Cancelled),
         (AppointmentStatus.Scheduled,  AppointmentStatus.NoShow),
-        (AppointmentStatus.Confirmed,  AppointmentStatus.Completed),
-        (AppointmentStatus.Confirmed,  AppointmentStatus.Cancelled),
-        (AppointmentStatus.Confirmed,  AppointmentStatus.NoShow),
     };
 
     private Appointment() { }
