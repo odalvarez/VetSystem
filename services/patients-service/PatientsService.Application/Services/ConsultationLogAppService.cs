@@ -23,8 +23,12 @@ public class ConsultationLogAppService
         var patient = await _patients.GetByIdAsync(patientId, ct)
             ?? throw new NotFoundException("Mascota no encontrada.");
 
+        // Una cita solo puede tener una bitácora — evita duplicados por doble clic o doble apertura
+        if (req.AppointmentId.HasValue && await _repo.ExistsByAppointmentAsync(req.AppointmentId.Value, ct))
+            throw new ValidationException("Ya existe una bitácora para esta cita.");
+
         var log = ConsultationLog.Create(
-            patient.Id, req.ReasonForVisit, vetId, vetName,
+            patient.Id, req.AppointmentId, req.ReasonForVisit, vetId, vetName,
             req.Anamnesis,
             req.HeartRate, req.RespiratoryRate,
             req.BodyCondition, req.MucousMembranes, req.Hydration,
@@ -36,6 +40,17 @@ public class ConsultationLogAppService
 
         await _repo.AddAsync(log, ct);
         await _repo.SaveChangesAsync(ct);
+        return Map(log);
+    }
+
+    public async Task<ConsultationLogResponse?> GetByAppointmentAsync(
+        Guid patientId, Guid appointmentId, CancellationToken ct)
+    {
+        _ = await _patients.GetByIdAsync(patientId, ct)
+            ?? throw new NotFoundException("Mascota no encontrada.");
+
+        var log = await _repo.GetByAppointmentAsync(appointmentId, ct);
+        if (log == null || log.PatientId != patientId) return null;
         return Map(log);
     }
 
@@ -127,6 +142,7 @@ public class ConsultationLogAppService
     {
         Id                 = l.Id,
         PatientId          = l.PatientId,
+        AppointmentId      = l.AppointmentId,
         Status             = l.Status,
         ReasonForVisit     = l.ReasonForVisit,
         Anamnesis          = l.Anamnesis,

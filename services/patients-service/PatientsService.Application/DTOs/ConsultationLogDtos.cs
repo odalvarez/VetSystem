@@ -4,6 +4,7 @@ namespace PatientsService.Application.DTOs;
 
 public class CreateConsultationLogRequest
 {
+                                public Guid?     AppointmentId      { get; set; }
     [Required][MaxLength(500)]  public string    ReasonForVisit     { get; set; } = default!;
     [MaxLength(2000)]           public string?   Anamnesis          { get; set; }
     // Exploración física
@@ -36,6 +37,7 @@ public class ConsultationLogResponse
 {
     public Guid      Id                 { get; set; }
     public Guid      PatientId          { get; set; }
+    public Guid?     AppointmentId      { get; set; }
     public string    Status             { get; set; } = "";
     public string    ReasonForVisit     { get; set; } = "";
     public string?   Anamnesis          { get; set; }

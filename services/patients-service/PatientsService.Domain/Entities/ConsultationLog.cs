@@ -6,6 +6,7 @@ public class ConsultationLog
 {
     public Guid      Id                 { get; private set; }
     public Guid      PatientId          { get; private set; }
+    public Guid?     AppointmentId      { get; private set; }
     public string    Status             { get; private set; } = "Open"; // "Open" | "Closed"
     public string    ReasonForVisit     { get; private set; } = default!;
     public string?   Anamnesis          { get; private set; }
@@ -41,7 +42,7 @@ public class ConsultationLog
     private ConsultationLog() { }
 
     public static ConsultationLog Create(
-        Guid patientId, string reasonForVisit,
+        Guid patientId, Guid? appointmentId, string reasonForVisit,
         Guid veterinarianId, string veterinarianName,
         string? anamnesis,
         string? heartRate, string? respiratoryRate,
@@ -59,6 +60,7 @@ public class ConsultationLog
         {
             Id                 = Guid.NewGuid(),
             PatientId          = patientId,
+            AppointmentId      = appointmentId,
             Status             = "Open",
             ReasonForVisit     = reasonForVisit.Trim(),
             Anamnesis          = T(anamnesis),

@@ -34,7 +34,7 @@ public class PatientAppService
 
         await _repo.AddAsync(patient, ct);
         await _repo.SaveChangesAsync(ct);
-        return Map(patient, species.Slug, species.Name);
+        return Map(patient, species.Slug, species.Name, species.Icon);
     }
 
     public async Task<PagedResponse<PatientResponse>> ListAsync(
@@ -61,7 +61,7 @@ public class PatientAppService
             Items = data.Select(p =>
             {
                 speciesDict.TryGetValue(p.SpeciesId, out var sp2);
-                return Map(p, sp2?.Slug ?? p.SpeciesId.ToString(), sp2?.Name ?? "Desconocida");
+                return Map(p, sp2?.Slug ?? p.SpeciesId.ToString(), sp2?.Name ?? "Desconocida", sp2?.Icon ?? "🐾");
             }),
             TotalCount = total,
             Page       = page,
@@ -78,7 +78,7 @@ public class PatientAppService
             throw new ForbiddenException("No tiene permiso para ver esta mascota.");
 
         var species = await _speciesRepo.GetByIdAsync(patient.SpeciesId, ct);
-        return Map(patient, species?.Slug ?? "", species?.Name ?? "Desconocida");
+        return Map(patient, species?.Slug ?? "", species?.Name ?? "Desconocida", species?.Icon ?? "🐾");
     }
 
     public async Task<PatientResponse> UpdateAsync(
@@ -98,7 +98,7 @@ public class PatientAppService
         await _repo.SaveChangesAsync(ct);
 
         var species = await _speciesRepo.GetByIdAsync(patient.SpeciesId, ct);
-        return Map(patient, species?.Slug ?? "", species?.Name ?? "Desconocida");
+        return Map(patient, species?.Slug ?? "", species?.Name ?? "Desconocida", species?.Icon ?? "🐾");
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
@@ -166,12 +166,13 @@ public class PatientAppService
         return MapRecord(record);
     }
 
-    private static PatientResponse Map(Patient p, string speciesSlug, string speciesName) => new()
+    private static PatientResponse Map(Patient p, string speciesSlug, string speciesName, string speciesIcon) => new()
     {
         Id              = p.Id,
         Name            = p.Name,
         Species         = speciesSlug,
         SpeciesName     = speciesName,
+        SpeciesIcon     = speciesIcon,
         Breed           = p.Breed,
         BirthDate       = p.BirthDate,
         AgeYears        = CalcAge(p.BirthDate),

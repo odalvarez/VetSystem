@@ -85,8 +85,12 @@ public class PatientsDbContext : DbContext
              .HasForeignKey(l => l.PatientId)
              .OnDelete(DeleteBehavior.Cascade);
 
+            e.Property(l => l.AppointmentId);
+
             e.HasIndex(l => l.PatientId).HasDatabaseName("IX_ConsultationLogs_PatientId");
             e.HasIndex(l => l.OpenedAt).HasDatabaseName("IX_ConsultationLogs_OpenedAt");
+            e.HasIndex(l => l.AppointmentId).IsUnique().HasDatabaseName("IX_ConsultationLogs_AppointmentId")
+             .HasFilter("[AppointmentId] IS NOT NULL");
         });
 
         model.Entity<Species>(e =>
