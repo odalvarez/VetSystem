@@ -1571,6 +1571,9 @@ select.form-control {
     z-index: 2000;
     animation: slideUp .2s ease;
 }
+.toast-snack.toast-error {
+    background: var(--color-danger);
+}
 
 /* Badge contador en pestañas */
 .tab-count {

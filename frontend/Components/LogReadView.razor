@@ -1,0 +1,116 @@
+@* Vista de solo lectura de una bitácora cerrada.
+   Muestra los campos en secciones colapsables, igual que el formulario. *@
+
+@if (Log != null)
+{
+    <div class="log-read-view">
+        <div class="form-group">
+            <label class="form-label">Motivo de consulta</label>
+            <div class="read-field">@Log.ReasonForVisit</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Log.Anamnesis))
+        {
+            <div class="form-group">
+                <label class="form-label">Anamnesis</label>
+                <div class="read-field">@Log.Anamnesis</div>
+            </div>
+        }
+
+        @if (HasPhysical)
+        {
+            <div class="section-toggle" @onclick="() => _showPhysical = !_showPhysical">
+                <span>Exploración física</span>
+                <span>@(_showPhysical ? "▲" : "▼")</span>
+            </div>
+            @if (_showPhysical)
+            {
+                <div class="section-body">
+                    @ReadField("Frecuencia cardíaca",   Log.HeartRate)
+                    @ReadField("Frecuencia respiratoria", Log.RespiratoryRate)
+                    @ReadField("Condición corporal",    Log.BodyCondition)
+                    @ReadField("Mucosas",               Log.MucousMembranes)
+                    @ReadField("Hidratación",           Log.Hydration)
+                    @ReadField("Peso (kg)",             Log.WeightKg?.ToString("F2"))
+                    @ReadField("Temperatura (°C)",      Log.TemperatureCelsius?.ToString("F1"))
+                </div>
+            }
+        }
+
+        @if (HasTests)
+        {
+            <div class="section-toggle" @onclick="() => _showTests = !_showTests">
+                <span>Exámenes</span>
+                <span>@(_showTests ? "▲" : "▼")</span>
+            </div>
+            @if (_showTests)
+            {
+                <div class="section-body">
+                    @ReadField("Exámenes solicitados", Log.RequestedTests)
+                    @ReadField("Resultados",          Log.TestResults)
+                </div>
+            }
+        }
+
+        @if (!string.IsNullOrEmpty(Log.Diagnosis) || !string.IsNullOrEmpty(Log.Prognosis))
+        {
+            @ReadField("Diagnóstico", Log.Diagnosis)
+            @ReadField("Pronóstico",  Log.Prognosis)
+        }
+
+        @if (HasPlans)
+        {
+            <div class="section-toggle" @onclick="() => _showPlans = !_showPlans">
+                <span>Planes</span>
+                <span>@(_showPlans ? "▲" : "▼")</span>
+            </div>
+            @if (_showPlans)
+            {
+                <div class="section-body">
+                    @ReadField("Plan terapéutico", Log.TherapeuticPlan)
+                    @ReadField("Plan diagnóstico", Log.DiagnosticPlan)
+                </div>
+            }
+        }
+
+        @ReadField("Recomendaciones", Log.Recommendations)
+        @ReadField("Próxima visita",  Log.NextVisitDate?.ToString("dd/MM/yyyy"))
+
+        <div style="margin-top:12px;font-size:.82rem;color:var(--color-text-muted)">
+            Veterinario: @Log.VeterinarianName
+            · Abierta: @Log.OpenedAt.ToString("dd/MM/yyyy HH:mm")
+            @if (Log.ClosedAt.HasValue)
+            { <span> · Cerrada: @Log.ClosedAt.Value.ToString("dd/MM/yyyy HH:mm")</span> }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ConsultationLogResponse Log { get; set; } = null!;
+
+    private bool _showPhysical = false;
+    private bool _showTests    = false;
+    private bool _showPlans    = false;
+
+    private bool HasPhysical => Log.HeartRate != null || Log.RespiratoryRate != null
+                             || Log.BodyCondition != null || Log.MucousMembranes != null
+                             || Log.Hydration != null || Log.WeightKg != null || Log.TemperatureCelsius != null;
+
+    private bool HasTests => Log.RequestedTests != null || Log.TestResults != null;
+    private bool HasPlans => Log.TherapeuticPlan != null || Log.DiagnosticPlan != null;
+
+    private RenderFragment ReadField(string label, string? value) => value is null or "" ? (b => { }) : builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "form-group");
+        builder.OpenElement(2, "label");
+        builder.AddAttribute(3, "class", "form-label");
+        builder.AddContent(4, label);
+        builder.CloseElement();
+        builder.OpenElement(5, "div");
+        builder.AddAttribute(6, "class", "read-field");
+        builder.AddContent(7, value);
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

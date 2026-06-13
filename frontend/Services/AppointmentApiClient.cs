@@ -34,10 +34,7 @@ public class AppointmentApiClient
     {
         var res = await _http.PostAsJsonAsync("api/appointments", req);
         if (!res.IsSuccessStatusCode)
-        {
-            var err = await res.Content.ReadFromJsonAsync<ApiError>();
-            throw new Exception(err?.Detail ?? $"Error {(int)res.StatusCode}");
-        }
+            throw new Exception(await ParseError(res));
         return (await res.Content.ReadFromJsonAsync<AppointmentResponse>())!;
     }
 
@@ -46,10 +43,33 @@ public class AppointmentApiClient
         var res = await _http.PatchAsJsonAsync(
             $"api/appointments/{id}/status", new { Status = newStatus });
         if (!res.IsSuccessStatusCode)
+            throw new Exception(await ParseError(res));
+    }
+
+    // Extrae el mensaje de error tanto del formato ProblemDetails (detail)
+    // como del formato de validación de ASP.NET Core (errors)
+    private static async Task<string> ParseError(HttpResponseMessage res)
+    {
+        try
         {
-            var err = await res.Content.ReadFromJsonAsync<ApiError>();
-            throw new Exception(err?.Detail ?? $"Error {(int)res.StatusCode}");
+            var body = await res.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("detail", out var d) && d.GetString() is { Length: > 0 } detail)
+                return detail;
+
+            if (root.TryGetProperty("errors", out var errors))
+            {
+                var messages = new List<string>();
+                foreach (var field in errors.EnumerateObject())
+                    foreach (var msg in field.Value.EnumerateArray())
+                        if (msg.GetString() is { } m) messages.Add(m);
+                if (messages.Count > 0) return string.Join(" ", messages);
+            }
         }
+        catch { }
+        return $"Error {(int)res.StatusCode}";
     }
 
 }

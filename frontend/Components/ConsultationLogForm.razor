@@ -166,10 +166,11 @@
 </div>
 
 @code {
-    [Parameter] public ConsultationLogResponse? Log       { get; set; }  // null = crear
-    [Parameter] public Guid                     PatientId { get; set; }
-    [Parameter] public EventCallback            OnSaved   { get; set; }
-    [Parameter] public EventCallback            OnCancel  { get; set; }
+    [Parameter] public ConsultationLogResponse? Log           { get; set; }  // null = crear
+    [Parameter] public Guid                     PatientId     { get; set; }
+    [Parameter] public Guid?                    AppointmentId { get; set; }
+    [Parameter] public EventCallback            OnSaved       { get; set; }
+    [Parameter] public EventCallback            OnCancel      { get; set; }
 
     private CreateConsultationLogRequest _req = new();
     private bool    _submitted    = false;
@@ -241,7 +242,10 @@
         try
         {
             if (Log == null)
+            {
+                _req.AppointmentId = AppointmentId;
                 await LogApi.CreateAsync(PatientId, _req);
+            }
             else
                 await LogApi.UpdateAsync(PatientId, Log.Id, _req);
 

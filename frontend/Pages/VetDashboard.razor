@@ -1,11 +1,12 @@
 @page "/vet-dashboard"
 @attribute [Authorize]
 
-@inject PatientApiClient     PatientApi
-@inject AppointmentApiClient AppointmentApi
-@inject AuthApiClient        AuthApi
-@inject NavigationManager    Nav
-@inject TokenProvider        Token
+@inject PatientApiClient          PatientApi
+@inject AppointmentApiClient     AppointmentApi
+@inject ConsultationLogApiClient LogApi
+@inject AuthApiClient            AuthApi
+@inject NavigationManager        Nav
+@inject TokenProvider            Token
 
 <PageTitle>Panel veterinario — VetSystem</PageTitle>
 
@@ -209,7 +210,8 @@
                             {
                                 <AppointmentCard Appointment="a"
                                                  ShowActions="true"
-                                                 OnStatusChange="HandleStatusChange" />
+                                                 OnStatusChange="HandleStatusChange"
+                                                 OnOpenLog="EventCallback.Factory.Create<AppointmentResponse>(this, OpenAppointmentLog)" />
                             }
                         </tbody>
                     </table>
@@ -228,18 +230,27 @@
 @* Modal de detalle: datos, bitácoras e historia clínica *@
 <PatientDetailModal Visible="_showRecordModal"
                     Patient="_selectedPatient"
+                    InitialReferenceLog="_referenceLog"
                     OnPatientSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
                     OnPatientDeleted="EventCallback.Factory.Create(this, OnPatientDeletedFromModal)"
-                    OnClose="EventCallback.Factory.Create(this, () => { _showRecordModal = false; _selectedPatient = null; })" />
+                    OnClose="EventCallback.Factory.Create(this, () => { _showRecordModal = false; _selectedPatient = null; _referenceLog = null; })" />
 
 @* Modal para crear nueva cita *@
 <NewAppointmentModal Visible="_showNewAppointmentModal"
                      OnSaved="EventCallback.Factory.Create(this, async () => { await LoadAppointments(); await RefreshKpis(); })"
                      OnClose="EventCallback.Factory.Create(this, () => _showNewAppointmentModal = false)" />
 
+@* Modal de bitácora vinculada a una cita *@
+<AppointmentLogModal Visible="_showLogModal"
+                     Appointment="_logAppointment"
+                     OnClose="EventCallback.Factory.Create(this, () => { _showLogModal = false; _logAppointment = null; })"
+                     OnGoToHC="EventCallback.Factory.Create<ConsultationLogResponse>(this, OpenHCFromLog)" />
+
 @if (!string.IsNullOrEmpty(_toast))
 {
-    <div class="toast-snack">✅ @_toast</div>
+    <div class="toast-snack @(_toastIsError ? "toast-error" : "")">
+        @(_toastIsError ? "❌" : "✅") @_toast
+    </div>
 }
 
 @code {
@@ -270,8 +281,12 @@
     private bool            _showVetPatientModal     = false;
     private bool            _showRecordModal         = false;
     private bool            _showNewAppointmentModal = false;
-    private PatientResponse? _selectedPatient        = null;
+    private bool            _showLogModal            = false;
+    private PatientResponse?     _selectedPatient    = null;
+    private AppointmentResponse? _logAppointment     = null;
+    private ConsultationLogResponse? _referenceLog   = null;
     private string? _toast;
+    private bool    _toastIsError;
 
     private IEnumerable<OwnerSummary> FilteredOwners =>
         _owners.Where(o =>
@@ -291,13 +306,23 @@
             return;
         }
 
-        await Task.WhenAll(LoadPatients(), LoadOwners());
+        var uri  = new Uri(Nav.Uri);
+        var qs   = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var tab  = qs["tab"] ?? "patients";
+        _tab     = tab is "patients" or "appointments" ? tab : "patients";
+
+        var tasks = new List<Task> { LoadPatients(), LoadOwners() };
+        if (_tab == "appointments") tasks.Add(LoadAppointments());
+        await Task.WhenAll(tasks);
+
         _patientsLoading = false;
     }
 
     private async Task SwitchTab(string tab)
     {
+        if (_tab == tab) return;
         _tab = tab;
+        Nav.NavigateTo($"/vet-dashboard?tab={tab}", replace: true);
         if (tab == "appointments" && _appointments == null)
         {
             _apptsLoading = true;
@@ -403,6 +428,20 @@
 
     private async Task HandleStatusChange((Guid Id, string Status) args)
     {
+        if (args.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            var appt = _appointments?.FirstOrDefault(a => a.Id == args.Id);
+            if (appt != null)
+            {
+                var log = await LogApi.GetByAppointmentAsync(appt.PatientId, appt.Id);
+                if (log == null || log.IsOpen)
+                {
+                    ShowToast("Debes cerrar la bitácora de la cita antes de completarla.", isError: true);
+                    return;
+                }
+            }
+        }
+
         try
         {
             await AppointmentApi.ChangeStatusAsync(args.Id, args.Status);
@@ -411,7 +450,7 @@
         }
         catch (Exception ex)
         {
-            ShowToast($"Error: {ex.Message}");
+            ShowToast($"Error: {ex.Message}", isError: true);
         }
     }
 
@@ -439,9 +478,33 @@
     private async Task PrevPage() { _page--; await LoadPatients(); }
     private async Task NextPage() { _page++; await LoadPatients(); }
 
-    private async void ShowToast(string msg)
+    private void OpenAppointmentLog(AppointmentResponse appt)
     {
-        _toast = msg;
+        _logAppointment = appt;
+        _showLogModal   = true;
+    }
+
+    // Abre la historia clínica del paciente con la bitácora como referencia
+    private async Task OpenHCFromLog(ConsultationLogResponse log)
+    {
+        _showLogModal  = false;
+        _logAppointment = null;
+        _referenceLog  = log;
+
+        var patient = _patients?.FirstOrDefault(p => p.Id == log.PatientId)
+                   ?? await PatientApi.GetAsync(log.PatientId);
+
+        if (patient != null)
+        {
+            _selectedPatient = patient;
+            _showRecordModal = true;
+        }
+    }
+
+    private async void ShowToast(string msg, bool isError = false)
+    {
+        _toast        = msg;
+        _toastIsError = isError;
         StateHasChanged();
         await Task.Delay(3000);
         _toast = null;

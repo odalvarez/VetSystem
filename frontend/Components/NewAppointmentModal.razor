@@ -49,7 +49,7 @@
                                         <div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--color-border-light)"
                                              @onmousedown="() => SelectPatient(p)">
                                             <div style="font-weight:600;font-size:.9rem">
-                                                @SpeciesEmoji(p.Species) @p.Name
+                                                @p.SpeciesIcon @p.Name
                                                 <span style="font-weight:400;color:var(--color-text-muted);font-size:.82rem"> · @p.Breed</span>
                                             </div>
                                             <div style="font-size:.78rem;color:var(--color-text-muted)">
@@ -140,9 +140,12 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Motivo de la cita</label>
-                    <textarea class="form-control" rows="2" @bind="_request.Reason"
+                    <label class="form-label">Motivo de la cita *</label>
+                    <textarea class="form-control @(_submitted && string.IsNullOrWhiteSpace(_request.Reason) ? "invalid" : "")"
+                              rows="2" @bind="_request.Reason"
                               placeholder="Describe brevemente el motivo de la consulta…"></textarea>
+                    @if (_submitted && string.IsNullOrWhiteSpace(_request.Reason))
+                    { <div class="validation-message">El motivo de la cita es obligatorio.</div> }
                 </div>
             </div>
 
@@ -257,15 +260,6 @@
         _showPatientDrop = false;
     }
 
-    private static string SpeciesEmoji(string slug) => slug.ToLowerInvariant() switch
-    {
-        "dog"    => "🐶",
-        "cat"    => "🐱",
-        "bird"   => "🦜",
-        "rabbit" => "🐰",
-        _        => "🐾"
-    };
-
     // ──────────────────────────────────────────────────────────────────────────
 
     private void OnVetSelected(ChangeEventArgs e)
@@ -280,6 +274,7 @@
 
         if (_selectedPatientId == Guid.Empty) return;
         if (_selectedVetId == Guid.Empty)     return;
+        if (string.IsNullOrWhiteSpace(_request.Reason)) { _error = "El motivo de la cita es obligatorio."; return; }
 
         // Combina fecha + hora en un DateTime
         var timeSpan   = TimeSpan.TryParse(_timeStr, out var ts) ? ts : new TimeSpan(9, 0, 0);
