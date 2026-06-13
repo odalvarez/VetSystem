@@ -16,8 +16,9 @@ public class InternalKeyMiddleware
 
     public async Task InvokeAsync(HttpContext ctx)
     {
-        // El healthcheck de Docker no puede enviar la clave interna, así que lo dejamos pasar
-        if (ctx.Request.Path.StartsWithSegments("/health"))
+        // El healthcheck de Docker y Swagger no pueden enviar la clave interna
+        if (ctx.Request.Path.StartsWithSegments("/health") ||
+            ctx.Request.Path.StartsWithSegments("/swagger"))
         {
             await _next(ctx);
             return;

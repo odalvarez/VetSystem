@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
 using NotificationsService.API.Middleware;
 using NotificationsService.Application.Interfaces;
@@ -13,6 +14,38 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title       = "VetSystem — Notifications Service",
+        Version     = "v1",
+        Description = "Envío de notificaciones por WhatsApp (Evolution API) y correo (SMTP), y programación de recordatorios automáticos de citas."
+    });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name         = "Authorization",
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "bearer",
+        BearerFormat = "JWT",
+        In           = ParameterLocation.Header,
+        Description  = "JWT obtenido desde POST /api/auth/login. Formato: Bearer {token}"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+    var xmlPath = Path.Combine(AppContext.BaseDirectory,
+        $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml");
+    options.IncludeXmlComments(xmlPath);
+});
 
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.WithOrigins("http://localhost", "https://localhost")
@@ -44,6 +77,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = ctx =>
             {
+                // Swagger UI envía el token en el header; el navegador lo envía en la cookie httpOnly
+                if (ctx.Request.Headers.TryGetValue("Authorization", out var auth) &&
+                    auth.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Token = auth.ToString()["Bearer ".Length..].Trim();
+                    return Task.CompletedTask;
+                }
                 ctx.Token = ctx.Request.Cookies["vetsys_jwt"];
                 return Task.CompletedTask;
             }
@@ -70,6 +110,8 @@ using (var scope = app.Services.CreateScope())
 
 // InternalKeyMiddleware debe estar antes de Authentication para rechazar temprano
 app.UseCors();
+app.UseSwagger();
+app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "NotificationsService v1"));
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<InternalKeyMiddleware>();
 app.UseAuthentication();

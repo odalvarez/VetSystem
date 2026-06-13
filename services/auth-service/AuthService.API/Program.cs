@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.OpenApi.Models;
 using AuthService.API.Middleware;
 using AuthService.Application.Interfaces;
 using AuthService.Application.Services;
@@ -15,6 +16,38 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title       = "VetSystem — Auth Service",
+        Version     = "v1",
+        Description = "Registro de usuarios, autenticación JWT mediante cookie httpOnly y gestión de roles (Admin, Veterinarian, Owner)."
+    });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name         = "Authorization",
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "bearer",
+        BearerFormat = "JWT",
+        In           = ParameterLocation.Header,
+        Description  = "JWT obtenido desde POST /api/auth/login. Formato: Bearer {token}"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+    var xmlPath = Path.Combine(AppContext.BaseDirectory,
+        $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml");
+    options.IncludeXmlComments(xmlPath);
+});
 
 // El frontend Blazor corre en el navegador; sin CORS el navegador bloquea todas las llamadas
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
@@ -45,11 +78,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // Usa el validador clásico JwtSecurityTokenHandler; el nuevo JsonWebTokenHandler
         // en .NET 9 tiene un bug con tokens generados por JwtSecurityTokenHandler
         opt.UseSecurityTokenValidators = true;
-        // El JWT llega en la cookie httpOnly; el header Authorization no se usa desde el navegador
         opt.Events = new JwtBearerEvents
         {
             OnMessageReceived = ctx =>
             {
+                // Swagger UI envía el token en el header; el navegador lo envía en la cookie httpOnly
+                if (ctx.Request.Headers.TryGetValue("Authorization", out var auth) &&
+                    auth.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Token = auth.ToString()["Bearer ".Length..].Trim();
+                    return Task.CompletedTask;
+                }
                 ctx.Token = ctx.Request.Cookies["vetsys_jwt"];
                 return Task.CompletedTask;
             }
@@ -100,6 +139,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.UseSwagger();
+app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "AuthService v1"));
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();
