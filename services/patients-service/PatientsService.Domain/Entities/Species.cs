@@ -16,7 +16,10 @@ public class Species
 
     private Species() { }
 
-    public static Species Create(string name)
+    public static Species Create(string name) => Create(name, GenerateSlug(name));
+
+    // Permite especificar el slug explícitamente — usado por el seeder de datos iniciales
+    public static Species Create(string name, string slug)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("El nombre de la especie es obligatorio.");
@@ -25,7 +28,7 @@ public class Species
         {
             Id        = Guid.NewGuid(),
             Name      = name.Trim(),
-            Slug      = GenerateSlug(name),
+            Slug      = slug.Trim().ToLowerInvariant(),
             IsActive  = true,
             CreatedAt = DateTime.UtcNow
         };
