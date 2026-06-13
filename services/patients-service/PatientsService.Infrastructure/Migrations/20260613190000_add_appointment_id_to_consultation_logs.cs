@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using PatientsService.Infrastructure.Data;
 
 #nullable disable
 
 namespace PatientsService.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(PatientsDbContext))]
+    [Migration("20260613190000_add_appointment_id_to_consultation_logs")]
     public partial class add_appointment_id_to_consultation_logs : Migration
     {
         /// <inheritdoc />

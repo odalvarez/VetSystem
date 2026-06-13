@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using PatientsService.Infrastructure.Data;
 
 #nullable disable
 
 namespace PatientsService.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(PatientsDbContext))]
+    [Migration("20260613120000_replace_species_slug_with_id")]
     public partial class replace_species_slug_with_id : Migration
     {
         /// <inheritdoc />
