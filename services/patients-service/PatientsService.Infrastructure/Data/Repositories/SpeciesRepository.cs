@@ -12,18 +12,18 @@ public class SpeciesRepository : ISpeciesRepository
 
     public Task<List<Species>> ListActiveAsync(CancellationToken ct) =>
         _db.Species
-           .Where(s => s.IsActive)
+           .Where(s => s.IsActive && !s.IsDeleted)
            .OrderBy(s => s.Name)
            .ToListAsync(ct);
 
     public Task<Species?> GetByIdAsync(Guid id, CancellationToken ct) =>
-        _db.Species.FirstOrDefaultAsync(s => s.Id == id, ct);
+        _db.Species.FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted, ct);
 
     public Task<Species?> GetBySlugAsync(string slug, CancellationToken ct) =>
-        _db.Species.FirstOrDefaultAsync(s => s.Slug == slug && s.IsActive, ct);
+        _db.Species.FirstOrDefaultAsync(s => s.Slug == slug && s.IsActive && !s.IsDeleted, ct);
 
     public Task<int> CountPatientsBySlugAsync(string slug, CancellationToken ct) =>
-        _db.Patients.CountAsync(p => p.Species == slug, ct);
+        _db.Patients.CountAsync(p => p.Species == slug && !p.IsDeleted, ct);
 
     public Task<Dictionary<string, int>> GetPatientCountsBySlugAsync(CancellationToken ct) =>
         _db.Patients
@@ -36,7 +36,8 @@ public class SpeciesRepository : ISpeciesRepository
 
     public Task RemoveAsync(Species species, CancellationToken ct)
     {
-        _db.Species.Remove(species);
+        species.SoftDelete();
+        _db.Species.Update(species);
         return Task.CompletedTask;
     }
 

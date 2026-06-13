@@ -9,8 +9,10 @@ public class Species
     public string   Name      { get; private set; } = default!;
     /// Identificador técnico en minúsculas, ej. "dog", "tortuga"
     public string   Slug      { get; private set; } = default!;
-    public bool     IsActive  { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public bool      IsActive   { get; private set; }
+    public DateTime  CreatedAt  { get; private set; }
+    public bool      IsDeleted  { get; private set; }
+    public DateTime? DeletedAt  { get; private set; }
 
     private Species() { }
 
@@ -27,6 +29,13 @@ public class Species
             IsActive  = true,
             CreatedAt = DateTime.UtcNow
         };
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
+        IsActive  = false;
+        DeletedAt = DateTime.UtcNow;
     }
 
     public void Update(string name)

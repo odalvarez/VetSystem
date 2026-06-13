@@ -12,9 +12,11 @@ public class User
     public string PasswordHash { get; private set; } = default!;
     public string Phone { get; private set; } = default!;
     public UserRole Role     { get; private set; }
-    public bool     IsActive { get; private set; } = true;
-    public DateTime CreatedAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
+    public bool      IsActive  { get; private set; } = true;
+    public bool      IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
+    public DateTime  CreatedAt { get; private set; }
+    public DateTime  UpdatedAt { get; private set; }
 
     private User() { }
 
@@ -64,6 +66,14 @@ public class User
     public void SetActive(bool active)
     {
         IsActive  = active;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
+        IsActive  = false;
+        DeletedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 

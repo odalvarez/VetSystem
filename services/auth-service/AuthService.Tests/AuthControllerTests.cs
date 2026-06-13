@@ -405,4 +405,48 @@ public class AuthControllerTests : IClassFixture<AuthWebFactory>
 
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
+
+    // ── Admin: eliminar usuario (soft delete) ────────────────────────────────
+
+    [Fact]
+    public async Task AdminDeleteUser_AsAdmin_Returns204()
+    {
+        var adminClient = ClientAs(_factory.AdminId, AuthWebFactory.AdminEmail, "Admin");
+        var create = await adminClient.PostAsJsonAsync("/api/auth/admin/users", new AdminCreateUserRequest
+        {
+            FirstName = "Tmp",
+            LastName  = "User",
+            Email     = $"to_delete_{Guid.NewGuid():N}@test.com",
+            Password  = "Password1!",
+            Phone     = "3001234567",
+            Role      = "Owner"
+        });
+        var created = await create.Content.ReadFromJsonAsync<AdminUserItem>();
+
+        var resp = await adminClient.DeleteAsync($"/api/auth/admin/users/{created!.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminDeleteUser_OwnAccount_Returns400()
+    {
+        var client = ClientAs(_factory.AdminId, AuthWebFactory.AdminEmail, "Admin");
+        var resp   = await client.DeleteAsync($"/api/auth/admin/users/{_factory.AdminId}");
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminDeleteUser_AsVet_Returns403()
+    {
+        var client = ClientAs(_factory.VetId, "vet@test.com", "Veterinarian");
+        var resp   = await client.DeleteAsync($"/api/auth/admin/users/{_factory.OwnerId}");
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminDeleteUser_Unauthenticated_Returns401()
+    {
+        var resp = await _client.DeleteAsync($"/api/auth/admin/users/{_factory.OwnerId}");
+        Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
+    }
 }
