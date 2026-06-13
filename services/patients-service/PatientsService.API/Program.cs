@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using PatientsService.API;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -105,7 +106,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PatientsDbContext>();
     if (!app.Environment.IsEnvironment("Testing"))
+    {
         await MigrateWithRetryAsync(db.Database);
+        await SpeciesSeeder.SeedAsync(db);
+    }
 }
 
 app.UseCors();
