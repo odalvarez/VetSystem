@@ -8,10 +8,9 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Singleton: la info del usuario debe vivir durante toda la sesión del navegador
+// Singleton: la sesión del usuario debe sobrevivir a re-renders de componentes Scoped
 builder.Services.AddSingleton<TokenProvider>();
 
-// Proveedor de estado de autenticación que conecta nuestro token con [Authorize] de Blazor
 builder.Services.AddScoped<AuthenticationStateProvider, VetAuthStateProvider>();
 builder.Services.AddAuthorizationCore();
 

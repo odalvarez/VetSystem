@@ -4,7 +4,6 @@
 {
     <div class="@(Compact ? "log-readonly-compact" : "log-readonly")">
 
-        @* Estado y fechas *@
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
             <span class="badge @(Log.IsOpen ? "badge-scheduled" : "badge-completed")">
                 @(Log.IsOpen ? "Abierta" : "Cerrada")
@@ -26,7 +25,6 @@
         <LogSection Title="Motivo de consulta" Value="@Log.ReasonForVisit" Always="true" />
         <LogSection Title="Anamnesis" Value="@Log.Anamnesis" />
 
-        @* Exploración física — solo si hay algún campo *@
         @if (Log.HeartRate != null || Log.RespiratoryRate != null ||
              Log.BodyCondition != null || Log.MucousMembranes != null || Log.Hydration != null)
         {

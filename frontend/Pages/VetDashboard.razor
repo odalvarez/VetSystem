@@ -229,6 +229,7 @@
 <PatientDetailModal Visible="_showRecordModal"
                     Patient="_selectedPatient"
                     OnPatientSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
+                    OnPatientDeleted="EventCallback.Factory.Create(this, OnPatientDeletedFromModal)"
                     OnClose="EventCallback.Factory.Create(this, () => { _showRecordModal = false; _selectedPatient = null; })" />
 
 @* Modal para crear nueva cita *@
@@ -351,6 +352,14 @@
     {
         await LoadPatients();
         ShowToast("Mascota actualizada correctamente.");
+    }
+
+    private async Task OnPatientDeletedFromModal()
+    {
+        _showRecordModal  = false;
+        _selectedPatient  = null;
+        await LoadPatients();
+        ShowToast("Mascota eliminada correctamente.");
     }
 
     private async Task LoadAppointments()
