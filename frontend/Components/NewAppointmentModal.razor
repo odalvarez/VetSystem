@@ -122,8 +122,8 @@
                                 <option value="">— Horario disponible —</option>
                                 @foreach (var s in _slots)
                                 {
-                                    <option value="@s.StartsAt.ToString("HH:mm")">
-                                        @s.StartsAt.ToString("HH:mm")
+                                    <option value="@s.Start.ToString("HH:mm")">
+                                        @s.Start.ToString("HH:mm")
                                     </option>
                                 }
                             </select>

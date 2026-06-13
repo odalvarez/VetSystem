@@ -57,6 +57,6 @@ public class AvailabilityResponse
 
 public class TimeSlot
 {
-    public DateTime StartsAt { get; set; }
-    public DateTime EndsAt   { get; set; }
+    public DateTime Start { get; set; }
+    public DateTime End   { get; set; }
 }
