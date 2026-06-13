@@ -12,7 +12,6 @@ public class ReminderWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ReminderWorker> _logger;
 
-    // El intervalo de polling; 5 minutos es suficiente para este caso de uso
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
 
     public ReminderWorker(IServiceScopeFactory scopeFactory, ILogger<ReminderWorker> logger)
@@ -33,7 +32,6 @@ public class ReminderWorker : BackgroundService
             }
             catch (Exception ex)
             {
-                // No dejamos caer el worker por un error en un ciclo
                 _logger.LogError(ex, "Error en el ciclo de despacho de recordatorios.");
             }
 
@@ -94,7 +92,6 @@ public class ReminderWorker : BackgroundService
                 }
             }
 
-            // Marcamos como enviado aunque algún canal haya fallado; el log queda como evidencia
             job.MarkSent();
             await repo.UpdateReminderAsync(job, ct);
             // Guardamos por job para que un fallo de BD no genere reenvíos duplicados en el siguiente ciclo

@@ -119,7 +119,6 @@ public class NotificationsController : ControllerBase
         var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
         IReadOnlyList<string>? recipientFilter = null;
 
-        // El propietario solo ve las notificaciones enviadas a su correo o su teléfono
         if (role.Equals("Owner", StringComparison.OrdinalIgnoreCase))
         {
             var email    = User.FindFirst(ClaimTypes.Email)?.Value ?? "";

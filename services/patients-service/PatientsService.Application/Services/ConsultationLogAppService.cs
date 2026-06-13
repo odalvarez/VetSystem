@@ -20,7 +20,6 @@ public class ConsultationLogAppService
         Guid patientId, CreateConsultationLogRequest req,
         Guid vetId, string vetName, CancellationToken ct)
     {
-        // Verifica que la mascota exista
         var patient = await _patients.GetByIdAsync(patientId, ct)
             ?? throw new NotFoundException("Mascota no encontrada.");
 

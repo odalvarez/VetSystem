@@ -126,7 +126,6 @@ using (var scope = app.Services.CreateScope())
     if (!app.Environment.IsEnvironment("Testing"))
         await MigrateWithRetryAsync(db.Database);
 
-    // Crea el admin inicial si no existe ningún usuario con rol Admin
     var adminEmail = app.Configuration["AdminSeed:Email"]    ?? "vet@vetsystem.com";
     var adminPwd   = app.Configuration["AdminSeed:Password"] ?? "Admin1234!";
     if (!await db.Users.AnyAsync(u => u.Role == AuthService.Domain.Enums.UserRole.Admin))
@@ -149,7 +148,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Docker usa este endpoint para saber si el servicio está listo
 app.MapHealthChecks("/health");
 
 app.Run();

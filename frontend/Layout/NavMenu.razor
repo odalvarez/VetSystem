@@ -9,7 +9,6 @@
     @(_navOpen ? "✕" : "☰")
 </button>
 
-@* Overlay oscuro que cierra el sidebar al tocar fuera *@
 @if (_navOpen)
 {
     <div class="sidebar-overlay" @onclick="ToggleNav"></div>

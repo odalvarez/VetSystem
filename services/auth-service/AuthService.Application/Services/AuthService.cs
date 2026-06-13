@@ -195,7 +195,6 @@ public class AuthApplicationService
         var user = await _users.GetByIdAsync(id, ct)
             ?? throw new NotFoundException("Usuario no encontrado.");
 
-        // El administrador principal (primer Admin) no puede desactivarse a sí mismo desde la API
         user.SetActive(active);
         await _users.UpdateAsync(user, ct);
         await _users.SaveChangesAsync(ct);
@@ -224,7 +223,7 @@ public class AuthApplicationService
         await _users.SaveChangesAsync(ct);
     }
 
-    // Aplica las mismas reglas que el frontend para que el backend sea la fuente de verdad
+    // El backend es la fuente de verdad: duplicar la validación evita bypass desde clientes alternativos
     private static void ValidatePasswordStrength(string password)
     {
         if (password.Length < 8)

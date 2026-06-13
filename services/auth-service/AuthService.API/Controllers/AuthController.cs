@@ -74,7 +74,6 @@ public class AuthController : ControllerBase
             Path     = "/"
         });
 
-        // Solo retornamos la info del usuario; el token ya quedó en la cookie
         return Ok(new { user = result.User });
     }
 
@@ -188,7 +187,6 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetVeterinarians(CancellationToken ct)
     {
-        // Cualquier usuario autenticado puede ver la lista de vets para agendar citas
         var result = await _auth.ListVeterinariansAsync(ct);
         return Ok(result);
     }
@@ -318,7 +316,6 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> AdminSetActive(
         Guid id, [FromQuery] bool value, CancellationToken ct)
     {
-        // El admin no puede desactivarse a sí mismo
         if (id == GetCurrentUserId())
             return BadRequest(new { detail = "No puedes desactivar tu propia cuenta." });
 

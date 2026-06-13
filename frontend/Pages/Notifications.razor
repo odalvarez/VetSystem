@@ -14,7 +14,6 @@
 
 <div class="page-content">
 
-    @* Panel para enviar notificación manual (veterinario y admin) *@
     <AuthorizeView Roles="Veterinarian,Admin">
         <Authorized>
             <div class="card" style="margin-bottom:28px">
@@ -76,7 +75,6 @@
         </Authorized>
     </AuthorizeView>
 
-    @* Historial de notificaciones *@
     <div class="card">
         <div class="card-header">
             <span class="card-title">Historial</span>
@@ -89,18 +87,15 @@
         }
         else
         {
-            @* Barra de filtros *@
             <div class="card-body" style="padding-bottom:0;border-bottom:1px solid var(--color-border)">
                 <div class="filters-bar">
 
-                    @* Tipo *@
                     <select class="filter-select" @bind="_filterType">
                         <option value="">Todos los tipos</option>
                         <option value="whatsapp">WhatsApp</option>
                         <option value="email">Email</option>
                     </select>
 
-                    @* Estado *@
                     <select class="filter-select" @bind="_filterStatus">
                         <option value="">Todos los estados</option>
                         <option value="pending">Pendiente</option>
@@ -115,7 +110,6 @@
                                @bind="_filterFrom" />
                     </label>
 
-                    @* Fecha hasta *@
                     <label class="date-filter-label">
                         <span>Hasta</span>
                         <input type="date" class="filter-select"
@@ -135,14 +129,12 @@
                         </Authorized>
                     </AuthorizeView>
 
-                    @* Limpiar filtros *@
                     @if (HasActiveFilters)
                     {
                         <button class="btn btn-ghost btn-sm" @onclick="ClearFilters"
                                 style="white-space:nowrap">✕ Limpiar</button>
                     }
 
-                    @* Contador de resultados *@
                     <span style="margin-left:auto;font-size:.82rem;color:var(--color-text-muted);align-self:center;white-space:nowrap">
                         @FilteredHistory.Count() resultado@(FilteredHistory.Count() == 1 ? "" : "s")
                         @if (HasActiveFilters && _history?.Count != FilteredHistory.Count())
@@ -153,7 +145,6 @@
                 </div>
             </div>
 
-            @* Tabla *@
             @if (!FilteredHistory.Any())
             {
                 <div class="card-body">

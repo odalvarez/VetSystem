@@ -44,7 +44,6 @@ public class AuthApiClient
         }
     }
 
-    // Verifica si la cookie sigue siendo válida y devuelve el perfil del usuario
     public async Task<UserProfile?> GetProfileAsync()
     {
         try { return await _http.GetFromJsonAsync<UserProfile>("api/auth/me"); }
@@ -110,5 +109,15 @@ public class AuthApiClient
         var res = await _http.PostAsJsonAsync($"api/auth/admin/users/{id}/reset-password",
             new AdminResetPasswordRequest { NewPassword = newPassword });
         res.EnsureSuccessStatusCode();
+    }
+
+    public async Task AdminDeleteUserAsync(Guid id)
+    {
+        var res = await _http.DeleteAsync($"api/auth/admin/users/{id}");
+        if (!res.IsSuccessStatusCode)
+        {
+            var err = await res.Content.ReadFromJsonAsync<ApiError>();
+            throw new Exception(err?.Detail ?? $"Error {(int)res.StatusCode}");
+        }
     }
 }
