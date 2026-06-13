@@ -247,10 +247,8 @@ namespace PatientsService.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("Species")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<Guid>("SpeciesId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -266,8 +264,8 @@ namespace PatientsService.Infrastructure.Migrations
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("IX_Patients_OwnerId");
 
-                    b.HasIndex("Species")
-                        .HasDatabaseName("IX_Patients_Species");
+                    b.HasIndex("SpeciesId")
+                        .HasDatabaseName("IX_Patients_SpeciesId");
 
                     b.ToTable("Patients", t =>
                         {

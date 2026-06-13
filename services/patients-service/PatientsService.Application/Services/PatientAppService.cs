@@ -22,7 +22,6 @@ public class PatientAppService
     {
         var slug = req.Species.Trim().ToLowerInvariant();
 
-        // Valida que el slug exista en la tabla de especies administrada
         var species = await _speciesRepo.GetBySlugAsync(slug, ct)
             ?? throw new ValidationException($"Especie '{req.Species}' no válida.");
 
@@ -30,28 +29,40 @@ public class PatientAppService
             throw new ValidationException("Sexo no válido.");
 
         var patient = Patient.Create(
-            req.Name, slug, req.Breed, req.BirthDate, sex, req.WeightKg,
+            req.Name, species.Id, req.Breed, req.BirthDate, sex, req.WeightKg,
             ownerId, ownerName, ownerPhone, req.Color, req.MicrochipNumber);
 
         await _repo.AddAsync(patient, ct);
         await _repo.SaveChangesAsync(ct);
-        return Map(patient, species.Name);
+        return Map(patient, species.Slug, species.Name);
     }
 
     public async Task<PagedResponse<PatientResponse>> ListAsync(
-        Guid? callerOwnerId, string? species, string? search,
+        Guid? callerOwnerId, string? speciesSlug, string? search,
         int page, int pageSize, CancellationToken ct)
     {
         pageSize = Math.Min(pageSize, 100);
-        var (data, total) = await _repo.ListAsync(callerOwnerId, species, search, page, pageSize, ct);
 
-        // Carga todas las especies una sola vez para resolver nombres sin N+1 queries
+        Guid? speciesId = null;
+        if (!string.IsNullOrWhiteSpace(speciesSlug))
+        {
+            var sp = await _speciesRepo.GetBySlugAsync(speciesSlug.ToLowerInvariant(), ct);
+            speciesId = sp?.Id;
+        }
+
+        var (data, total) = await _repo.ListAsync(callerOwnerId, speciesId, search, page, pageSize, ct);
+
+        // Carga todas las especies una sola vez para resolver slug y nombre sin N+1 queries
         var speciesList = await _speciesRepo.ListActiveAsync(ct);
-        var speciesDict = speciesList.ToDictionary(s => s.Slug, s => s.Name);
+        var speciesDict = speciesList.ToDictionary(s => s.Id);
 
         return new PagedResponse<PatientResponse>
         {
-            Items      = data.Select(p => Map(p, speciesDict.GetValueOrDefault(p.Species, p.Species))),
+            Items = data.Select(p =>
+            {
+                speciesDict.TryGetValue(p.SpeciesId, out var sp2);
+                return Map(p, sp2?.Slug ?? p.SpeciesId.ToString(), sp2?.Name ?? "Desconocida");
+            }),
             TotalCount = total,
             Page       = page,
             PageSize   = pageSize
@@ -66,8 +77,8 @@ public class PatientAppService
         if (callerOwnerId.HasValue && patient.OwnerId != callerOwnerId.Value)
             throw new ForbiddenException("No tiene permiso para ver esta mascota.");
 
-        var species = await _speciesRepo.GetBySlugAsync(patient.Species, ct);
-        return Map(patient, species?.Name ?? patient.Species);
+        var species = await _speciesRepo.GetByIdAsync(patient.SpeciesId, ct);
+        return Map(patient, species?.Slug ?? "", species?.Name ?? "Desconocida");
     }
 
     public async Task<PatientResponse> UpdateAsync(
@@ -86,8 +97,8 @@ public class PatientAppService
         await _repo.UpdateAsync(patient, ct);
         await _repo.SaveChangesAsync(ct);
 
-        var species = await _speciesRepo.GetBySlugAsync(patient.Species, ct);
-        return Map(patient, species?.Name ?? patient.Species);
+        var species = await _speciesRepo.GetByIdAsync(patient.SpeciesId, ct);
+        return Map(patient, species?.Slug ?? "", species?.Name ?? "Desconocida");
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
@@ -96,6 +107,12 @@ public class PatientAppService
             ?? throw new NotFoundException("Mascota no encontrada.");
 
         await _repo.DeleteAsync(patient, ct);
+        await _repo.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteByOwnerAsync(Guid ownerId, CancellationToken ct)
+    {
+        await _repo.DeleteByOwnerAsync(ownerId, ct);
         await _repo.SaveChangesAsync(ct);
     }
 
@@ -149,11 +166,11 @@ public class PatientAppService
         return MapRecord(record);
     }
 
-    private static PatientResponse Map(Patient p, string speciesName) => new()
+    private static PatientResponse Map(Patient p, string speciesSlug, string speciesName) => new()
     {
         Id              = p.Id,
         Name            = p.Name,
-        Species         = p.Species,
+        Species         = speciesSlug,
         SpeciesName     = speciesName,
         Breed           = p.Breed,
         BirthDate       = p.BirthDate,

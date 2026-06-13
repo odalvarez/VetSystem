@@ -14,8 +14,8 @@ public class SpeciesAppService
     public async Task<List<SpeciesResponse>> ListAsync(CancellationToken ct)
     {
         var list   = await _repo.ListActiveAsync(ct);
-        var counts = await _repo.GetPatientCountsBySlugAsync(ct);
-        return list.Select(s => Map(s, counts.GetValueOrDefault(s.Slug, 0))).ToList();
+        var counts = await _repo.GetPatientCountsByIdAsync(ct);
+        return list.Select(s => Map(s, counts.GetValueOrDefault(s.Id, 0))).ToList();
     }
 
     public async Task<SpeciesResponse> CreateAsync(CreateSpeciesRequest req, CancellationToken ct)
@@ -40,7 +40,7 @@ public class SpeciesAppService
         species.Update(req.Name, req.Icon);
         await _repo.SaveChangesAsync(ct);
 
-        var count = await _repo.CountPatientsBySlugAsync(species.Slug, ct);
+        var count = await _repo.CountPatientsByIdAsync(species.Id, ct);
         return Map(species, count);
     }
 
@@ -49,7 +49,7 @@ public class SpeciesAppService
         var species = await _repo.GetByIdAsync(id, ct)
             ?? throw new NotFoundException("Especie no encontrada.");
 
-        var count = await _repo.CountPatientsBySlugAsync(species.Slug, ct);
+        var count = await _repo.CountPatientsByIdAsync(species.Id, ct);
         if (count > 0)
             throw new ValidationException(
                 $"No se puede eliminar '{species.Name}': hay {count} mascota(s) registrada(s) con esta especie.");

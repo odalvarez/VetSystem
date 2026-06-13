@@ -14,7 +14,7 @@ public class PatientRepository : IPatientRepository
         _db.Patients.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct);
 
     public async Task<(IEnumerable<Patient> Data, int Total)> ListAsync(
-        Guid? ownerId, string? species, string? search,
+        Guid? ownerId, Guid? speciesId, string? search,
         int page, int pageSize, CancellationToken ct)
     {
         var q = _db.Patients.Where(p => !p.IsDeleted);
@@ -22,8 +22,8 @@ public class PatientRepository : IPatientRepository
         if (ownerId.HasValue)
             q = q.Where(p => p.OwnerId == ownerId.Value);
 
-        if (!string.IsNullOrWhiteSpace(species))
-            q = q.Where(p => p.Species == species.ToLowerInvariant());
+        if (speciesId.HasValue)
+            q = q.Where(p => p.SpeciesId == speciesId.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
             q = q.Where(p => p.Name.Contains(search) || p.OwnerName.Contains(search));
@@ -50,6 +50,18 @@ public class PatientRepository : IPatientRepository
         patient.SoftDelete();
         _db.Patients.Update(patient);
         return Task.CompletedTask;
+    }
+
+    public async Task DeleteByOwnerAsync(Guid ownerId, CancellationToken ct)
+    {
+        var patients = await _db.Patients
+            .Where(p => p.OwnerId == ownerId && !p.IsDeleted)
+            .ToListAsync(ct);
+
+        foreach (var p in patients)
+            p.SoftDelete();
+
+        _db.Patients.UpdateRange(patients);
     }
 
     public Task<ClinicalRecord?> GetRecordAsync(Guid patientId, Guid recordId, CancellationToken ct) =>

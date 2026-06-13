@@ -196,9 +196,10 @@ public class PatientsControllerTests : IClassFixture<PatientsWebFactory>
     // ── Eliminar mascota ──────────────────────────────────────────────────────
 
     [Fact]
-    public async Task DeletePatient_AsVet_Returns204()
+    public async Task DeletePatient_AsAdmin_Returns204()
     {
         var vet    = ClientAs(PatientsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var admin  = ClientAs(PatientsWebFactory.AdminId, "admin@test.com", "Admin");
         var create = await vet.PostAsJsonAsync("/api/patients", new CreatePatientRequest
         {
             Name       = "ToDelete",
@@ -213,8 +214,30 @@ public class PatientsControllerTests : IClassFixture<PatientsWebFactory>
         });
         var patient = await create.Content.ReadFromJsonAsync<PatientResponse>();
 
-        var resp = await vet.DeleteAsync($"/api/patients/{patient!.Id}");
+        var resp = await admin.DeleteAsync($"/api/patients/{patient!.Id}");
         Assert.Equal(HttpStatusCode.NoContent, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeletePatient_AsVet_Returns403()
+    {
+        var vet    = ClientAs(PatientsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var create = await vet.PostAsJsonAsync("/api/patients", new CreatePatientRequest
+        {
+            Name       = "VetCantDelete",
+            Species    = "Canine",
+            Breed      = "Beagle",
+            BirthDate  = new DateOnly(2021, 1, 1),
+            Sex        = "Male",
+            WeightKg   = 10m,
+            OwnerId    = PatientsWebFactory.OwnerId,
+            OwnerName  = "Luis",
+            OwnerPhone = "3005555555"
+        });
+        var patient = await create.Content.ReadFromJsonAsync<PatientResponse>();
+
+        var resp = await vet.DeleteAsync($"/api/patients/{patient!.Id}");
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
 
     [Fact]

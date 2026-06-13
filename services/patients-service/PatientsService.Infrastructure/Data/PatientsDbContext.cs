@@ -20,8 +20,7 @@ public class PatientsDbContext : DbContext
             e.Property(p => p.Name).IsRequired().HasMaxLength(100);
             e.Property(p => p.Breed).IsRequired().HasMaxLength(100);
 
-            // Species ahora es slug libre; el constraint fijo fue eliminado en la migración AddSpeciesTable
-            e.Property(p => p.Species).IsRequired().HasMaxLength(50);
+            e.Property(p => p.SpeciesId).IsRequired();
 
             e.Property(p => p.Sex).HasConversion<string>().IsRequired().HasMaxLength(10);
             e.ToTable(t => t.HasCheckConstraint("CK_Patients_Sex", "[Sex] IN ('Male', 'Female')"));
@@ -36,7 +35,7 @@ public class PatientsDbContext : DbContext
 
             e.HasIndex(p => p.OwnerId).HasDatabaseName("IX_Patients_OwnerId");
             e.HasIndex(p => p.Name).HasDatabaseName("IX_Patients_Name");
-            e.HasIndex(p => p.Species).HasDatabaseName("IX_Patients_Species");
+            e.HasIndex(p => p.SpeciesId).HasDatabaseName("IX_Patients_SpeciesId");
         });
 
         model.Entity<ClinicalRecord>(e =>
