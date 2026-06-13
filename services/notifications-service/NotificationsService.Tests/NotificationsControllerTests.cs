@@ -18,7 +18,6 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer",
                 JwtTestHelper.Generate(userId, email, role));
-        // El InternalKeyMiddleware exige este header en todas las rutas que no sean /health o /swagger
         client.DefaultRequestHeaders.Add("X-Internal-Key", NotificationsWebFactory.InternalKey);
         return client;
     }
@@ -28,9 +27,7 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
     [Fact]
     public async Task Request_WithoutInternalKey_Returns403()
     {
-        var client = _factory.CreateClient();
-        // Sin X-Internal-Key ni JWT
-        var resp = await client.GetAsync("/api/notifications");
+        var resp = await _factory.CreateClient().GetAsync("/api/notifications");
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
 
@@ -59,24 +56,24 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
     [Fact]
     public async Task ListNotifications_AsVet_Returns200()
     {
-        var client = ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian");
-        var resp   = await client.GetAsync("/api/notifications");
+        var resp = await ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian")
+            .GetAsync("/api/notifications");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
 
     [Fact]
     public async Task ListNotifications_AsAdmin_Returns200()
     {
-        var client = ClientAs(NotificationsWebFactory.AdminId, "admin@test.com", "Admin");
-        var resp   = await client.GetAsync("/api/notifications");
+        var resp = await ClientAs(NotificationsWebFactory.AdminId, "admin@test.com", "Admin")
+            .GetAsync("/api/notifications");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
 
     [Fact]
     public async Task ListNotifications_AsOwner_Returns200()
     {
-        var client = ClientAs(NotificationsWebFactory.OwnerId, "owner@test.com", "Owner");
-        var resp   = await client.GetAsync("/api/notifications");
+        var resp = await ClientAs(NotificationsWebFactory.OwnerId, "owner@test.com", "Owner")
+            .GetAsync("/api/notifications");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
 
@@ -85,13 +82,12 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
     [Fact]
     public async Task SendWhatsApp_AsVet_Returns202()
     {
-        var client = ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian");
-
-        var resp = await client.PostAsJsonAsync("/api/notifications/whatsapp", new SendWhatsAppRequest
-        {
-            To      = "573001234567",
-            Message = "Recordatorio de cita mañana a las 10am."
-        });
+        var resp = await ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian")
+            .PostAsJsonAsync("/api/notifications/whatsapp", new SendWhatsAppRequest
+            {
+                To      = "573001234567",
+                Message = "Recordatorio de cita mañana a las 10am."
+            });
 
         Assert.Equal(HttpStatusCode.Accepted, resp.StatusCode);
     }
@@ -99,13 +95,25 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
     [Fact]
     public async Task SendWhatsApp_AsAdmin_Returns202()
     {
-        var client = ClientAs(NotificationsWebFactory.AdminId, "admin@test.com", "Admin");
+        var resp = await ClientAs(NotificationsWebFactory.AdminId, "admin@test.com", "Admin")
+            .PostAsJsonAsync("/api/notifications/whatsapp", new SendWhatsAppRequest
+            {
+                To      = "573009876543",
+                Message = "Mensaje de prueba del administrador."
+            });
 
-        var resp = await client.PostAsJsonAsync("/api/notifications/whatsapp", new SendWhatsAppRequest
-        {
-            To      = "573009876543",
-            Message = "Mensaje de prueba del administrador."
-        });
+        Assert.Equal(HttpStatusCode.Accepted, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendWhatsApp_AsOwner_Returns202()
+    {
+        var resp = await ClientAs(NotificationsWebFactory.OwnerId, "owner@test.com", "Owner")
+            .PostAsJsonAsync("/api/notifications/whatsapp", new SendWhatsAppRequest
+            {
+                To      = "573001112233",
+                Message = "Mensaje de owner."
+            });
 
         Assert.Equal(HttpStatusCode.Accepted, resp.StatusCode);
     }
@@ -115,14 +123,27 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
     [Fact]
     public async Task SendEmail_AsVet_Returns202()
     {
-        var client = ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian")
+            .PostAsJsonAsync("/api/notifications/email", new SendEmailRequest
+            {
+                To      = "paciente@test.com",
+                Subject = "Recordatorio de cita",
+                Body    = "<p>Su cita es mañana a las 10am.</p>"
+            });
 
-        var resp = await client.PostAsJsonAsync("/api/notifications/email", new SendEmailRequest
-        {
-            To      = "paciente@test.com",
-            Subject = "Recordatorio de cita",
-            Body    = "<p>Su cita es mañana a las 10am.</p>"
-        });
+        Assert.Equal(HttpStatusCode.Accepted, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task SendEmail_AsAdmin_Returns202()
+    {
+        var resp = await ClientAs(NotificationsWebFactory.AdminId, "admin@test.com", "Admin")
+            .PostAsJsonAsync("/api/notifications/email", new SendEmailRequest
+            {
+                To      = "admin-destino@test.com",
+                Subject = "Prueba admin",
+                Body    = "<p>Correo de prueba.</p>"
+            });
 
         Assert.Equal(HttpStatusCode.Accepted, resp.StatusCode);
     }
@@ -132,18 +153,17 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
     [Fact]
     public async Task ScheduleReminder_AsVet_Returns202()
     {
-        var client = ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian");
-
-        var resp = await client.PostAsJsonAsync("/api/notifications/reminder", new ScheduleReminderRequest
-        {
-            AppointmentId = Guid.NewGuid(),
-            PatientName   = "Luna",
-            OwnerName     = "Pedro Ramirez",
-            OwnerPhone    = "573001234567",
-            OwnerEmail    = "pedro@test.com",
-            ScheduledAt   = DateTime.UtcNow.AddDays(2),
-            Channels      = ["whatsapp", "email"]
-        });
+        var resp = await ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian")
+            .PostAsJsonAsync("/api/notifications/reminder", new ScheduleReminderRequest
+            {
+                AppointmentId = Guid.NewGuid(),
+                PatientName   = "Luna",
+                OwnerName     = "Pedro Ramirez",
+                OwnerPhone    = "573001234567",
+                OwnerEmail    = "pedro@test.com",
+                ScheduledAt   = DateTime.UtcNow.AddDays(2),
+                Channels      = ["whatsapp", "email"]
+            });
 
         Assert.Equal(HttpStatusCode.Accepted, resp.StatusCode);
     }
@@ -151,19 +171,43 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
     [Fact]
     public async Task ScheduleReminder_InThePast_Returns400()
     {
-        var client = ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian");
-
-        var resp = await client.PostAsJsonAsync("/api/notifications/reminder", new ScheduleReminderRequest
-        {
-            AppointmentId = Guid.NewGuid(),
-            PatientName   = "Max",
-            OwnerName     = "Ana García",
-            OwnerPhone    = "573009876543",
-            OwnerEmail    = "ana@test.com",
-            ScheduledAt   = DateTime.UtcNow.AddDays(-1),
-            Channels      = ["email"]
-        });
+        var resp = await ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian")
+            .PostAsJsonAsync("/api/notifications/reminder", new ScheduleReminderRequest
+            {
+                AppointmentId = Guid.NewGuid(),
+                PatientName   = "Max",
+                OwnerName     = "Ana García",
+                OwnerPhone    = "573009876543",
+                OwnerEmail    = "ana@test.com",
+                ScheduledAt   = DateTime.UtcNow.AddDays(-1),
+                Channels      = ["email"]
+            });
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    // ── Obtener notificación por ID ───────────────────────────────────────────
+
+    [Fact]
+    public async Task GetNotification_AsVet_Returns200()
+    {
+        var client = ClientAs(NotificationsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var create = await client.PostAsJsonAsync("/api/notifications/whatsapp", new SendWhatsAppRequest
+        {
+            To      = "573001230000",
+            Message = "Para obtener por ID."
+        });
+        var notification = await create.Content.ReadFromJsonAsync<NotificationAcceptedResponse>();
+
+        var resp = await client.GetAsync($"/api/notifications/{notification!.Id}");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetNotification_Unauthenticated_Returns403()
+    {
+        // Sin X-Internal-Key el middleware rechaza antes de llegar al JWT
+        var resp = await _factory.CreateClient().GetAsync($"/api/notifications/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
 }
