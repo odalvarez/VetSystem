@@ -37,6 +37,18 @@ public class ConsultationLogApiClient
         return (await resp.Content.ReadFromJsonAsync<ConsultationLogResponse>())!;
     }
 
+    public async Task<ConsultationLogResponse?> GetByAppointmentAsync(Guid patientId, Guid appointmentId)
+    {
+        try
+        {
+            var resp = await _http.GetAsync($"api/patients/{patientId}/logs/by-appointment/{appointmentId}");
+            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+            await ThrowIfErrorAsync(resp);
+            return await resp.Content.ReadFromJsonAsync<ConsultationLogResponse>();
+        }
+        catch (Exception ex) when (ex.Message.StartsWith("Error ")) { return null; }
+    }
+
     public async Task<ConsultationLogResponse> CloseAsync(Guid patientId, Guid logId)
     {
         var resp = await _http.PatchAsJsonAsync(

@@ -1,11 +1,12 @@
 @page "/admin"
 @attribute [Authorize]
-@inject AuthApiClient        AuthApi
-@inject PatientApiClient     PatientApi
-@inject AppointmentApiClient AppointmentApi
-@inject SpeciesApiClient     SpeciesApi
-@inject TokenProvider        Token
-@inject NavigationManager    Nav
+@inject AuthApiClient             AuthApi
+@inject PatientApiClient          PatientApi
+@inject AppointmentApiClient      AppointmentApi
+@inject ConsultationLogApiClient  LogApi
+@inject SpeciesApiClient          SpeciesApi
+@inject TokenProvider             Token
+@inject NavigationManager         Nav
 
 <PageTitle>Administración — VetSystem</PageTitle>
 
@@ -300,14 +301,22 @@
                 <div class="card-header-actions">
                     <button class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">+ Nueva cita</button>
                     <div class="filters-bar mb-0">
-                    <select class="filter-select" @bind="_apptsStatus" @bind:after="ReloadAppointments">
-                        <option value="">Todos los estados</option>
-                        <option value="Scheduled">Programadas</option>
-                        <option value="Confirmed">Confirmadas</option>
-                        <option value="Completed">Completadas</option>
-                        <option value="Cancelled">Canceladas</option>
-                        <option value="NoShow">No presentó</option>
-                    </select>
+                        <select class="filter-select" @bind="_apptsStatus" @bind:after="ReloadAppointments">
+                            <option value="">Todos los estados</option>
+                            <option value="Scheduled">Programadas</option>
+                            <option value="Confirmed">Confirmadas</option>
+                            <option value="Completed">Completadas</option>
+                            <option value="Cancelled">Canceladas</option>
+                            <option value="NoShow">No asistió</option>
+                        </select>
+                        <label class="date-filter-label">
+                            <span>Desde</span>
+                            <input type="date" class="filter-select" @bind="_apptsFrom" @bind:after="ReloadAppointments" />
+                        </label>
+                        <label class="date-filter-label">
+                            <span>Hasta</span>
+                            <input type="date" class="filter-select" @bind="_apptsTo" @bind:after="ReloadAppointments" />
+                        </label>
                     </div>
                 </div>
             </div>
@@ -330,27 +339,21 @@
                     <table class="vet-table">
                         <thead>
                             <tr>
-                                <th>Mascota</th>
-                                <th>Propietario</th>
+                                <th>Paciente / Propietario</th>
                                 <th>Fecha</th>
                                 <th>Hora</th>
                                 <th>Duración</th>
                                 <th>Estado</th>
-                                <th>Motivo</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var a in _appointments)
                             {
-                                <tr>
-                                    <td data-label="Mascota"><strong>@a.PatientName</strong></td>
-                                    <td data-label="Propietario" style="font-size:.85rem">@(a.OwnerName ?? "—")</td>
-                                    <td data-label="Fecha">@a.ScheduledAt.ToString("dd/MM/yyyy")</td>
-                                    <td data-label="Hora">@a.ScheduledAt.ToString("HH:mm")</td>
-                                    <td data-label="Duración">@a.DurationMinutes min</td>
-                                    <td data-label="Estado"><StatusBadge Status="@a.Status" /></td>
-                                    <td data-label="Motivo" style="color:var(--color-text-muted);font-size:.85rem">@(a.Reason ?? "—")</td>
-                                </tr>
+                                <AppointmentCard Appointment="a"
+                                                 ShowActions="true"
+                                                 OnStatusChange="HandleStatusChange"
+                                                 OnOpenLog="EventCallback.Factory.Create<AppointmentResponse>(this, OpenAppointmentLog)" />
                             }
                         </tbody>
                     </table>
@@ -707,9 +710,16 @@
 @* Modal de detalle: datos, bitácoras e historia clínica *@
 <PatientDetailModal Visible="_showEditPatientModal"
                     Patient="_editingPatient"
+                    InitialReferenceLog="_referenceLog"
                     OnPatientSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
                     OnPatientDeleted="EventCallback.Factory.Create(this, OnPatientDeletedFromModal)"
-                    OnClose="EventCallback.Factory.Create(this, () => { _showEditPatientModal = false; _editingPatient = null; })" />
+                    OnClose="EventCallback.Factory.Create(this, () => { _showEditPatientModal = false; _editingPatient = null; _referenceLog = null; })" />
+
+@* Modal de bitácora vinculada a una cita *@
+<AppointmentLogModal Visible="_showLogModal"
+                     Appointment="_logAppointment"
+                     OnClose="EventCallback.Factory.Create(this, () => { _showLogModal = false; _logAppointment = null; })"
+                     OnGoToHC="EventCallback.Factory.Create<ConsultationLogResponse>(this, OpenHCFromLog)" />
 
 @* Modal para que el admin cree una nueva cita *@
 <NewAppointmentModal Visible="_showNewAppointmentModal"
@@ -718,7 +728,9 @@
 
 @if (!string.IsNullOrEmpty(_toast))
 {
-    <div class="toast-snack">✅ @_toast</div>
+    <div class="toast-snack @(_toastIsError ? "toast-error" : "")">
+        @(_toastIsError ? "❌" : "✅") @_toast
+    </div>
 }
 
 @code {
@@ -767,15 +779,20 @@
     private bool           _showVetPatientModal     = false;
     private bool           _showNewAppointmentModal = false;
     private bool           _showEditPatientModal    = false;
-    private PatientResponse? _editingPatient        = null;
+    private bool           _showLogModal            = false;
+    private PatientResponse?          _editingPatient  = null;
+    private AppointmentResponse?      _logAppointment  = null;
+    private ConsultationLogResponse?  _referenceLog    = null;
 
     // ── Appointments tab ──────────────────────────────────────────────────────
     private List<AppointmentResponse> _appointments = [];
-    private int    _apptsTotal;
-    private int    _apptsPage     = 1;
-    private int    _apptsPageSize = 15;
-    private bool   _apptsLoading  = false;
-    private string _apptsStatus   = "";
+    private int       _apptsTotal;
+    private int       _apptsPage     = 1;
+    private int       _apptsPageSize = 15;
+    private bool      _apptsLoading  = false;
+    private string    _apptsStatus   = "";
+    private DateTime? _apptsFrom;
+    private DateTime? _apptsTo;
 
     private int ApptsTotalPages => (int)Math.Ceiling((double)_apptsTotal / _apptsPageSize);
 
@@ -808,6 +825,7 @@
     private bool   _resetModalPrev;
 
     private string? _toast;
+    private bool    _toastIsError;
 
     // ── Species tab ────────────────────────────────────────────────────────────
     private List<SpeciesResponse> _speciesList       = [];
@@ -830,9 +848,9 @@
 
     private static readonly string[] AvailableIcons =
     [
-        "🐾", "🐶", "🐱", "🐦", "🐰", "🐟", "🐹",
-        "🐢", "🦜", "🐍", "🐠", "🦎", "🐓", "🐄",
-        "🐎", "🐑", "🐷", "🐇", "🦊", "🐻"
+        "🐾", "🐶", "🐱", "🐦", "🐰",
+        "🐟", "🐷", "🐹", "🐢", "🐍",
+        "🦎", "🐓", "🐄", "🐎", "🐑"
     ];
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -845,12 +863,23 @@
             Nav.NavigateTo("/", replace: true);
             return;
         }
-        await Task.WhenAll(LoadUsers(), LoadStats(), LoadSpecies());
+
+        var uri = new Uri(Nav.Uri);
+        var qs  = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var tab = qs["tab"] ?? "users";
+        _tab = tab is "users" or "patients" or "appointments" or "species" ? tab : "users";
+
+        var tasks = new List<Task> { LoadUsers(), LoadStats(), LoadSpecies() };
+        if (_tab == "patients")    { tasks.Add(LoadPatients()); tasks.Add(LoadPatientStats()); }
+        if (_tab == "appointments"){ tasks.Add(LoadAppointments()); tasks.Add(LoadApptStats()); }
+        await Task.WhenAll(tasks);
     }
 
     private async Task SwitchTab(string tab)
     {
+        if (_tab == tab) return;
         _tab = tab;
+        Nav.NavigateTo($"/admin?tab={tab}", replace: true);
         if (tab == "patients")
         {
             var tasks = new List<Task>();
@@ -1001,6 +1030,8 @@
         _apptsLoading = true;
         var result = await AppointmentApi.ListPagedAsync(
             status:   string.IsNullOrEmpty(_apptsStatus) ? null : _apptsStatus,
+            from:     _apptsFrom,
+            to:       _apptsTo,
             page:     _apptsPage,
             pageSize: _apptsPageSize);
         _appointments = result?.Items ?? [];
@@ -1009,6 +1040,35 @@
     }
 
     private async Task ReloadAppointments() { _apptsPage = 1; await LoadAppointments(); }
+
+    private async Task HandleStatusChange((Guid Id, string Status) args)
+    {
+        if (args.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            var appt = _appointments.FirstOrDefault(a => a.Id == args.Id);
+            if (appt != null)
+            {
+                var log = await LogApi.GetByAppointmentAsync(appt.PatientId, appt.Id);
+                if (log == null || log.IsOpen)
+                {
+                    ShowToast("Debes cerrar la bitácora de la cita antes de completarla.", isError: true);
+                    return;
+                }
+            }
+        }
+
+        try
+        {
+            await AppointmentApi.ChangeStatusAsync(args.Id, args.Status);
+            await ReloadAppointments();
+            await LoadApptStats();
+            ShowToast("Estado actualizado correctamente.");
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Error: {ex.Message}", isError: true);
+        }
+    }
 
     private async Task ApptsPrevPage() { _apptsPage--; await LoadAppointments(); }
     private async Task ApptsNextPage() { _apptsPage++; await LoadAppointments(); }
@@ -1292,9 +1352,32 @@
         _resetModalPrev = _showResetModal;
     }
 
-    private async void ShowToast(string msg)
+    private void OpenAppointmentLog(AppointmentResponse appt)
     {
-        _toast = msg;
+        _logAppointment = appt;
+        _showLogModal   = true;
+    }
+
+    private async Task OpenHCFromLog(ConsultationLogResponse log)
+    {
+        _showLogModal   = false;
+        _logAppointment = null;
+        _referenceLog   = log;
+
+        var patient = _patients.FirstOrDefault(p => p.Id == log.PatientId)
+                   ?? await PatientApi.GetAsync(log.PatientId);
+
+        if (patient != null)
+        {
+            _editingPatient      = patient;
+            _showEditPatientModal = true;
+        }
+    }
+
+    private async void ShowToast(string msg, bool isError = false)
+    {
+        _toast        = msg;
+        _toastIsError = isError;
         StateHasChanged();
         await Task.Delay(3000);
         _toast = null;

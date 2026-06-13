@@ -21,22 +21,31 @@
                     @TranslateStatus(next)
                 </button>
             }
+            @if (IsActive)
+            {
+                <button class="btn btn-sm btn-primary"
+                        @onclick="() => OnOpenLog.InvokeAsync(Appointment)">
+                    Bitácora
+                </button>
+            }
         </td>
     }
 </tr>
 
 @code {
     [Parameter, EditorRequired] public AppointmentResponse Appointment { get; set; } = null!;
-    /// <summary>Muestra columna de acciones solo para el veterinario</summary>
     [Parameter] public bool ShowActions { get; set; }
     [Parameter] public EventCallback<(Guid Id, string Status)> OnStatusChange { get; set; }
+    [Parameter] public EventCallback<AppointmentResponse> OnOpenLog { get; set; }
+
+    // Solo citas activas (no canceladas ni completadas sin asistencia) pueden tener bitácora
+    private bool IsActive => Appointment.Status.ToLowerInvariant() is "scheduled" or "confirmed" or "completed";
 
     // Solo las transiciones válidas según el estado actual (espeja el backend)
     private IEnumerable<string> GetNextStatuses() => Appointment.Status.ToLowerInvariant() switch
     {
-        "scheduled"  => ["Confirmed", "Cancelled"],
-        "confirmed"  => ["Completed", "NoShow", "Cancelled"],
-        _            => []
+        "scheduled" => ["Completed", "Cancelled", "NoShow"],
+        _           => []
     };
 
     private static string TranslateStatus(string s) => s switch

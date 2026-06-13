@@ -22,6 +22,7 @@ public class PatientResponse
     public string   Name            { get; set; } = "";
     public string   Species         { get; set; } = "";
     public string   SpeciesName     { get; set; } = "";
+    public string   SpeciesIcon     { get; set; } = "🐾";
     public string   Breed           { get; set; } = "";
     public string?  Color           { get; set; }
     public string   Sex             { get; set; } = "";

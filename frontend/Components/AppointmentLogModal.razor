@@ -1,0 +1,149 @@
+@* Modal de bitácora asociada a una cita.
+   Carga la bitácora existente para la cita, o permite crear una nueva.
+   Al cerrar una bitácora abierta, ofrece ir directo a la historia clínica. *@
+@inject ConsultationLogApiClient LogApi
+
+@if (Visible && Appointment != null)
+{
+    <div class="modal-overlay" @onclick="HandleOverlayClick">
+        <div class="modal-box" style="max-width:720px;width:100%" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title">Bitácora de consulta</h2>
+                    <div style="font-size:.82rem;color:var(--color-text-muted)">
+                        @Appointment.PatientName — @Appointment.ScheduledAt.ToString("dd/MM/yyyy HH:mm")
+                    </div>
+                </div>
+                <button class="btn-close" @onclick="Close">✕</button>
+            </div>
+
+            <div class="modal-body">
+                @if (_loading)
+                {
+                    <LoadingSpinner Message="Cargando bitácora…" />
+                }
+                else if (_justClosed)
+                {
+                    @* Confirmación post-cierre con opción de ir a HC *@
+                    <div style="text-align:center;padding:32px 16px">
+                        <div style="font-size:2rem;margin-bottom:12px">✅</div>
+                        <p style="font-size:1.05rem;font-weight:600;margin-bottom:6px">
+                            Bitácora cerrada correctamente.
+                        </p>
+                        <p style="color:var(--color-text-muted);margin-bottom:24px">
+                            ¿Deseas ir a la historia clínica de <strong>@Appointment.PatientName</strong>
+                            para registrar el resumen médico oficial?
+                        </p>
+                        <div style="display:flex;gap:12px;justify-content:center">
+                            <button class="btn btn-ghost" @onclick="Close">No por ahora</button>
+                            <button class="btn btn-primary" @onclick="GoToHC">
+                                Ir a historia clínica
+                            </button>
+                        </div>
+                    </div>
+                }
+                else if (_log == null)
+                {
+                    @* No existe bitácora aún — formulario de creación *@
+                    <ConsultationLogForm PatientId="Appointment.PatientId"
+                                        Log="null"
+                                        AppointmentId="Appointment.Id"
+                                        OnSaved="EventCallback.Factory.Create(this, OnLogCreated)"
+                                        OnCancel="EventCallback.Factory.Create(this, Close)" />
+                }
+                else if (_log.IsOpen)
+                {
+                    @* Bitácora abierta — editar + botón cerrar *@
+                    <ConsultationLogForm PatientId="Appointment.PatientId"
+                                        Log="_log"
+                                        AppointmentId="Appointment.Id"
+                                        OnSaved="EventCallback.Factory.Create(this, OnLogUpdated)"
+                                        OnCancel="EventCallback.Factory.Create(this, Close)" />
+                    <div style="margin-top:16px;display:flex;justify-content:flex-end">
+                        <button class="btn btn-danger" @onclick="CloseLog" disabled="@_closing">
+                            @if (_closing) { <span class="spinner spinner-sm"></span> }
+                            else { <span>Cerrar bitácora</span> }
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_error))
+                    { <div class="alert alert-danger" style="margin-top:8px">@_error</div> }
+                }
+                else
+                {
+                    @* Bitácora cerrada — solo lectura *@
+                    <div class="alert alert-info" style="margin-bottom:16px">
+                        Esta bitácora está cerrada y no puede modificarse.
+                    </div>
+                    <LogReadView Log="_log" />
+                    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+                        <button class="btn btn-ghost" @onclick="Close">Cerrar</button>
+                        <button class="btn btn-primary" @onclick="GoToHC">
+                            Ver historia clínica
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool                  Visible     { get; set; }
+    [Parameter] public AppointmentResponse?  Appointment { get; set; }
+    [Parameter] public EventCallback         OnClose     { get; set; }
+    // Invocado cuando el usuario quiere ir a la HC; lleva la bitácora como referencia
+    [Parameter] public EventCallback<ConsultationLogResponse> OnGoToHC { get; set; }
+
+    private ConsultationLogResponse? _log;
+    private bool    _loading    = false;
+    private bool    _closing    = false;
+    private bool    _justClosed = false;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Visible || Appointment == null) return;
+        _loading    = true;
+        _justClosed = false;
+        _error      = null;
+        _log        = await LogApi.GetByAppointmentAsync(Appointment.PatientId, Appointment.Id);
+        _loading    = false;
+    }
+
+    private async Task OnLogCreated()
+    {
+        _log = await LogApi.GetByAppointmentAsync(Appointment!.PatientId, Appointment.Id);
+    }
+
+    private async Task OnLogUpdated()
+    {
+        _log = await LogApi.GetByAppointmentAsync(Appointment!.PatientId, Appointment.Id);
+    }
+
+    private async Task CloseLog()
+    {
+        if (_log == null) return;
+        _closing = true;
+        _error   = null;
+        try
+        {
+            _log        = await LogApi.CloseAsync(Appointment!.PatientId, _log.Id);
+            _justClosed = true;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _closing = false; }
+    }
+
+    private Task GoToHC()
+    {
+        var log = _log;
+        Close();
+        if (log != null)
+            OnGoToHC.InvokeAsync(log);
+        return Task.CompletedTask;
+    }
+
+    private void Close() => OnClose.InvokeAsync();
+
+    private void HandleOverlayClick() => Close();
+}

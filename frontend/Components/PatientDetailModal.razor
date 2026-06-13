@@ -172,7 +172,6 @@
                     }
                     else
                     {
-                        @* ── Lista de bitácoras ── *@
                         @if (!IsOwner)
                         {
                             <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
@@ -421,6 +420,8 @@
     [Parameter] public EventCallback   OnClose          { get; set; }
     [Parameter] public EventCallback   OnPatientSaved   { get; set; }
     [Parameter] public EventCallback   OnPatientDeleted { get; set; }
+    // Bitácora de referencia inyectada desde el flow cita → HC
+    [Parameter] public ConsultationLogResponse? InitialReferenceLog { get; set; }
 
     // ── Roles ──────────────────────────────────────────────────
     private bool IsOwner => Token.User?.Role?.Equals("Owner", StringComparison.OrdinalIgnoreCase) == true;
@@ -469,9 +470,9 @@
         if (Visible && Patient != null && !_prevVisible)
         {
             // Reinicia el estado al abrir con un paciente nuevo
-            _tab          = "data";
+            _tab          = InitialReferenceLog != null ? "records" : "data";
             _closedLog    = null;
-            _referenceLog = null;
+            _referenceLog = InitialReferenceLog;
             _refCollapsed = false;
             _selectedLog  = null;
             _showLogForm  = false;
@@ -565,6 +566,7 @@
         catch { _logs = []; }
         finally { _logsLoading = false; }
     }
+
 
     private void OpenNewLogForm()
     {

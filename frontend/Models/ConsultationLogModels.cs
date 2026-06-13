@@ -4,6 +4,7 @@ public class ConsultationLogResponse
 {
     public Guid      Id                 { get; set; }
     public Guid      PatientId          { get; set; }
+    public Guid?     AppointmentId      { get; set; }
     public string    Status             { get; set; } = "";   // "Open" | "Closed"
     public string    ReasonForVisit     { get; set; } = "";
     public string?   Anamnesis          { get; set; }
@@ -33,6 +34,7 @@ public class ConsultationLogResponse
 
 public class CreateConsultationLogRequest
 {
+    public Guid?     AppointmentId      { get; set; }
     public string    ReasonForVisit     { get; set; } = "";
     public string?   Anamnesis          { get; set; }
     public string?   HeartRate          { get; set; }
