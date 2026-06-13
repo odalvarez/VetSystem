@@ -11,9 +11,7 @@ public class PatientRepository : IPatientRepository
     public PatientRepository(PatientsDbContext db) => _db = db;
 
     public Task<Patient?> GetByIdAsync(Guid id, CancellationToken ct) =>
-        _db.Patients
-           .Include(p => p.ClinicalRecords)
-           .FirstOrDefaultAsync(p => p.Id == id, ct);
+        _db.Patients.FirstOrDefaultAsync(p => p.Id == id, ct);
 
     public async Task<(IEnumerable<Patient> Data, int Total)> ListAsync(
         Guid? ownerId, string? species, string? search,
@@ -25,7 +23,7 @@ public class PatientRepository : IPatientRepository
             q = q.Where(p => p.OwnerId == ownerId.Value);
 
         if (!string.IsNullOrWhiteSpace(species))
-            q = q.Where(p => p.Species.ToString().ToLower() == species.ToLower());
+            q = q.Where(p => p.Species == species.ToLowerInvariant());
 
         if (!string.IsNullOrWhiteSpace(search))
             q = q.Where(p => p.Name.Contains(search) || p.OwnerName.Contains(search));

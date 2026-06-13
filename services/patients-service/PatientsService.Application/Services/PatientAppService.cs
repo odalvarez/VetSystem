@@ -119,6 +119,8 @@ public class PatientAppService
     public async Task<PagedResponse<ClinicalRecordResponse>> ListRecordsAsync(
         Guid patientId, Guid? callerOwnerId, int page, int pageSize, CancellationToken ct)
     {
+        pageSize = Math.Min(pageSize, 100);
+
         var patient = await _repo.GetByIdAsync(patientId, ct)
             ?? throw new NotFoundException("Mascota no encontrada.");
 

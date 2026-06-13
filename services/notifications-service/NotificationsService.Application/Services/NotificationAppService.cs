@@ -154,9 +154,17 @@ public class NotificationAppService
 
     private async Task PersistUpdateAsync(NotificationRecord record)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
-        await repo.UpdateAsync(record, CancellationToken.None);
-        await repo.SaveChangesAsync(CancellationToken.None);
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+            await repo.UpdateAsync(record, CancellationToken.None);
+            await repo.SaveChangesAsync(CancellationToken.None);
+        }
+        catch
+        {
+            // Si la persistencia falla el estado queda desincronizado; la excepción se absorbe
+            // para evitar que el task fire-and-forget quede como unobserved, lo que causaría crash en runtime
+        }
     }
 }

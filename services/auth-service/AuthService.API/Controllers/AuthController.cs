@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using AuthService.Application.DTOs;
+using AuthService.Application.Exceptions;
 using AuthService.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -84,8 +85,14 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public IActionResult Logout()
     {
-        // Borramos la cookie con las mismas opciones con las que fue creada
-        Response.Cookies.Delete("vetsys_jwt", new CookieOptions { Path = "/" });
+        // Las opciones deben coincidir exactamente con las del Append para que el browser borre la cookie
+        Response.Cookies.Delete("vetsys_jwt", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure   = true,
+            SameSite = SameSiteMode.Strict,
+            Path     = "/"
+        });
         return NoContent();
     }
 

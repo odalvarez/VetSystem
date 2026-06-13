@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PatientsService.Application.Exceptions;
+using PatientsService.Domain.Exceptions;
 
 namespace PatientsService.API.Middleware;
 
@@ -29,6 +30,7 @@ public class ErrorHandlingMiddleware
             ForbiddenException    => (403, "Sin permiso"),
             UnauthorizedException => (401, "No autorizado"),
             ValidationException   => (400, "Validación fallida"),
+            DomainException       => (400, "Regla de negocio"),
             _                     => (500, "Error interno del servidor")
         };
 

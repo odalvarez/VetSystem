@@ -123,7 +123,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db      = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
     var hasher  = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-    await MigrateWithRetryAsync(db.Database);
+    if (!app.Environment.IsEnvironment("Testing"))
+        await MigrateWithRetryAsync(db.Database);
 
     // Crea el admin inicial si no existe ningún usuario con rol Admin
     var adminEmail = app.Configuration["AdminSeed:Email"]    ?? "vet@vetsystem.com";
@@ -138,9 +139,6 @@ using (var scope = app.Services.CreateScope())
         await db.SaveChangesAsync();
     }
 }
-
-if (app.Configuration["SeedReset"] == "true")
-    await DatabaseSeeder.ResetAndSeedAsync(app.Services);
 
 app.UseCors();
 app.UseSwagger();

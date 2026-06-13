@@ -41,9 +41,10 @@ public class NotificationRepository : INotificationRepository
     public async Task AddReminderAsync(ReminderJob job, CancellationToken ct) =>
         await _db.Reminders.AddAsync(job, ct);
 
-    public Task<IEnumerable<ReminderJob>> GetPendingRemindersAsync(DateTime before, CancellationToken ct) =>
-        Task.FromResult<IEnumerable<ReminderJob>>(
-            _db.Reminders.Where(r => !r.Sent && r.ScheduledSendAt <= before).ToList());
+    public async Task<IEnumerable<ReminderJob>> GetPendingRemindersAsync(DateTime before, CancellationToken ct) =>
+        await _db.Reminders
+            .Where(r => !r.Sent && r.ScheduledSendAt <= before)
+            .ToListAsync(ct);
 
     public Task UpdateReminderAsync(ReminderJob job, CancellationToken ct)
     {
