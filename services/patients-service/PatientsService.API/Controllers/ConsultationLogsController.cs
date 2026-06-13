@@ -50,6 +50,16 @@ public class ConsultationLogsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { patientId, logId = result.Id }, result);
     }
 
+    /// <summary>Devuelve la bitácora asociada a una cita específica, o 404 si no existe.</summary>
+    [HttpGet("by-appointment/{appointmentId:guid}")]
+    [ProducesResponseType(typeof(ConsultationLogResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetByAppointment(Guid patientId, Guid appointmentId, CancellationToken ct)
+    {
+        var result = await _svc.GetByAppointmentAsync(patientId, appointmentId, ct);
+        return result is null ? NotFound() : Ok(result);
+    }
+
     /// <summary>
     /// Lista las bitácoras de consulta de una mascota, del más reciente al más antiguo.
     /// Un <c>Owner</c> solo puede consultar las bitácoras de sus propias mascotas.

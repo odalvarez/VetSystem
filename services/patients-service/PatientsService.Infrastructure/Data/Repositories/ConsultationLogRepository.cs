@@ -13,6 +13,12 @@ public class ConsultationLogRepository : IConsultationLogRepository
     public Task<ConsultationLog?> GetByIdAsync(Guid id, CancellationToken ct) =>
         _db.ConsultationLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
 
+    public Task<ConsultationLog?> GetByAppointmentAsync(Guid appointmentId, CancellationToken ct) =>
+        _db.ConsultationLogs.FirstOrDefaultAsync(l => l.AppointmentId == appointmentId, ct);
+
+    public Task<bool> ExistsByAppointmentAsync(Guid appointmentId, CancellationToken ct) =>
+        _db.ConsultationLogs.AnyAsync(l => l.AppointmentId == appointmentId, ct);
+
     public async Task<(IEnumerable<ConsultationLog> Data, int Total)> ListByPatientAsync(
         Guid patientId, int page, int pageSize, CancellationToken ct)
     {

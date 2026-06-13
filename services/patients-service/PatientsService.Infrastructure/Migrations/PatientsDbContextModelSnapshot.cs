@@ -129,6 +129,9 @@ namespace PatientsService.Infrastructure.Migrations
                     b.Property<DateTime>("OpenedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("AppointmentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uniqueidentifier");
 
@@ -181,6 +184,11 @@ namespace PatientsService.Infrastructure.Migrations
                         .HasColumnType("decimal(6,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ConsultationLogs_AppointmentId")
+                        .HasFilter("[AppointmentId] IS NOT NULL");
 
                     b.HasIndex("OpenedAt")
                         .HasDatabaseName("IX_ConsultationLogs_OpenedAt");

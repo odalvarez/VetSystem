@@ -36,6 +36,7 @@ public class PatientResponse
     public string   Name            { get; set; } = default!;
     public string   Species         { get; set; } = default!;
     public string   SpeciesName     { get; set; } = default!;
+    public string   SpeciesIcon     { get; set; } = default!;
     public string   Breed           { get; set; } = default!;
     public DateOnly BirthDate       { get; set; }
     public int      AgeYears        { get; set; }
