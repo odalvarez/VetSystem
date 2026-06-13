@@ -98,12 +98,38 @@
 
                     @if (!IsOwner)
                     {
-                        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+                            @if (IsAdmin)
+                            {
+                                @if (_confirmingDelete)
+                                {
+                                    <div style="display:flex;align-items:center;gap:8px">
+                                        <span style="font-size:.875rem;color:var(--color-danger)">¿Eliminar mascota?</span>
+                                        <button class="btn btn-danger btn-sm" @onclick="DeletePatient" disabled="@_deleting">
+                                            @if (_deleting) { <span class="spinner spinner-sm"></span> }
+                                            else { <span>Confirmar</span> }
+                                        </button>
+                                        <button class="btn btn-ghost btn-sm" @onclick="() => _confirmingDelete = false">Cancelar</button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-danger btn-sm" @onclick="() => _confirmingDelete = true">
+                                        🗑️ Eliminar mascota
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                <div></div>
+                            }
                             <button class="btn btn-primary" @onclick="SaveData" disabled="@_saving">
                                 @if (_saving) { <span class="spinner spinner-sm"></span> }
                                 else { <span>Guardar cambios</span> }
                             </button>
                         </div>
+                        @if (!string.IsNullOrEmpty(_deleteError))
+                        { <div class="alert alert-danger" style="margin-top:8px">⚠️ @_deleteError</div> }
                     }
                 }
 
@@ -254,7 +280,6 @@
                         </div>
                     }
 
-                    @* Botón agregar entrada (vet) *@
                     @if (!IsOwner && !_showRecordForm)
                     {
                         <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
@@ -264,7 +289,6 @@
                         </div>
                     }
 
-                    @* Formulario inline para nueva entrada *@
                     @if (_showRecordForm)
                     {
                         <div class="card" style="margin-bottom:20px">
@@ -334,7 +358,6 @@
                         </div>
                     }
 
-                    @* Lista de entradas *@
                     @if (_recordsLoading)
                     {
                         <LoadingSpinner Message="Cargando historia clínica…" />
@@ -393,21 +416,26 @@
 }
 
 @code {
-    [Parameter] public bool            Visible         { get; set; }
-    [Parameter] public PatientResponse? Patient         { get; set; }
-    [Parameter] public EventCallback   OnClose         { get; set; }
-    [Parameter] public EventCallback   OnPatientSaved  { get; set; }
+    [Parameter] public bool            Visible          { get; set; }
+    [Parameter] public PatientResponse? Patient          { get; set; }
+    [Parameter] public EventCallback   OnClose          { get; set; }
+    [Parameter] public EventCallback   OnPatientSaved   { get; set; }
+    [Parameter] public EventCallback   OnPatientDeleted { get; set; }
 
     // ── Roles ──────────────────────────────────────────────────
     private bool IsOwner => Token.User?.Role?.Equals("Owner", StringComparison.OrdinalIgnoreCase) == true;
+    private bool IsAdmin => Token.User?.Role?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true;
 
     // ── Tab activa ──────────────────────────────────────────────
     private string _tab = "data";
 
     // ── Tab datos ──────────────────────────────────────────────
-    private UpdatePatientRequest _edit  = new();
-    private bool    _saving    = false;
+    private UpdatePatientRequest _edit        = new();
+    private bool    _saving      = false;
     private string? _dataError;
+    private bool    _deleting         = false;
+    private bool    _confirmingDelete = false;
+    private string? _deleteError;
 
     // ── Tab bitácoras ───────────────────────────────────────────
     private List<ConsultationLogResponse>  _logs         = [];
@@ -448,9 +476,11 @@
             _selectedLog  = null;
             _showLogForm  = false;
             _showRecordForm = false;
-            _dataError    = null;
-            _logError     = null;
-            _recordError  = null;
+            _dataError        = null;
+            _logError         = null;
+            _recordError      = null;
+            _confirmingDelete = false;
+            _deleteError      = null;
 
             LoadEditForm();
             await LoadLogsAsync();
@@ -499,6 +529,20 @@
         }
         catch (Exception ex) { _dataError = ex.Message; }
         finally { _saving = false; }
+    }
+
+    private async Task DeletePatient()
+    {
+        _deleteError = null;
+        _deleting    = true;
+        try
+        {
+            await PatientApi.DeleteAsync(Patient!.Id);
+            _confirmingDelete = false;
+            await OnPatientDeleted.InvokeAsync();
+        }
+        catch (Exception ex) { _deleteError = ex.Message; }
+        finally { _deleting = false; }
     }
 
     private void HandleBirthDate(ChangeEventArgs e)
