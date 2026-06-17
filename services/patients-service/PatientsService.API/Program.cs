@@ -71,7 +71,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience         = true,
             ValidAudience            = builder.Configuration["Jwt:Audience"],
             ValidateLifetime         = true,
-            ClockSkew                = TimeSpan.Zero,
+            ClockSkew                = TimeSpan.FromSeconds(30),
             RoleClaimType            = System.Security.Claims.ClaimTypes.Role
         };
         opt.UseSecurityTokenValidators = true;

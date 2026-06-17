@@ -32,6 +32,7 @@ public class AuthController : ControllerBase
     /// <response code="409">El correo ya está registrado.</response>
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("register")]
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

@@ -75,7 +75,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience         = true,
             ValidAudience            = builder.Configuration["Jwt:Audience"],
             ValidateLifetime         = true,
-            ClockSkew                = TimeSpan.Zero
+            ClockSkew                = TimeSpan.FromSeconds(30)
         };
         // Usa el validador clásico JwtSecurityTokenHandler; el nuevo JsonWebTokenHandler
         // en .NET 9 tiene un bug con tokens generados por JwtSecurityTokenHandler
@@ -99,14 +99,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Máximo 10 intentos de login por IP en 10 minutos para bloquear ataques de fuerza bruta
 builder.Services.AddRateLimiter(opt =>
 {
+    // Máximo 10 intentos por IP en 10 minutos — frena fuerza bruta sobre credenciales
     opt.AddFixedWindowLimiter("login", cfg =>
     {
-        cfg.Window            = TimeSpan.FromMinutes(10);
-        cfg.PermitLimit       = 10;
-        cfg.QueueLimit        = 0;
+        cfg.Window               = TimeSpan.FromMinutes(10);
+        cfg.PermitLimit          = 10;
+        cfg.QueueLimit           = 0;
+        cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+    // Máximo 5 registros por IP en 10 minutos — evita creación masiva de cuentas
+    opt.AddFixedWindowLimiter("register", cfg =>
+    {
+        cfg.Window               = TimeSpan.FromMinutes(10);
+        cfg.PermitLimit          = 5;
+        cfg.QueueLimit           = 0;
         cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
     opt.RejectionStatusCode = 429;
