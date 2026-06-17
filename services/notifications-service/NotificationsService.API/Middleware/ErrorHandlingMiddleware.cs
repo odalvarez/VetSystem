@@ -7,11 +7,13 @@ public class ErrorHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ErrorHandlingMiddleware> _logger;
+    private readonly IHostEnvironment _env;
 
-    public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
+    public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger, IHostEnvironment env)
     {
         _next   = next;
         _logger = logger;
+        _env    = env;
     }
 
     public async Task InvokeAsync(HttpContext ctx)
@@ -41,7 +43,7 @@ public class ErrorHandlingMiddleware
             type     = $"https://httpstatuses.com/{status}",
             title,
             status,
-            detail   = ex.Message,
+            detail   = status == 500 && _env.IsProduction() ? "Error interno del servidor." : ex.Message,
             instance = ctx.Request.Path.Value
         }));
     }

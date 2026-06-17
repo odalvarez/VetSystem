@@ -56,7 +56,8 @@ public class ConsultationLogsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByAppointment(Guid patientId, Guid appointmentId, CancellationToken ct)
     {
-        var result = await _svc.GetByAppointmentAsync(patientId, appointmentId, ct);
+        Guid? ownerFilter = IsOwner() ? GetCallerId() : null;
+        var result = await _svc.GetByAppointmentAsync(patientId, appointmentId, ownerFilter, ct);
         return result is null ? NotFound() : Ok(result);
     }
 

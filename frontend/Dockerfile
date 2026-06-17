@@ -12,5 +12,7 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 # Blazor WASM es puramente estático una vez publicado; nginx es suficiente
 FROM nginx:1.27-alpine AS final
 COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# El entrypoint oficial de nginx ejecuta envsubst sobre los archivos en /etc/nginx/templates/
+# antes de arrancar, reemplazando ${INTERNAL_KEY} con el valor de la variable de entorno
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 EXPOSE 80

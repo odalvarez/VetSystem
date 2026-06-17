@@ -49,8 +49,9 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.WithOrigins("http://localhost", "https://localhost")
-     .AllowAnyHeader()
-     .AllowAnyMethod()));
+     .WithHeaders("Content-Type", "Authorization")
+     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
+     .AllowCredentials()));
 
 builder.Services.AddDbContext<NotificationsDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
@@ -110,8 +111,11 @@ using (var scope = app.Services.CreateScope())
 
 // InternalKeyMiddleware debe estar antes de Authentication para rechazar temprano
 app.UseCors();
-app.UseSwagger();
-app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "NotificationsService v1"));
+if (!app.Environment.IsProduction())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "NotificationsService v1"));
+}
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<InternalKeyMiddleware>();
 app.UseAuthentication();

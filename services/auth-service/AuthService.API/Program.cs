@@ -53,8 +53,9 @@ builder.Services.AddSwaggerGen(options =>
 // El frontend Blazor corre en el navegador; sin CORS el navegador bloquea todas las llamadas
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.WithOrigins("http://localhost", "https://localhost")
-     .AllowAnyHeader()
-     .AllowAnyMethod()));
+     .WithHeaders("Content-Type", "Authorization")
+     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
+     .AllowCredentials()));
 
 builder.Services.AddDbContext<AuthDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
@@ -126,8 +127,10 @@ using (var scope = app.Services.CreateScope())
     if (!app.Environment.IsEnvironment("Testing"))
         await MigrateWithRetryAsync(db.Database);
 
-    var adminEmail = app.Configuration["AdminSeed:Email"]    ?? "vet@vetsystem.com";
-    var adminPwd   = app.Configuration["AdminSeed:Password"] ?? "Admin1234!";
+    var adminEmail = app.Configuration["AdminSeed:Email"]
+        ?? throw new InvalidOperationException("AdminSeed:Email no está configurado.");
+    var adminPwd = app.Configuration["AdminSeed:Password"]
+        ?? throw new InvalidOperationException("AdminSeed:Password no está configurado.");
     if (!await db.Users.AnyAsync(u => u.Role == AuthService.Domain.Enums.UserRole.Admin))
     {
         var adminUser = AuthService.Domain.Entities.User.Create(
@@ -140,8 +143,11 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
-app.UseSwagger();
-app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "AuthService v1"));
+if (!app.Environment.IsProduction())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "AuthService v1"));
+}
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();

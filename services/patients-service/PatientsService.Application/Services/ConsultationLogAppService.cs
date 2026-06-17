@@ -44,10 +44,13 @@ public class ConsultationLogAppService
     }
 
     public async Task<ConsultationLogResponse?> GetByAppointmentAsync(
-        Guid patientId, Guid appointmentId, CancellationToken ct)
+        Guid patientId, Guid appointmentId, Guid? callerOwnerId, CancellationToken ct)
     {
-        _ = await _patients.GetByIdAsync(patientId, ct)
+        var patient = await _patients.GetByIdAsync(patientId, ct)
             ?? throw new NotFoundException("Mascota no encontrada.");
+
+        if (callerOwnerId.HasValue && patient.OwnerId != callerOwnerId.Value)
+            throw new UnauthorizedException("No tienes permiso sobre esta mascota.");
 
         var log = await _repo.GetByAppointmentAsync(appointmentId, ct);
         if (log == null || log.PatientId != patientId) return null;
