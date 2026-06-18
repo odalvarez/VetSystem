@@ -259,9 +259,9 @@ services:
     restart: unless-stopped
 
   # ──────────────────────────────────────────────────────────────────────
-  # Frontend Blazor WASM — puerto 80
+  # Frontend Blazor WASM
   # nginx sirve los archivos estáticos y actúa como reverse proxy hacia los microservicios.
-  # Los servicios no tienen puertos expuestos al host; solo son accesibles a través de nginx.
+  # No expone puertos al host: nginx-proxy llega a este contenedor por la red Docker interna.
   # ──────────────────────────────────────────────────────────────────────
   frontend:
     build:
@@ -270,8 +270,6 @@ services:
     container_name: vetsystem-frontend
     environment:
       INTERNAL_KEY: "${INTERNAL_KEY}"
-    ports:
-      - "80:80"
     networks:
       - vetsystem
     depends_on:
