@@ -62,6 +62,17 @@ public class AppointmentRepository : IAppointmentRepository
         return Task.CompletedTask;
     }
 
+    public async Task<IEnumerable<Appointment>> GetScheduledForDateAsync(DateOnly date, CancellationToken ct)
+    {
+        var start = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var end   = start.AddDays(1);
+        return await _db.Appointments
+            .Where(a => a.ScheduledAt >= start && a.ScheduledAt < end
+                     && a.Status != AppointmentStatus.Cancelled
+                     && !a.ReminderSent)
+            .ToListAsync(ct);
+    }
+
     public Task SaveChangesAsync(CancellationToken ct) =>
         _db.SaveChangesAsync(ct);
 }

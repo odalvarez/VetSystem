@@ -12,9 +12,16 @@ namespace AppointmentsService.Tests.Helpers;
 
 file sealed class NoOpNotificationClient : INotificationClient
 {
-    public Task ScheduleReminderAsync(
+    public Task SendConfirmationAsync(
         Guid appointmentId, string patientName, string ownerName,
-        string ownerPhone, string ownerEmail, DateTime scheduledAt,
+        string ownerPhone, string? ownerEmail, string veterinarianName,
+        DateTime scheduledAt, int durationMinutes, string reason,
+        CancellationToken ct = default)
+        => Task.CompletedTask;
+
+    public Task SendReminderNowAsync(
+        Guid appointmentId, string patientName, string ownerName,
+        string ownerPhone, string? ownerEmail, DateTime scheduledAt,
         CancellationToken ct = default)
         => Task.CompletedTask;
 }

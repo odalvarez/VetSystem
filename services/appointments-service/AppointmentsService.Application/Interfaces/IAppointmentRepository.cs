@@ -16,5 +16,6 @@ public interface IAppointmentRepository
         Guid? excludeId, CancellationToken ct = default);
     Task AddAsync(Appointment appointment, CancellationToken ct = default);
     Task UpdateAsync(Appointment appointment, CancellationToken ct = default);
+    Task<IEnumerable<Appointment>> GetScheduledForDateAsync(DateOnly date, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

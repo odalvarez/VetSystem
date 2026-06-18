@@ -18,6 +18,7 @@ public class Appointment
     public string           Reason           { get; private set; } = default!;
     public AppointmentStatus Status          { get; private set; }
     public string?          Notes            { get; private set; }
+    public bool             ReminderSent     { get; private set; }
     public DateTime         CreatedAt        { get; private set; }
     public DateTime         UpdatedAt        { get; private set; }
 
@@ -85,6 +86,12 @@ public class Appointment
 
         Status    = newStatus;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MarkReminderSent()
+    {
+        ReminderSent = true;
+        UpdatedAt    = DateTime.UtcNow;
     }
 
     public DateTime EndsAt => ScheduledAt.AddMinutes(DurationMinutes);

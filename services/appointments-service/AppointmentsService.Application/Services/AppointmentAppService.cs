@@ -15,9 +15,7 @@ public class AppointmentAppService
     private static readonly TimeOnly WorkStart = new(8, 0);
     private static readonly TimeOnly WorkEnd   = new(18, 0);
 
-    public AppointmentAppService(
-        IAppointmentRepository repo,
-        INotificationClient notifications)
+    public AppointmentAppService(IAppointmentRepository repo, INotificationClient notifications)
     {
         _repo          = repo;
         _notifications = notifications;
@@ -43,6 +41,19 @@ public class AppointmentAppService
 
         await _repo.AddAsync(appointment, ct);
         await _repo.SaveChangesAsync(ct);
+
+        await _notifications.SendConfirmationAsync(
+            appointmentId:   appointment.Id,
+            patientName:     appointment.PatientName,
+            ownerName:       appointment.OwnerName,
+            ownerPhone:      appointment.OwnerPhone,
+            ownerEmail:      null,
+            veterinarianName: appointment.VeterinarianName,
+            scheduledAt:     appointment.ScheduledAt,
+            durationMinutes: appointment.DurationMinutes,
+            reason:          appointment.Reason,
+            ct:              ct);
+
         return Map(appointment);
     }
 
@@ -103,23 +114,6 @@ public class AppointmentAppService
         appt.ChangeStatus(newStatus);
         await _repo.UpdateAsync(appt, ct);
         await _repo.SaveChangesAsync(ct);
-
-        // Al confirmar la cita programamos el recordatorio 24h antes.
-        // Lo hacemos DESPUÉS de guardar para no perder el cambio de estado si falla.
-        // El cliente absorbe cualquier excepción del notifications-service internamente.
-        if (newStatus == AppointmentStatus.Confirmed)
-        {
-            await _notifications.ScheduleReminderAsync(
-                appointmentId: appt.Id,
-                patientName:   appt.PatientName,
-                ownerName:     appt.OwnerName,
-                ownerPhone:    appt.OwnerPhone,
-                ownerEmail:    "",   // el email del owner no llega en el appointments-service;
-                                     // el recordatorio enviará solo por WhatsApp en este caso
-                scheduledAt:   appt.ScheduledAt,
-                ct:            ct);
-        }
-
         return Map(appt);
     }
 

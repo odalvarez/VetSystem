@@ -677,7 +677,7 @@ public class AuthControllerTests : IClassFixture<AuthWebFactory>
     [Fact]
     public async Task GetMe_ExpiredToken_Returns401()
     {
-        // Genera un token que ya expiró hace 1 segundo
+        // ClockSkew es 30s, así que el token debe haber expirado hace más de 30s para ser rechazado
         var key    = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtTestHelper.Secret));
         var creds  = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var claims = new[]
@@ -694,8 +694,8 @@ public class AuthControllerTests : IClassFixture<AuthWebFactory>
             issuer:             JwtTestHelper.Issuer,
             audience:           JwtTestHelper.Audience,
             claims:             claims,
-            notBefore:          DateTime.UtcNow.AddSeconds(-10),
-            expires:            DateTime.UtcNow.AddSeconds(-1),
+            notBefore:          DateTime.UtcNow.AddSeconds(-100),
+            expires:            DateTime.UtcNow.AddSeconds(-61),
             signingCredentials: creds);
 
         var tokenStr = new JwtSecurityTokenHandler().WriteToken(expiredToken);

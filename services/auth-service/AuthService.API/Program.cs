@@ -99,26 +99,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddRateLimiter(opt =>
+// Los tests corren múltiples llamadas a /register en el mismo proceso; el rate limiter
+// los bloquearía con 429 antes de que lleguen a la lógica que realmente quieren probar.
+if (!builder.Environment.IsEnvironment("Testing"))
 {
-    // Máximo 10 intentos por IP en 10 minutos — frena fuerza bruta sobre credenciales
-    opt.AddFixedWindowLimiter("login", cfg =>
+    builder.Services.AddRateLimiter(opt =>
     {
-        cfg.Window               = TimeSpan.FromMinutes(10);
-        cfg.PermitLimit          = 10;
-        cfg.QueueLimit           = 0;
-        cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.AddFixedWindowLimiter("login", cfg =>
+        {
+            cfg.Window               = TimeSpan.FromMinutes(10);
+            cfg.PermitLimit          = 10;
+            cfg.QueueLimit           = 0;
+            cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        });
+        opt.AddFixedWindowLimiter("register", cfg =>
+        {
+            cfg.Window               = TimeSpan.FromMinutes(10);
+            cfg.PermitLimit          = 5;
+            cfg.QueueLimit           = 0;
+            cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        });
+        opt.RejectionStatusCode = 429;
     });
-    // Máximo 5 registros por IP en 10 minutos — evita creación masiva de cuentas
-    opt.AddFixedWindowLimiter("register", cfg =>
-    {
-        cfg.Window               = TimeSpan.FromMinutes(10);
-        cfg.PermitLimit          = 5;
-        cfg.QueueLimit           = 0;
-        cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
-    opt.RejectionStatusCode = 429;
-});
+}
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -157,7 +160,8 @@ if (!app.Environment.IsProduction())
     app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "AuthService v1"));
 }
 app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseRateLimiter();
+if (!app.Environment.IsEnvironment("Testing"))
+    app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -98,7 +98,6 @@ builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<NotificationAppService>();
 
-builder.Services.AddHostedService<NotificationsService.API.ReminderWorker>();
 
 var app = builder.Build();
 

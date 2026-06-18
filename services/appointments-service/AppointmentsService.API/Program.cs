@@ -107,6 +107,7 @@ builder.Services.AddHttpClient<INotificationClient, NotificationHttpClient>(c =>
 });
 
 builder.Services.AddScoped<AppointmentAppService>();
+builder.Services.AddHostedService<AppointmentsService.API.AppointmentReminderWorker>();
 
 var app = builder.Build();
 
