@@ -11,6 +11,7 @@ public class Appointment
     public Guid             OwnerId          { get; private set; }
     public string           OwnerName        { get; private set; } = default!;
     public string           OwnerPhone       { get; private set; } = default!;
+    public string?          OwnerEmail       { get; private set; }
     public Guid             VeterinarianId   { get; private set; }
     public string           VeterinarianName { get; private set; } = default!;
     public DateTime         ScheduledAt      { get; private set; }
@@ -33,7 +34,7 @@ public class Appointment
 
     public static Appointment Create(
         Guid patientId, string patientName,
-        Guid ownerId, string ownerName, string ownerPhone,
+        Guid ownerId, string ownerName, string ownerPhone, string? ownerEmail,
         Guid veterinarianId, string veterinarianName,
         DateTime scheduledAt, int durationMinutes,
         string reason, string? notes)
@@ -52,6 +53,7 @@ public class Appointment
             OwnerId          = ownerId,
             OwnerName        = ownerName,
             OwnerPhone       = ownerPhone,
+            OwnerEmail       = ownerEmail,
             VeterinarianId   = veterinarianId,
             VeterinarianName = veterinarianName,
             ScheduledAt      = scheduledAt,

@@ -35,7 +35,7 @@ public class AppointmentAppService
 
         var appointment = Appointment.Create(
             req.PatientId, req.PatientName,
-            req.OwnerId, req.OwnerName, req.OwnerPhone,
+            req.OwnerId, req.OwnerName, req.OwnerPhone, req.OwnerEmail,
             req.VeterinarianId, req.VeterinarianName,
             req.ScheduledAt, req.DurationMinutes, req.Reason, req.Notes);
 
@@ -47,7 +47,7 @@ public class AppointmentAppService
             patientName:     appointment.PatientName,
             ownerName:       appointment.OwnerName,
             ownerPhone:      appointment.OwnerPhone,
-            ownerEmail:      null,
+            ownerEmail:      appointment.OwnerEmail,
             veterinarianName: appointment.VeterinarianName,
             scheduledAt:     appointment.ScheduledAt,
             durationMinutes: appointment.DurationMinutes,
@@ -183,6 +183,7 @@ public class AppointmentAppService
         OwnerId          = a.OwnerId,
         OwnerName        = a.OwnerName,
         OwnerPhone       = a.OwnerPhone,
+        OwnerEmail       = a.OwnerEmail,
         VeterinarianId   = a.VeterinarianId,
         VeterinarianName = a.VeterinarianName,
         ScheduledAt      = a.ScheduledAt,

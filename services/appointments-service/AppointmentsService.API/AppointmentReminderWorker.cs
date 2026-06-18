@@ -85,7 +85,7 @@ public class AppointmentReminderWorker : BackgroundService
                 patientName:   appt.PatientName,
                 ownerName:     appt.OwnerName,
                 ownerPhone:    appt.OwnerPhone,
-                ownerEmail:    null,
+                ownerEmail:    appt.OwnerEmail,
                 scheduledAt:   appt.ScheduledAt,
                 ct:            ct);
 

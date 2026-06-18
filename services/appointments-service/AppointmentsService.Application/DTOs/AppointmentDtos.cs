@@ -13,11 +13,12 @@ public class CreateAppointmentRequest
 
     // Datos del dueño y mascota que el caller debe proveer
     // (en un sistema con API Gateway esto vendría del token; aquí lo recibimos del caller)
-    [Required] public string PatientName  { get; set; } = default!;
-    [Required] public string OwnerName    { get; set; } = default!;
-    [Required] public string OwnerPhone   { get; set; } = default!;
-    [Required] public Guid   OwnerId      { get; set; }
-    [Required] public string VeterinarianName { get; set; } = default!;
+    [Required] public string  PatientName      { get; set; } = default!;
+    [Required] public string  OwnerName        { get; set; } = default!;
+    [Required] public string  OwnerPhone       { get; set; } = default!;
+    [EmailAddress] public string? OwnerEmail   { get; set; }
+    [Required] public Guid   OwnerId           { get; set; }
+    [Required] public string VeterinarianName  { get; set; } = default!;
 }
 
 public class UpdateAppointmentRequest
@@ -41,6 +42,7 @@ public class AppointmentResponse
     public Guid     OwnerId          { get; set; }
     public string   OwnerName        { get; set; } = default!;
     public string   OwnerPhone       { get; set; } = default!;
+    public string?  OwnerEmail       { get; set; }
     public Guid     VeterinarianId   { get; set; }
     public string   VeterinarianName { get; set; } = default!;
     public DateTime ScheduledAt      { get; set; }

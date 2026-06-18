@@ -167,6 +167,7 @@
 
     private List<PatientResponse>? _patients;
     private List<VetSummary>?      _vets;
+    private List<OwnerSummary>?    _owners;
     private List<TimeSlot>?        _slots;
 
     // Buscador de mascota
@@ -190,8 +191,7 @@
     {
         if (Visible && _patients == null)
         {
-            // Carga mascotas y veterinarios en paralelo al abrir el modal
-            await Task.WhenAll(LoadPatients(), LoadVets());
+            await Task.WhenAll(LoadPatients(), LoadVets(), LoadOwners());
         }
         else if (!Visible)
         {
@@ -220,6 +220,12 @@
     {
         try { _vets = await AuthApi.GetVeterinariansAsync(); }
         catch { _vets = []; }
+    }
+
+    private async Task LoadOwners()
+    {
+        try { _owners = await AuthApi.GetOwnersAsync(); }
+        catch { _owners = []; }
     }
 
     // ── Buscador de mascota ────────────────────────────────────────────────────
@@ -296,9 +302,12 @@
         _request.ScheduledAt      = scheduledAt;
         _request.PatientName      = patient.Name;
         // Si el que agenda es el dueño, él es el propietario; si es vet/admin, toma los datos del paciente
-        _request.OwnerId          = callerIsOwner ? (user?.Id ?? Guid.Empty) : patient.OwnerId;
-        _request.OwnerName        = callerIsOwner ? (user?.FullName ?? "")   : patient.OwnerName;
-        _request.OwnerPhone       = callerIsOwner ? (user?.Phone ?? "")      : patient.OwnerPhone;
+        _request.OwnerId    = callerIsOwner ? (user?.Id ?? Guid.Empty) : patient.OwnerId;
+        _request.OwnerName  = callerIsOwner ? (user?.FullName ?? "")   : patient.OwnerName;
+        _request.OwnerPhone = callerIsOwner ? (user?.Phone ?? "")      : patient.OwnerPhone;
+        _request.OwnerEmail = callerIsOwner
+            ? user?.Email
+            : _owners?.FirstOrDefault(o => o.Id == patient.OwnerId)?.Email;
 
         _saving = true;
         try
@@ -319,7 +328,7 @@
 
     private void Reset()
     {
-        _patients = null; _vets = null; _slots = null; _error = null;
+        _patients = null; _vets = null; _owners = null; _slots = null; _error = null;
         _submitted = false;
         _selectedPatientId = Guid.Empty;
         _selectedVetId     = Guid.Empty;
