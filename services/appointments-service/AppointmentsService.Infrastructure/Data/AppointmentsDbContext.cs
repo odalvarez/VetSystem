@@ -46,6 +46,8 @@ public class AppointmentsDbContext : DbContext
         model.Entity<ClinicSettings>(e =>
         {
             e.HasKey(s => s.Id);
+            // Singleton con Id fijo = 1; sin IDENTITY para poder insertar el valor explícito
+            e.Property(s => s.Id).ValueGeneratedNever();
             e.Property(s => s.WorkDays).IsRequired().HasMaxLength(100);
             // TimeOnly se convierte a string HH:mm para compatibilidad con SQL Server
             e.Property(s => s.StartTime).HasConversion(

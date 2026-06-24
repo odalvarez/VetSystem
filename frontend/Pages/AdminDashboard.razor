@@ -590,8 +590,7 @@
                                     var d = day;
                                     var sel = _editWorkDays.Contains(d);
                                     <button type="button"
-                                            class="badge @(sel ? "badge-success" : "")"
-                                            style="cursor:pointer;border:1px solid var(--color-border);background:@(sel ? "" : "var(--color-surface)")"
+                                            style="cursor:pointer;padding:4px 10px;border-radius:6px;font-size:.8rem;font-weight:500;border:1.5px solid @(sel ? "var(--color-primary)" : "var(--color-border)");background:@(sel ? "var(--color-primary)" : "transparent");color:@(sel ? "#fff" : "var(--color-text-secondary)");"
                                             @onclick="() => ToggleWorkDay(d)">
                                         @DayLabel(d)
                                     </button>
