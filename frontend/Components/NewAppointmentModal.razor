@@ -75,68 +75,68 @@
                     }
                 </div>
 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha *</label>
+                        <input type="date" class="form-control @(_submitted && _date == default ? "invalid" : "")"
+                               value="@(_date == default ? "" : _date.ToString("yyyy-MM-dd"))"
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               @onchange="OnDateChanged" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Hora *</label>
+                        <input type="time" class="form-control" value="@_timeStr"
+                               min="08:00" max="20:00" step="900"
+                               @onchange="OnTimeChanged" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Duración</label>
+                    <select class="form-control" value="@_request.DurationMinutes"
+                            @onchange="OnDurationChanged">
+                        <option value="20">20 min — Consulta rápida</option>
+                        <option value="40">40 min — Consulta estándar</option>
+                        <option value="60">60 min — Consulta extendida</option>
+                        <option value="90">90 min — Procedimiento</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Veterinario *</label>
                     @if (_vets == null)
                     {
                         <LoadingSpinner Message="Cargando veterinarios…" />
                     }
-                    else if (!_vets.Any())
+                    else if (_checkingAvailability)
                     {
-                        <div class="alert alert-danger" style="margin:0">No hay veterinarios disponibles.</div>
+                        <LoadingSpinner Message="Verificando disponibilidad…" />
                     }
                     else
                     {
-                        <select class="form-control @(_submitted && _selectedVetId == Guid.Empty ? "invalid" : "")"
-                                @onchange="OnVetSelected">
-                            <option value="">— Selecciona un veterinario —</option>
-                            @foreach (var v in _vets)
-                            {
-                                <option value="@v.Id">@v.FullName</option>
-                            }
-                        </select>
-                        @if (_submitted && _selectedVetId == Guid.Empty)
-                        { <div class="validation-message">Selecciona un veterinario.</div> }
-                    }
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Fecha *</label>
-                        <input type="date" class="form-control @(_submitted && _date == default ? "invalid" : "")"
-                               @bind="_date" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Hora *</label>
-                        @if (_slots == null || !_slots.Any())
+                        var visibleVets = ScheduleSelected ? (_vets.Where(v => _availableVetIds.Contains(v.Id)).ToList()) : _vets;
+                        @if (!visibleVets.Any() && ScheduleSelected)
                         {
-                            <input type="time" class="form-control" value="@_timeStr"
-                                   @oninput="e => _timeStr = e.Value?.ToString() ?? string.Empty"
-                                   min="08:00" max="17:00" step="900" />
+                            <div class="alert alert-danger" style="margin:0">
+                                No hay veterinarios disponibles en ese horario.
+                            </div>
                         }
                         else
                         {
-                            <select class="form-control" @bind="_timeStr">
-                                <option value="">— Horario disponible —</option>
-                                @foreach (var s in _slots)
+                            <select class="form-control @(_submitted && _selectedVetId == Guid.Empty ? "invalid" : "")"
+                                    @onchange="OnVetSelected">
+                                <option value="">
+                                    @(ScheduleSelected ? "— Veterinarios disponibles —" : "— Selecciona fecha y hora primero —")
+                                </option>
+                                @foreach (var v in visibleVets)
                                 {
-                                    <option value="@s.Start.ToString("HH:mm")">
-                                        @s.Start.ToString("HH:mm")
-                                    </option>
+                                    <option value="@v.Id">@v.FullName</option>
                                 }
                             </select>
                         }
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Duración</label>
-                    <select class="form-control" @bind="_request.DurationMinutes">
-                        <option value="20">20 min — Consulta rápida</option>
-                        <option value="40">40 min — Consulta estándar</option>
-                        <option value="60">60 min — Consulta extendida</option>
-                        <option value="90">90 min — Procedimiento</option>
-                    </select>
+                        @if (_submitted && _selectedVetId == Guid.Empty)
+                        { <div class="validation-message">Selecciona un veterinario.</div> }
+                    }
                 </div>
 
                 <div class="form-group">
@@ -168,7 +168,6 @@
     private List<PatientResponse>? _patients;
     private List<VetSummary>?      _vets;
     private List<OwnerSummary>?    _owners;
-    private List<TimeSlot>?        _slots;
 
     // Buscador de mascota
     private string               _patientSearch   = "";
@@ -177,15 +176,22 @@
     private PatientResponse?     _selectedPatient;
 
     private CreateAppointmentRequest _request = new() { DurationMinutes = 40 };
-    private Guid   _selectedPatientId;
-    private Guid   _selectedVetId;
-    private bool   _submitted;
-    private bool   _saving;
+    private Guid    _selectedPatientId;
+    private Guid    _selectedVetId;
+    private bool    _submitted;
+    private bool    _saving;
     private string? _error;
-    private string  _timeStr = "09:00";
+    private string  _timeStr = "";
     private DateTime _date;
     private ElementReference _modalRef;
     private bool _prevVisible;
+
+    // Disponibilidad
+    private HashSet<Guid> _availableVetIds    = [];
+    private bool          _checkingAvailability;
+
+    private bool ScheduleSelected =>
+        _date != default && !string.IsNullOrEmpty(_timeStr);
 
     protected override async Task OnParametersSetAsync()
     {
@@ -266,6 +272,61 @@
         _showPatientDrop = false;
     }
 
+    // ── Cambios de horario ────────────────────────────────────────────────────
+
+    private async Task OnDateChanged(ChangeEventArgs e)
+    {
+        _date = DateTime.TryParse(e.Value?.ToString(), out var d) ? d : default;
+        await CheckAvailability();
+    }
+
+    private async Task OnTimeChanged(ChangeEventArgs e)
+    {
+        _timeStr = e.Value?.ToString() ?? "";
+        await CheckAvailability();
+    }
+
+    private async Task OnDurationChanged(ChangeEventArgs e)
+    {
+        _request.DurationMinutes = int.TryParse(e.Value?.ToString(), out var dur) ? dur : 40;
+        await CheckAvailability();
+    }
+
+    private async Task CheckAvailability()
+    {
+        if (!ScheduleSelected || _vets == null || !_vets.Any())
+        {
+            _availableVetIds = [];
+            return;
+        }
+
+        _checkingAvailability = true;
+        _availableVetIds      = [];
+        StateHasChanged();
+
+        var date = DateOnly.FromDateTime(_date);
+        var tasks = _vets.Select(async v =>
+        {
+            var avail = await AppointmentApi.GetAvailabilityAsync(v.Id, date, _request.DurationMinutes);
+            if (avail == null) return (v.Id, false);
+
+            // Hay disponibilidad si algún slot coincide con la hora elegida
+            var requestedHour = _timeStr;
+            var available = avail.AvailableSlots.Any(s => s.Start.ToString("HH:mm") == requestedHour);
+            return (v.Id, available);
+        });
+
+        var results = await Task.WhenAll(tasks);
+        _availableVetIds = results.Where(r => r.Item2).Select(r => r.Id).ToHashSet();
+
+        // Si el vet seleccionado ya no está disponible, deseleccionarlo
+        if (_selectedVetId != Guid.Empty && !_availableVetIds.Contains(_selectedVetId))
+            _selectedVetId = Guid.Empty;
+
+        _checkingAvailability = false;
+        StateHasChanged();
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
 
     private void OnVetSelected(ChangeEventArgs e)
@@ -283,7 +344,7 @@
         if (string.IsNullOrWhiteSpace(_request.Reason)) { _error = "El motivo de la cita es obligatorio."; return; }
 
         // Combina fecha + hora en un DateTime
-        var timeSpan   = TimeSpan.TryParse(_timeStr, out var ts) ? ts : new TimeSpan(9, 0, 0);
+        var timeSpan    = TimeSpan.TryParse(_timeStr, out var ts) ? ts : new TimeSpan(9, 0, 0);
         var scheduledAt = (_date == default ? DateTime.Today : _date).Add(timeSpan);
 
         if (scheduledAt <= DateTime.Now) { _error = "La fecha y hora deben ser futuras."; return; }
@@ -328,16 +389,18 @@
 
     private void Reset()
     {
-        _patients = null; _vets = null; _owners = null; _slots = null; _error = null;
-        _submitted = false;
-        _selectedPatientId = Guid.Empty;
-        _selectedVetId     = Guid.Empty;
-        _selectedPatient   = null;
-        _patientSearch     = "";
-        _patientResults    = [];
-        _showPatientDrop   = false;
+        _patients = null; _vets = null; _owners = null; _error = null;
+        _submitted            = false;
+        _selectedPatientId    = Guid.Empty;
+        _selectedVetId        = Guid.Empty;
+        _selectedPatient      = null;
+        _patientSearch        = "";
+        _patientResults       = [];
+        _showPatientDrop      = false;
+        _availableVetIds      = [];
+        _checkingAvailability = false;
         _request   = new() { DurationMinutes = 40 };
-        _timeStr   = "09:00";
+        _timeStr   = "";
         _date      = default;
     }
 

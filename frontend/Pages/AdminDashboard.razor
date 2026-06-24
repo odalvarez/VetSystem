@@ -79,6 +79,21 @@
                 <div class="stat-value" style="color:var(--color-text-muted)">@_speciesList.Count(s => s.PatientCount == 0)</div>
             </div>
         }
+        else if (_tab == "schedules" && _clinicSettings is not null)
+        {
+            <div class="stat-card">
+                <div class="stat-label">Horario clínica</div>
+                <div class="stat-value" style="font-size:1rem">@_clinicSettings.StartTime – @_clinicSettings.EndTime</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Días laborables</div>
+                <div class="stat-value">@_clinicSettings.WorkDays.Count</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Overrides de vet</div>
+                <div class="stat-value">@_vetSchedules.Count</div>
+            </div>
+        }
     </div>
 
     @* ── Tabs ── *@
@@ -94,6 +109,9 @@
         </button>
         <button class="admin-tab @(_tab == "species" ? "active" : "")" @onclick='() => SwitchTab("species")'>
             🐾 Especies
+        </button>
+        <button class="admin-tab @(_tab == "schedules" ? "active" : "")" @onclick='() => SwitchTab("schedules")'>
+            🕐 Horarios
         </button>
     </div>
 
@@ -452,9 +470,11 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @{ int _spIdx = 0; }
                                 @foreach (var s in _speciesList)
                                 {
                                     var sp = s;
+                                    bool _dropUp = (_spIdx++ >= _speciesList.Count - 2);
                                     <tr>
                                         <td data-label="Especie">
                                             @if (_editingSpeciesId == sp.Id)
@@ -469,7 +489,7 @@
                                                         @if (_editIconPickerOpen)
                                                         {
                                                             <div class="icon-dropdown-backdrop" @onclick="() => _editIconPickerOpen = false"></div>
-                                                            <div class="icon-dropdown-panel">
+                                                            <div class="icon-dropdown-panel @(_dropUp ? "drop-up" : "")">
                                                                 @foreach (var e in AvailableIcons)
                                                                 {
                                                                     var icon = e;
@@ -702,6 +722,242 @@
     </div>
 }
 
+@* ═══════════════════════════════════════════════
+   TAB: HORARIOS
+   ═══════════════════════════════════════════════ *@
+@if (_tab == "schedules")
+{
+    @* ── Configuración global de la clínica ── *@
+    <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+            <span class="card-title">Horario global de la clínica</span>
+        </div>
+        @if (_schedulesLoading)
+        {
+            <div class="loading-pad"><LoadingSpinner Message="Cargando horarios…" /></div>
+        }
+        else if (_clinicSettings is not null)
+        {
+            <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+                    <div>
+                        <label class="form-label">Hora inicio</label>
+                        <input type="time" class="form-control" style="width:120px"
+                               @bind="_editStart" />
+                    </div>
+                    <div>
+                        <label class="form-label">Hora fin</label>
+                        <input type="time" class="form-control" style="width:120px"
+                               @bind="_editEnd" />
+                    </div>
+                    <div style="flex:1;min-width:220px">
+                        <label class="form-label">Días laborables</label>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.25rem">
+                            @foreach (var day in AllDays)
+                            {
+                                var d = day;
+                                var sel = _editWorkDays.Contains(d);
+                                <button type="button"
+                                        class="badge @(sel ? "badge-success" : "")"
+                                        style="cursor:pointer;border:1px solid var(--color-border);background:@(sel ? "" : "var(--color-surface)")"
+                                        @onclick="() => ToggleWorkDay(d)">
+                                    @DayLabel(d)
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary btn-sm" @onclick="SaveClinicSettings"
+                                disabled="@_schedulesSaving">
+                            @(_schedulesSaving ? "Guardando…" : "Guardar")
+                        </button>
+                    </div>
+                </div>
+                @if (_schedulesError is not null)
+                {
+                    <div class="alert alert-danger mb-0">@_schedulesError</div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── Horarios personalizados por veterinario ── *@
+    <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+            <span class="card-title">Horario personalizado por veterinario</span>
+        </div>
+        <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+            @* Selector de vet *@
+            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+                <div style="flex:1;min-width:200px">
+                    <label class="form-label">Veterinario</label>
+                    <select class="filter-select" style="width:100%" @bind="_schedVetId" @bind:after="LoadVetSchedules">
+                        <option value="">— seleccionar —</option>
+                        @foreach (var u in _vets)
+                        {
+                            <option value="@u.Id">@u.FullName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @if (_schedVetId != Guid.Empty)
+            {
+                @* Tabla de overrides del vet seleccionado *@
+                @if (_vetSchedules.Count > 0)
+                {
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Día</th>
+                                    <th>Inicio</th>
+                                    <th>Fin</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in _vetSchedules)
+                                {
+                                    var sc = s;
+                                    <tr>
+                                        <td>@DayLabel(sc.DayOfWeek)</td>
+                                        <td>@sc.StartTime</td>
+                                        <td>@sc.EndTime</td>
+                                        <td>
+                                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetSchedule(sc.DayOfWeek)">
+                                                Eliminar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p style="color:var(--color-text-muted);font-size:0.875rem">
+                        Este veterinario no tiene horario personalizado. Usa el horario global para todos los días.
+                    </p>
+                }
+
+                @* Formulario para agregar override *@
+                <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:0.75rem">
+                    <div>
+                        <label class="form-label">Día</label>
+                        <select class="filter-select" @bind="_newSchedDay">
+                            @foreach (var day in AllDays)
+                            {
+                                <option value="@day">@DayLabel(day)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Inicio</label>
+                        <input type="time" class="form-control" style="width:110px" @bind="_newSchedStart" />
+                    </div>
+                    <div>
+                        <label class="form-label">Fin</label>
+                        <input type="time" class="form-control" style="width:110px" @bind="_newSchedEnd" />
+                    </div>
+                    <button class="btn btn-primary btn-sm" @onclick="UpsertVetSchedule"
+                            disabled="@_schedulesSaving">
+                        @(_schedulesSaving ? "…" : "Guardar override")
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ── Permisos / Ausencias ── *@
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Ausencias y permisos</span>
+        </div>
+        <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+                <div style="flex:1;min-width:200px">
+                    <label class="form-label">Veterinario</label>
+                    <select class="filter-select" style="width:100%" @bind="_leaveVetId" @bind:after="LoadVetLeaves">
+                        <option value="">— seleccionar —</option>
+                        @foreach (var u in _vets)
+                        {
+                            <option value="@u.Id">@u.FullName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @if (_leaveVetId != Guid.Empty)
+            {
+                @if (_vetLeaves.Count > 0)
+                {
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Desde</th>
+                                    <th>Hasta</th>
+                                    <th>Motivo</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var l in _vetLeaves)
+                                {
+                                    var lv = l;
+                                    <tr>
+                                        <td>@lv.DateFrom</td>
+                                        <td>@lv.DateTo</td>
+                                        <td>@lv.Reason</td>
+                                        <td>
+                                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetLeave(lv.Id)">
+                                                Eliminar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p style="color:var(--color-text-muted);font-size:0.875rem">Sin ausencias registradas.</p>
+                }
+
+                <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:0.75rem">
+                    <div>
+                        <label class="form-label">Desde</label>
+                        <input type="date" class="form-control" style="width:150px"
+                               value="@_newLeaveFrom"
+                               @onchange="e => _newLeaveFrom = e.Value?.ToString() ?? _newLeaveFrom" />
+                    </div>
+                    <div>
+                        <label class="form-label">Hasta</label>
+                        <input type="date" class="form-control" style="width:150px"
+                               value="@_newLeaveTo"
+                               @onchange="e => _newLeaveTo = e.Value?.ToString() ?? _newLeaveTo" />
+                    </div>
+                    <div style="flex:1;min-width:200px">
+                        <label class="form-label">Motivo</label>
+                        <input type="text" class="form-control" @bind="_newLeaveReason" placeholder="Ej: Vacaciones, permiso médico…" />
+                    </div>
+                    <button class="btn btn-primary btn-sm" @onclick="CreateVetLeave"
+                            disabled="@_leavesSaving">
+                        @(_leavesSaving ? "…" : "Registrar ausencia")
+                    </button>
+                </div>
+                @if (_leavesError is not null)
+                {
+                    <div class="alert alert-danger mb-0">@_leavesError</div>
+                }
+            }
+        </div>
+    </div>
+}
+
 @* Modal para que el admin registre una nueva mascota (igual que el vet) *@
 <VetNewPatientModal Visible="_showVetPatientModal"
                     OnSaved="EventCallback.Factory.Create(this, OnPatientCreated)"
@@ -846,6 +1102,34 @@
     private string _editSpeciesIcon   = "🐾";
     private bool   _editIconPickerOpen = false;
 
+    // ── Schedules tab ─────────────────────────────────────────────────────────
+    private bool                              _schedulesLoading = false;
+    private bool                              _schedulesSaving  = false;
+    private string?                           _schedulesError;
+    private ClinicSettingsResponse?           _clinicSettings;
+    private TimeOnly                          _editStart    = new(8, 0);
+    private TimeOnly                          _editEnd      = new(20, 0);
+    private HashSet<string>                   _editWorkDays = new();
+
+    private Guid                              _schedVetId      = Guid.Empty;
+    private List<VeterinarianScheduleResponse> _vetSchedules   = [];
+    private string                            _newSchedDay     = "Monday";
+    private TimeOnly                          _newSchedStart   = new(8, 0);
+    private TimeOnly                          _newSchedEnd     = new(17, 0);
+
+    private Guid                              _leaveVetId      = Guid.Empty;
+    private List<VeterinarianLeaveResponse>   _vetLeaves       = [];
+    private bool                              _leavesSaving    = false;
+    private string?                           _leavesError;
+    private string                            _newLeaveFrom    = DateTime.Today.ToString("yyyy-MM-dd");
+    private string                            _newLeaveTo      = DateTime.Today.ToString("yyyy-MM-dd");
+    private string                            _newLeaveReason  = "";
+
+    private List<AdminUserItem>               _vets            = [];
+
+    private static readonly string[] AllDays =
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
     private static readonly string[] AvailableIcons =
     [
         "🐾", "🐶", "🐱", "🐦", "🐰",
@@ -867,11 +1151,12 @@
         var uri = new Uri(Nav.Uri);
         var qs  = System.Web.HttpUtility.ParseQueryString(uri.Query);
         var tab = qs["tab"] ?? "users";
-        _tab = tab is "users" or "patients" or "appointments" or "species" ? tab : "users";
+        _tab = tab is "users" or "patients" or "appointments" or "species" or "schedules" ? tab : "users";
 
         var tasks = new List<Task> { LoadUsers(), LoadStats(), LoadSpecies() };
         if (_tab == "patients")    { tasks.Add(LoadPatients()); tasks.Add(LoadPatientStats()); }
         if (_tab == "appointments"){ tasks.Add(LoadAppointments()); tasks.Add(LoadApptStats()); }
+        if (_tab == "schedules")   tasks.Add(LoadSchedulesTab());
         await Task.WhenAll(tasks);
     }
 
@@ -896,6 +1181,8 @@
         }
         else if (tab == "species" && _speciesList.Count == 0 && !_speciesLoading)
             await LoadSpecies();
+        else if (tab == "schedules" && _clinicSettings is null)
+            await LoadSchedulesTab();
     }
 
     // ── Users ──────────────────────────────────────────────────────────────────
@@ -1328,6 +1615,142 @@
         }
         catch (Exception ex) { _speciesError = ex.Message; }
     }
+
+    // ── Schedules ─────────────────────────────────────────────────────────────
+
+    private async Task LoadSchedulesTab()
+    {
+        _schedulesLoading = true;
+        try
+        {
+            _clinicSettings = await AppointmentApi.GetClinicSettingsAsync();
+            if (_clinicSettings is not null)
+            {
+                _editStart    = TimeOnly.Parse(_clinicSettings.StartTime);
+                _editEnd      = TimeOnly.Parse(_clinicSettings.EndTime);
+                _editWorkDays = [.._clinicSettings.WorkDays];
+            }
+            // Carga lista de vets para los selectores
+            var allUsers = await AuthApi.AdminListUsersAsync(role: "Veterinarian", page: 1, pageSize: 999);
+            _vets = allUsers.Items;
+        }
+        finally { _schedulesLoading = false; }
+    }
+
+    private async Task SaveClinicSettings()
+    {
+        _schedulesError = null;
+        _schedulesSaving = true;
+        try
+        {
+            _clinicSettings = await AppointmentApi.UpdateClinicSettingsAsync(new UpdateClinicSettingsRequest
+            {
+                StartTime = _editStart.ToString("HH:mm"),
+                EndTime   = _editEnd.ToString("HH:mm"),
+                WorkDays  = [.._editWorkDays]
+            });
+            ShowToast("Horario de la clínica actualizado.");
+        }
+        catch (Exception ex) { _schedulesError = ex.Message; }
+        finally { _schedulesSaving = false; }
+    }
+
+    private void ToggleWorkDay(string day)
+    {
+        if (_editWorkDays.Contains(day)) _editWorkDays.Remove(day);
+        else _editWorkDays.Add(day);
+    }
+
+    private async Task LoadVetSchedules()
+    {
+        _vetSchedules = [];
+        if (_schedVetId == Guid.Empty) return;
+        _vetSchedules = await AppointmentApi.GetVetSchedulesAsync(_schedVetId) ?? [];
+    }
+
+    private async Task UpsertVetSchedule()
+    {
+        if (_schedVetId == Guid.Empty) return;
+        _schedulesSaving = true;
+        try
+        {
+            await AppointmentApi.UpsertVetScheduleAsync(_schedVetId, new UpsertVeterinarianScheduleRequest
+            {
+                DayOfWeek = _newSchedDay,
+                StartTime = _newSchedStart.ToString("HH:mm"),
+                EndTime   = _newSchedEnd.ToString("HH:mm")
+            });
+            await LoadVetSchedules();
+            ShowToast("Horario guardado.");
+        }
+        catch (Exception ex) { _schedulesError = ex.Message; }
+        finally { _schedulesSaving = false; }
+    }
+
+    private async Task DeleteVetSchedule(string day)
+    {
+        if (_schedVetId == Guid.Empty) return;
+        try
+        {
+            await AppointmentApi.DeleteVetScheduleAsync(_schedVetId, day);
+            await LoadVetSchedules();
+            ShowToast("Override eliminado. El vet vuelve a usar el horario global ese día.");
+        }
+        catch (Exception ex) { _schedulesError = ex.Message; }
+    }
+
+    private async Task LoadVetLeaves()
+    {
+        _vetLeaves = [];
+        if (_leaveVetId == Guid.Empty) return;
+        _vetLeaves = await AppointmentApi.GetVetLeavesAsync(_leaveVetId) ?? [];
+    }
+
+    private async Task CreateVetLeave()
+    {
+        _leavesError = null;
+        if (string.IsNullOrWhiteSpace(_newLeaveReason))
+        { _leavesError = "El motivo es obligatorio."; return; }
+
+        _leavesSaving = true;
+        try
+        {
+            await AppointmentApi.CreateVetLeaveAsync(_leaveVetId, new CreateVeterinarianLeaveRequest
+            {
+                DateFrom = _newLeaveFrom,
+                DateTo   = _newLeaveTo,
+                Reason   = _newLeaveReason
+            });
+            _newLeaveReason = "";
+            await LoadVetLeaves();
+            ShowToast("Ausencia registrada.");
+        }
+        catch (Exception ex) { _leavesError = ex.Message; }
+        finally { _leavesSaving = false; }
+    }
+
+    private async Task DeleteVetLeave(Guid leaveId)
+    {
+        try
+        {
+            await AppointmentApi.DeleteVetLeaveAsync(leaveId);
+            await LoadVetLeaves();
+            ShowToast("Ausencia eliminada.");
+        }
+        catch (Exception ex) { _leavesError = ex.Message; }
+    }
+
+    private static string DayLabel(string day) => day switch
+    {
+        "Monday"    => "Lun",
+        "Tuesday"   => "Mar",
+        "Wednesday" => "Mié",
+        "Thursday"  => "Jue",
+        "Friday"    => "Vie",
+        "Saturday"  => "Sáb",
+        "Sunday"    => "Dom",
+        _           => day
+    };
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 

@@ -14,6 +14,7 @@ public class CreatePatientRequest
     public Guid?    OwnerId         { get; set; }
     public string?  OwnerName       { get; set; }
     public string?  OwnerPhone      { get; set; }
+    public string?  OwnerEmail      { get; set; }
 }
 
 public class PatientResponse

@@ -169,13 +169,17 @@ services:
       dockerfile: PatientsService.API/Dockerfile
     container_name: vetsystem-patients
     environment:
-      ASPNETCORE_URLS:            "http://+:8080"
-      ConnectionStrings__Default: "Server=sqlserver,1433;Database=VetPatients;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
-      Jwt__Secret:                "${JWT_SECRET}"
-      Jwt__Issuer:                "auth-service"
-      Jwt__Audience:              "vetsystem"
+      ASPNETCORE_URLS:                     "http://+:8080"
+      ConnectionStrings__Default:          "Server=sqlserver,1433;Database=VetPatients;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret:                         "${JWT_SECRET}"
+      Jwt__Issuer:                         "auth-service"
+      Jwt__Audience:                       "vetsystem"
+      NotificationsService__BaseUrl:       "http://notifications-service:8080"
+      NotificationsService__InternalKey:   "${INTERNAL_KEY}"
     depends_on:
       sqlserver:
+        condition: service_healthy
+      notifications-service:
         condition: service_healthy
     networks:
       - vetsystem

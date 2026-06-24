@@ -45,12 +45,15 @@ public class PatientsController : ControllerBase
         string ownerName;
         string ownerPhone;
 
+        string? ownerEmail;
+
         if (IsOwner())
         {
             var caller = GetCaller();
             ownerId    = caller.Id;
             ownerName  = caller.Name;
             ownerPhone = caller.Phone;
+            ownerEmail = caller.Email;
         }
         else
         {
@@ -60,9 +63,10 @@ public class PatientsController : ControllerBase
             ownerId    = req.OwnerId.Value;
             ownerName  = req.OwnerName;
             ownerPhone = req.OwnerPhone ?? "";
+            ownerEmail = req.OwnerEmail;
         }
 
-        var result = await _svc.CreateAsync(req, ownerId, ownerName, ownerPhone, ct);
+        var result = await _svc.CreateAsync(req, ownerId, ownerName, ownerPhone, ownerEmail, ct);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
@@ -213,7 +217,7 @@ public class PatientsController : ControllerBase
     public async Task<IActionResult> AddRecord(
         Guid id, [FromBody] CreateClinicalRecordRequest req, CancellationToken ct)
     {
-        var (vetId, vetName, _) = GetCaller();
+        var (vetId, vetName, _, _) = GetCaller();
         var result = await _svc.AddRecordAsync(id, req, vetId, vetName, ct);
         return CreatedAtAction(nameof(GetRecord), new { id, recordId = result.Id }, result);
     }
@@ -271,7 +275,7 @@ public class PatientsController : ControllerBase
     private bool IsOwner() =>
         User.IsInRole("Owner");
 
-    private (Guid Id, string Name, string Phone) GetCaller()
+    private (Guid Id, string Name, string Phone, string? Email) GetCaller()
     {
         var sub   = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")
             ?? throw new UnauthorizedAccessException("Token inválido.");
@@ -280,6 +284,8 @@ public class PatientsController : ControllerBase
                  ?? User.FindFirstValue("email")
                  ?? "Desconocido";
         var phone = User.FindFirstValue("phone") ?? "";
-        return (Guid.Parse(sub), name, phone);
+        var email = User.FindFirstValue(ClaimTypes.Email)
+                 ?? User.FindFirstValue(JwtRegisteredClaimNames.Email);
+        return (Guid.Parse(sub), name, phone, email);
     }
 }

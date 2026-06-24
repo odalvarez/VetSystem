@@ -38,12 +38,75 @@ public class AppointmentApiClient
         return (await res.Content.ReadFromJsonAsync<AppointmentResponse>())!;
     }
 
+    public async Task<AvailabilityResponse?> GetAvailabilityAsync(
+        Guid veterinarianId, DateOnly date, int durationMinutes)
+    {
+        var url = $"api/appointments/availability?veterinarianId={veterinarianId}&date={date:yyyy-MM-dd}&durationMinutes={durationMinutes}";
+        try { return await _http.GetFromJsonAsync<AvailabilityResponse>(url); }
+        catch { return null; }
+    }
+
     public async Task ChangeStatusAsync(Guid id, string newStatus)
     {
         var res = await _http.PatchAsJsonAsync(
             $"api/appointments/{id}/status", new { Status = newStatus });
         if (!res.IsSuccessStatusCode)
             throw new Exception(await ParseError(res));
+    }
+
+    // ── Horarios ──────────────────────────────────────────────────────────────
+
+    public async Task<ClinicSettingsResponse?> GetClinicSettingsAsync()
+    {
+        try { return await _http.GetFromJsonAsync<ClinicSettingsResponse>("api/schedules/settings"); }
+        catch { return null; }
+    }
+
+    public async Task<ClinicSettingsResponse> UpdateClinicSettingsAsync(UpdateClinicSettingsRequest req)
+    {
+        var res = await _http.PutAsJsonAsync("api/schedules/settings", req);
+        if (!res.IsSuccessStatusCode) throw new Exception(await ParseError(res));
+        return (await res.Content.ReadFromJsonAsync<ClinicSettingsResponse>())!;
+    }
+
+    public async Task<List<VeterinarianScheduleResponse>?> GetVetSchedulesAsync(Guid vetId)
+    {
+        try { return await _http.GetFromJsonAsync<List<VeterinarianScheduleResponse>>($"api/schedules/vets/{vetId}"); }
+        catch { return null; }
+    }
+
+    public async Task<VeterinarianScheduleResponse> UpsertVetScheduleAsync(
+        Guid vetId, UpsertVeterinarianScheduleRequest req)
+    {
+        var res = await _http.PutAsJsonAsync($"api/schedules/vets/{vetId}", req);
+        if (!res.IsSuccessStatusCode) throw new Exception(await ParseError(res));
+        return (await res.Content.ReadFromJsonAsync<VeterinarianScheduleResponse>())!;
+    }
+
+    public async Task DeleteVetScheduleAsync(Guid vetId, string day)
+    {
+        var res = await _http.DeleteAsync($"api/schedules/vets/{vetId}/{day}");
+        if (!res.IsSuccessStatusCode) throw new Exception(await ParseError(res));
+    }
+
+    public async Task<List<VeterinarianLeaveResponse>?> GetVetLeavesAsync(Guid vetId)
+    {
+        try { return await _http.GetFromJsonAsync<List<VeterinarianLeaveResponse>>($"api/schedules/leaves/{vetId}"); }
+        catch { return null; }
+    }
+
+    public async Task<VeterinarianLeaveResponse> CreateVetLeaveAsync(
+        Guid vetId, CreateVeterinarianLeaveRequest req)
+    {
+        var res = await _http.PostAsJsonAsync($"api/schedules/leaves/{vetId}", req);
+        if (!res.IsSuccessStatusCode) throw new Exception(await ParseError(res));
+        return (await res.Content.ReadFromJsonAsync<VeterinarianLeaveResponse>())!;
+    }
+
+    public async Task DeleteVetLeaveAsync(Guid leaveId)
+    {
+        var res = await _http.DeleteAsync($"api/schedules/leaves/{leaveId}");
+        if (!res.IsSuccessStatusCode) throw new Exception(await ParseError(res));
     }
 
     // Extrae el mensaje de error tanto del formato ProblemDetails (detail)

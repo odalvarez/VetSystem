@@ -13,10 +13,11 @@ public class CreatePatientRequest
     [MaxLength(100)]            public string? Color           { get; set; }
     [MaxLength(50)]             public string? MicrochipNumber { get; set; }
 
-    // Solo se usa cuando el que crea es veterinario; el owner lo toma del JWT
+    // Solo se usan cuando el que crea es veterinario; el owner los toma del JWT
     public Guid?   OwnerId    { get; set; }
     public string? OwnerName  { get; set; }
     public string? OwnerPhone { get; set; }
+    public string? OwnerEmail { get; set; }
 }
 
 public class UpdatePatientRequest

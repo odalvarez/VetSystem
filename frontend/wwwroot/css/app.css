@@ -1655,6 +1655,11 @@ select.form-control {
     box-shadow: 0 4px 16px rgba(0,0,0,.12);
 }
 
+.icon-dropdown-panel.drop-up {
+    top: auto;
+    bottom: calc(100% + 4px);
+}
+
 .emoji-option {
     width: 32px;
     height: 32px;

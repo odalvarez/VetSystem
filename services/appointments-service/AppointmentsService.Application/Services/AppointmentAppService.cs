@@ -9,26 +9,38 @@ namespace AppointmentsService.Application.Services;
 public class AppointmentAppService
 {
     private readonly IAppointmentRepository _repo;
+    private readonly IScheduleRepository    _schedules;
     private readonly INotificationClient    _notifications;
 
-    // Horario de atención: 08:00 a 18:00 en la zona horaria del servidor
-    private static readonly TimeOnly WorkStart = new(8, 0);
-    private static readonly TimeOnly WorkEnd   = new(18, 0);
-
-    public AppointmentAppService(IAppointmentRepository repo, INotificationClient notifications)
+    public AppointmentAppService(
+        IAppointmentRepository repo,
+        IScheduleRepository    schedules,
+        INotificationClient    notifications)
     {
         _repo          = repo;
+        _schedules     = schedules;
         _notifications = notifications;
     }
 
     public async Task<AppointmentResponse> CreateAsync(
         CreateAppointmentRequest req, Guid callerId, bool isOwner, CancellationToken ct)
     {
-        // owner solo puede crear citas para sí mismo
         if (isOwner && req.OwnerId != callerId)
             throw new ForbiddenException("Un propietario solo puede agendar citas para sus propias mascotas.");
 
+        var date    = DateOnly.FromDateTime(req.ScheduledAt);
         var endTime = req.ScheduledAt.AddMinutes(req.DurationMinutes);
+
+        var (start, end, available) = await ResolveScheduleAsync(req.VeterinarianId, date, ct);
+        if (!available)
+            throw new ValidationException("El veterinario no está disponible ese día (ausencia o día no laborable).");
+
+        var apptStart = TimeOnly.FromDateTime(req.ScheduledAt);
+        var apptEnd   = TimeOnly.FromDateTime(endTime);
+        if (apptStart < start || apptEnd > end)
+            throw new ValidationException(
+                $"Las citas deben estar dentro del horario de atención ({start:HH\\:mm}–{end:HH\\:mm}).");
+
         var overlaps = await _repo.GetOverlappingAsync(req.VeterinarianId, req.ScheduledAt, endTime, null, ct);
         if (overlaps.Any())
             throw new ConflictException("El veterinario ya tiene una cita en ese intervalo.");
@@ -43,16 +55,16 @@ public class AppointmentAppService
         await _repo.SaveChangesAsync(ct);
 
         await _notifications.SendConfirmationAsync(
-            appointmentId:   appointment.Id,
-            patientName:     appointment.PatientName,
-            ownerName:       appointment.OwnerName,
-            ownerPhone:      appointment.OwnerPhone,
-            ownerEmail:      appointment.OwnerEmail,
+            appointmentId:    appointment.Id,
+            patientName:      appointment.PatientName,
+            ownerName:        appointment.OwnerName,
+            ownerPhone:       appointment.OwnerPhone,
+            ownerEmail:       appointment.OwnerEmail,
             veterinarianName: appointment.VeterinarianName,
-            scheduledAt:     appointment.ScheduledAt,
-            durationMinutes: appointment.DurationMinutes,
-            reason:          appointment.Reason,
-            ct:              ct);
+            scheduledAt:      appointment.ScheduledAt,
+            durationMinutes:  appointment.DurationMinutes,
+            reason:           appointment.Reason,
+            ct:               ct);
 
         return Map(appointment);
     }
@@ -91,7 +103,19 @@ public class AppointmentAppService
         if (isOwner && appt.OwnerId != callerId)
             throw new ForbiddenException("Sin permiso sobre esta cita.");
 
-        var endTime  = req.ScheduledAt.AddMinutes(req.DurationMinutes);
+        var date    = DateOnly.FromDateTime(req.ScheduledAt);
+        var endTime = req.ScheduledAt.AddMinutes(req.DurationMinutes);
+
+        var (start, end, available) = await ResolveScheduleAsync(appt.VeterinarianId, date, ct);
+        if (!available)
+            throw new ValidationException("El veterinario no está disponible ese día.");
+
+        var apptStart = TimeOnly.FromDateTime(req.ScheduledAt);
+        var apptEnd   = TimeOnly.FromDateTime(endTime);
+        if (apptStart < start || apptEnd > end)
+            throw new ValidationException(
+                $"Las citas deben estar dentro del horario de atención ({start:HH\\:mm}–{end:HH\\:mm}).");
+
         var overlaps = await _repo.GetOverlappingAsync(appt.VeterinarianId, req.ScheduledAt, endTime, id, ct);
         if (overlaps.Any())
             throw new ConflictException("El veterinario ya tiene una cita en ese intervalo.");
@@ -139,10 +163,20 @@ public class AppointmentAppService
     public async Task<AvailabilityResponse> GetAvailabilityAsync(
         Guid veterinarianId, DateOnly date, int durationMinutes, CancellationToken ct)
     {
-        var dayStart = date.ToDateTime(WorkStart, DateTimeKind.Utc);
-        var dayEnd   = date.ToDateTime(WorkEnd,   DateTimeKind.Utc);
+        var (workStart, workEnd, available) = await ResolveScheduleAsync(veterinarianId, date, ct);
 
-        var existing = await _repo.GetOverlappingAsync(veterinarianId, dayStart, dayEnd, null, ct);
+        if (!available)
+            return new AvailabilityResponse
+            {
+                Date           = date.ToString("yyyy-MM-dd"),
+                VeterinarianId = veterinarianId,
+                AvailableSlots = []
+            };
+
+        var dayStart = date.ToDateTime(workStart, DateTimeKind.Utc);
+        var dayEnd   = date.ToDateTime(workEnd,   DateTimeKind.Utc);
+
+        var existing  = await _repo.GetOverlappingAsync(veterinarianId, dayStart, dayEnd, null, ct);
         var busySlots = existing
             .Select(a => (a.ScheduledAt, a.EndsAt))
             .OrderBy(s => s.ScheduledAt)
@@ -173,6 +207,30 @@ public class AppointmentAppService
             VeterinarianId = veterinarianId,
             AvailableSlots = slots
         };
+    }
+
+    // ── Resolución de horario efectivo ────────────────────────────────────────
+
+    // Devuelve (startTime, endTime, isAvailable).
+    // Prioridad: ausencia → horario personal del vet → horario global de la clínica.
+    private async Task<(TimeOnly Start, TimeOnly End, bool Available)> ResolveScheduleAsync(
+        Guid vetId, DateOnly date, CancellationToken ct)
+    {
+        // 1. ¿Está de permiso?
+        if (await _schedules.HasLeaveOnDateAsync(vetId, date, ct))
+            return (default, default, false);
+
+        // 2. ¿Tiene horario personalizado para ese día?
+        var personal = await _schedules.GetScheduleAsync(vetId, date.DayOfWeek, ct);
+        if (personal is not null)
+            return (personal.StartTime, personal.EndTime, true);
+
+        // 3. Horario global de la clínica
+        var clinic = await _schedules.GetClinicSettingsAsync(ct);
+        if (!clinic.GetWorkDays().Contains(date.DayOfWeek))
+            return (default, default, false);
+
+        return (clinic.StartTime, clinic.EndTime, true);
     }
 
     private static AppointmentResponse Map(Appointment a) => new()

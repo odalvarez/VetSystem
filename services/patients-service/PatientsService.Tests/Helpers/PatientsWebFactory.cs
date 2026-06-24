@@ -6,10 +6,20 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using PatientsService.Application.Interfaces;
 using PatientsService.Domain.Entities;
 using PatientsService.Infrastructure.Data;
 
 namespace PatientsService.Tests.Helpers;
+
+file sealed class NoOpNotificationClient : INotificationClient
+{
+    public Task SendPatientRegisteredAsync(
+        Guid patientId, string patientName, string ownerName,
+        string ownerPhone, string? ownerEmail,
+        CancellationToken ct = default)
+        => Task.CompletedTask;
+}
 
 public class PatientsWebFactory : WebApplicationFactory<Program>
 {
@@ -25,10 +35,12 @@ public class PatientsWebFactory : WebApplicationFactory<Program>
         {
             cfg.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Jwt:Secret"]                = JwtTestHelper.Secret,
-                ["Jwt:Issuer"]                = JwtTestHelper.Issuer,
-                ["Jwt:Audience"]              = JwtTestHelper.Audience,
-                ["ConnectionStrings:Default"] = "InMemory"
+                ["Jwt:Secret"]                       = JwtTestHelper.Secret,
+                ["Jwt:Issuer"]                       = JwtTestHelper.Issuer,
+                ["Jwt:Audience"]                     = JwtTestHelper.Audience,
+                ["ConnectionStrings:Default"]        = "InMemory",
+                ["NotificationsService:BaseUrl"]     = "http://localhost",
+                ["NotificationsService:InternalKey"] = "test-key"
             });
         });
 
@@ -40,6 +52,9 @@ public class PatientsWebFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<PatientsDbContext>(opt =>
                 opt.UseInMemoryDatabase("PatientsTestDb"));
+
+            services.RemoveAll(typeof(INotificationClient));
+            services.AddScoped<INotificationClient, NoOpNotificationClient>();
         });
     }
 

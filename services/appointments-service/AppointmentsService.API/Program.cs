@@ -95,6 +95,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
 
 // Cliente HTTP hacia notifications-service; incluye X-Internal-Key para pasar el middleware
 var notifBaseUrl     = builder.Configuration["NotificationsService:BaseUrl"]    ?? "http://notifications-service:8080";
@@ -107,6 +108,7 @@ builder.Services.AddHttpClient<INotificationClient, NotificationHttpClient>(c =>
 });
 
 builder.Services.AddScoped<AppointmentAppService>();
+builder.Services.AddScoped<ScheduleAppService>();
 builder.Services.AddHostedService<AppointmentsService.API.AppointmentReminderWorker>();
 
 var app = builder.Build();

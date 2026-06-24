@@ -8,17 +8,24 @@ namespace PatientsService.Application.Services;
 
 public class PatientAppService
 {
-    private readonly IPatientRepository _repo;
-    private readonly ISpeciesRepository _speciesRepo;
+    private readonly IPatientRepository  _repo;
+    private readonly ISpeciesRepository  _speciesRepo;
+    private readonly INotificationClient _notifications;
 
-    public PatientAppService(IPatientRepository repo, ISpeciesRepository speciesRepo)
+    public PatientAppService(
+        IPatientRepository repo,
+        ISpeciesRepository speciesRepo,
+        INotificationClient notifications)
     {
-        _repo        = repo;
-        _speciesRepo = speciesRepo;
+        _repo          = repo;
+        _speciesRepo   = speciesRepo;
+        _notifications = notifications;
     }
 
     public async Task<PatientResponse> CreateAsync(
-        CreatePatientRequest req, Guid ownerId, string ownerName, string ownerPhone, CancellationToken ct)
+        CreatePatientRequest req,
+        Guid ownerId, string ownerName, string ownerPhone, string? ownerEmail,
+        CancellationToken ct)
     {
         var slug = req.Species.Trim().ToLowerInvariant();
 
@@ -34,6 +41,10 @@ public class PatientAppService
 
         await _repo.AddAsync(patient, ct);
         await _repo.SaveChangesAsync(ct);
+
+        await _notifications.SendPatientRegisteredAsync(
+            patient.Id, patient.Name, ownerName, ownerPhone, ownerEmail, ct);
+
         return Map(patient, species.Slug, species.Name, species.Icon);
     }
 

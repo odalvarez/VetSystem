@@ -9,6 +9,7 @@ using PatientsService.Application.Interfaces;
 using PatientsService.Application.Services;
 using PatientsService.Infrastructure.Data;
 using PatientsService.Infrastructure.Data.Repositories;
+using PatientsService.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +101,15 @@ builder.Services.AddScoped<IConsultationLogRepository, ConsultationLogRepository
 builder.Services.AddScoped<PatientAppService>();
 builder.Services.AddScoped<SpeciesAppService>();
 builder.Services.AddScoped<ConsultationLogAppService>();
+
+var notifBaseUrl     = builder.Configuration["NotificationsService:BaseUrl"]    ?? "http://notifications-service:8080";
+var notifInternalKey = builder.Configuration["NotificationsService:InternalKey"] ?? "";
+builder.Services.AddHttpClient<INotificationClient, NotificationHttpClient>(c =>
+{
+    c.BaseAddress = new Uri(notifBaseUrl);
+    c.DefaultRequestHeaders.Add("X-Internal-Key", notifInternalKey);
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
 
 var app = builder.Build();
 

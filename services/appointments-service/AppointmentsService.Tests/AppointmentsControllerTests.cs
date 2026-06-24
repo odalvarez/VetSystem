@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using AppointmentsService.Application.DTOs;
@@ -34,14 +34,14 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Luna",
-            ScheduledAt      = scheduledAt ?? DateTime.UtcNow.AddDays(3),
+            ScheduledAt      = scheduledAt ?? DateTime.UtcNow.AddDays(3).Date.AddHours(10),
             DurationMinutes  = 30,
             Reason           = "Control"
         });
         return (await resp.Content.ReadFromJsonAsync<AppointmentResponse>())!;
     }
 
-    // ── Auth guard ────────────────────────────────────────────────────────────
+    // â”€â”€ Auth guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task ListAppointments_Unauthenticated_Returns401()
@@ -50,7 +50,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
     }
 
-    // ── Listar citas ──────────────────────────────────────────────────────────
+    // â”€â”€ Listar citas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task ListAppointments_AsVet_Returns200()
@@ -76,7 +76,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
 
-    // ── Crear cita ────────────────────────────────────────────────────────────
+    // â”€â”€ Crear cita â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task CreateAppointment_AsVet_Returns201()
@@ -91,7 +91,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Luna",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3),
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
             DurationMinutes  = 30,
             Reason           = "Control anual"
         });
@@ -112,9 +112,9 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Max",
-            ScheduledAt      = DateTime.UtcNow.AddDays(5),
+            ScheduledAt      = DateTime.UtcNow.AddDays(5).Date.AddHours(10),
             DurationMinutes  = 45,
-            Reason           = "Vacunación"
+            Reason           = "VacunaciÃ³n"
         });
 
         Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
@@ -133,15 +133,15 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Toby",
-            ScheduledAt      = DateTime.UtcNow.AddDays(7),
+            ScheduledAt      = DateTime.UtcNow.AddDays(7).Date.AddHours(10),
             DurationMinutes  = 30,
-            Reason           = "Revisión"
+            Reason           = "RevisiÃ³n"
         });
 
         Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
     }
 
-    // ── Conflicto de horario ──────────────────────────────────────────────────
+    // â”€â”€ Conflicto de horario â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task CreateAppointment_ConflictingSlot_Returns409()
@@ -167,13 +167,95 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         await client.PostAsJsonAsync("/api/appointments", baseReq);
 
         baseReq.PatientName = "Mascota B";
-        baseReq.Reason      = "Segunda cita — debería fallar";
+        baseReq.Reason      = "Segunda cita â€” deberÃ­a fallar";
         var resp2 = await client.PostAsJsonAsync("/api/appointments", baseReq);
 
         Assert.Equal(HttpStatusCode.Conflict, resp2.StatusCode);
     }
 
-    // ── Obtener cita por ID ───────────────────────────────────────────────────
+    // -- Horario de atencion -------------------------------------------------------
+
+    [Fact]
+    public async Task CreateAppointment_BeforeWorkStart_Returns400()
+    {
+        var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
+        {
+            PatientId        = Guid.NewGuid(),
+            VeterinarianId   = Guid.NewGuid(),
+            VeterinarianName = "Vet Test",
+            OwnerId          = AppointmentsWebFactory.OwnerId,
+            OwnerName        = "Owner Test",
+            OwnerPhone       = "3001234567",
+            PatientName      = "Luna",
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(6),
+            DurationMinutes  = 30,
+            Reason           = "Control"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAppointment_AfterWorkEnd_Returns400()
+    {
+        var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
+        {
+            PatientId        = Guid.NewGuid(),
+            VeterinarianId   = Guid.NewGuid(),
+            VeterinarianName = "Vet Test",
+            OwnerId          = AppointmentsWebFactory.OwnerId,
+            OwnerName        = "Owner Test",
+            OwnerPhone       = "3001234567",
+            PatientName      = "Luna",
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(21),
+            DurationMinutes  = 30,
+            Reason           = "Control"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAppointment_EndExceedsWorkEnd_Returns400()
+    {
+        var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
+        {
+            PatientId        = Guid.NewGuid(),
+            VeterinarianId   = Guid.NewGuid(),
+            VeterinarianName = "Vet Test",
+            OwnerId          = AppointmentsWebFactory.OwnerId,
+            OwnerName        = "Owner Test",
+            OwnerPhone       = "3001234567",
+            PatientName      = "Luna",
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(19).AddMinutes(45),
+            DurationMinutes  = 30,
+            Reason           = "Control"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAppointment_AtWorkEnd_Returns201()
+    {
+        var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
+        {
+            PatientId        = Guid.NewGuid(),
+            VeterinarianId   = Guid.NewGuid(),
+            VeterinarianName = "Vet Test",
+            OwnerId          = AppointmentsWebFactory.OwnerId,
+            OwnerName        = "Owner Test",
+            OwnerPhone       = "3001234567",
+            PatientName      = "Luna",
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(19).AddMinutes(30),
+            DurationMinutes  = 30,
+            Reason           = "Control"
+        });
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+    }
+
+    // â”€â”€ Obtener cita por ID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task GetAppointment_AsVet_Returns200()
@@ -192,7 +274,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
     }
 
-    // ── Actualizar cita ───────────────────────────────────────────────────────
+    // â”€â”€ Actualizar cita â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task UpdateAppointment_AsVet_Returns200()
@@ -202,7 +284,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
 
         var resp = await vet.PutAsJsonAsync($"/api/appointments/{appointment.Id}", new UpdateAppointmentRequest
         {
-            ScheduledAt     = DateTime.UtcNow.AddDays(4),
+            ScheduledAt     = GetNextWeekday(DayOfWeek.Monday).Date.AddHours(10),
             DurationMinutes = 45,
             Reason          = "Control actualizado"
         });
@@ -219,15 +301,15 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
 
         var resp = await owner.PutAsJsonAsync($"/api/appointments/{appointment.Id}", new UpdateAppointmentRequest
         {
-            ScheduledAt     = DateTime.UtcNow.AddDays(8),
+            ScheduledAt     = DateTime.UtcNow.AddDays(8).Date.AddHours(10),
             DurationMinutes = 30,
-            Reason          = "Revisión ajustada"
+            Reason          = "RevisiÃ³n ajustada"
         });
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
 
-    // ── Cambio de estado ──────────────────────────────────────────────────────
+    // â”€â”€ Cambio de estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task ChangeStatus_AsVet_Returns200()
@@ -270,7 +352,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
 
-    // ── Cancelar (DELETE) cita ────────────────────────────────────────────────
+    // â”€â”€ Cancelar (DELETE) cita â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task CancelAppointment_AsVet_Returns204()
@@ -299,13 +381,13 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
     }
 
-    // ── Disponibilidad ────────────────────────────────────────────────────────
+    // â”€â”€ Disponibilidad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task GetAvailability_Authenticated_Returns200()
     {
         var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
-        var date   = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14));
+        var date   = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14).Date.AddHours(10));
         var vetId  = Guid.NewGuid();
 
         var resp = await client.GetAsync(
@@ -314,12 +396,12 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
 
-    // ── P1: Autorización y conflictos ─────────────────────────────────────────
+    // â”€â”€ P1: AutorizaciÃ³n y conflictos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task CreateAppointment_AsOwner_ForDifferentOwner_Returns403()
     {
-        // Owner A intenta crear una cita poniendo el OwnerId de Owner B — debe ser rechazado
+        // Owner A intenta crear una cita poniendo el OwnerId de Owner B â€” debe ser rechazado
         var ownerA  = ClientAs(AppointmentsWebFactory.OwnerId, "owner@test.com", "Owner");
         var ownerBId = Guid.NewGuid();
 
@@ -332,9 +414,9 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner B",
             OwnerPhone       = "3009999999",
             PatientName      = "Firulais",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3),
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
             DurationMinutes  = 30,
-            Reason           = "Revisión ajena"
+            Reason           = "RevisiÃ³n ajena"
         });
 
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
@@ -377,10 +459,10 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     [Fact]
     public async Task CreateAppointment_PartialOverlap_Returns409()
     {
-        // 10:00–10:30 reservada; intento de 10:15–10:45 con el mismo veterinario debe fallar
+        // 10:00â€“10:30 reservada; intento de 10:15â€“10:45 con el mismo veterinario debe fallar
         var client      = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
         var vetId       = Guid.NewGuid();
-        var baseDate    = DateTime.UtcNow.AddDays(25).Date;
+        var baseDate    = GetNextWeekday(DayOfWeek.Thursday).Date;
 
         await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
         {
@@ -413,7 +495,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
     }
 
-    // ── P2: Cancelación y resiliencia ─────────────────────────────────────────
+    // â”€â”€ P2: CancelaciÃ³n y resiliencia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task CancelAppointment_AsOwner_WhenCompleted_Returns400()
@@ -452,10 +534,10 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     [Fact]
     public async Task ListAppointments_InvalidDateRange_FromAfterTo_Returns400OrEmpty()
     {
-        // from posterior a to no tiene sentido; el backend devuelve 400 o lista vacía
+        // from posterior a to no tiene sentido; el backend devuelve 400 o lista vacÃ­a
         var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
-        var from   = DateTime.UtcNow.AddDays(10).ToString("o");
-        var to     = DateTime.UtcNow.AddDays(1).ToString("o");
+        var from   = DateTime.UtcNow.AddDays(10).Date.AddHours(10).ToString("o");
+        var to     = DateTime.UtcNow.AddDays(1).Date.AddHours(10).ToString("o");
 
         var resp = await client.GetAsync($"/api/appointments?from={from}&to={to}");
 
@@ -467,17 +549,17 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         {
             var body = await resp.Content.ReadFromJsonAsync<PagedResponse<AppointmentResponse>>();
             Assert.NotNull(body);
-            // Si retorna 200 esperamos lista vacía (ningún resultado puede cumplir from > to)
+            // Si retorna 200 esperamos lista vacÃ­a (ningÃºn resultado puede cumplir from > to)
             Assert.Empty(body!.Items);
         }
     }
 
-    // ── P3: Validaciones de duración y disponibilidad ─────────────────────────
+    // â”€â”€ P3: Validaciones de duraciÃ³n y disponibilidad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task CreateAppointment_DurationTooShort_Returns400()
     {
-        // El DTO tiene [Range(10, 480)] y el dominio también lo valida
+        // El DTO tiene [Range(10, 480)] y el dominio tambiÃ©n lo valida
         var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
 
         var resp = await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
@@ -489,9 +571,9 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Mini",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3),
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
             DurationMinutes  = 5,
-            Reason           = "Duración inválida"
+            Reason           = "DuraciÃ³n invÃ¡lida"
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
@@ -500,7 +582,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     [Fact]
     public async Task CreateAppointment_DurationTooLong_Returns400()
     {
-        // Más de 480 minutos supera el límite del dominio
+        // MÃ¡s de 480 minutos supera el lÃ­mite del dominio
         var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
 
         var resp = await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
@@ -512,9 +594,9 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Max",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3),
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
             DurationMinutes  = 600,
-            Reason           = "Duración excesiva"
+            Reason           = "DuraciÃ³n excesiva"
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
@@ -526,7 +608,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         // El slot ocupado por una cita existente no debe aparecer en la disponibilidad
         var client  = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
         var vetId   = Guid.NewGuid();
-        var date    = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30));
+        var date    = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30).Date.AddHours(10));
         var slotAt  = date.ToDateTime(new TimeOnly(10, 0), DateTimeKind.Utc);
 
         await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
@@ -551,17 +633,17 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         var body = await resp.Content.ReadFromJsonAsync<AvailabilityResponse>();
         Assert.NotNull(body);
 
-        // El slot 10:00–10:30 debe estar ausente de la lista de disponibles
+        // El slot 10:00â€“10:30 debe estar ausente de la lista de disponibles
         var slotOcupado = body!.AvailableSlots.FirstOrDefault(s => s.Start == slotAt);
         Assert.Null(slotOcupado);
     }
 
-    // ── P4: Notas en blanco ───────────────────────────────────────────────────
+    // â”€â”€ P4: Notas en blanco â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public async Task CreateAppointment_WithBlankNotes_Stored()
     {
-        // Notes con solo espacios debe guardarse como null o cadena vacía (el dominio aplica Trim)
+        // Notes con solo espacios debe guardarse como null o cadena vacÃ­a (el dominio aplica Trim)
         var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
 
         var resp = await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
@@ -573,9 +655,9 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Nube",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3),
+            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
             DurationMinutes  = 30,
-            Reason           = "Revisión",
+            Reason           = "RevisiÃ³n",
             Notes            = "   "
         });
 
@@ -583,7 +665,178 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
 
         var body = await resp.Content.ReadFromJsonAsync<AppointmentResponse>();
         Assert.NotNull(body);
-        // Notes con Trim queda vacío o null — en ambos casos no debe ser "   "
+        // Notes con Trim queda vacÃ­o o null â€” en ambos casos no debe ser "   "
         Assert.True(body!.Notes == null || body.Notes.Trim().Length == 0);
     }
+
+    // ── Horario configurable (ClinicSettings + VeterinarianSchedule + VeterinarianLeave) ──
+
+    [Fact]
+    public async Task GetClinicSettings_AsAdmin_Returns200()
+    {
+        var admin = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var resp  = await admin.GetAsync("/api/schedules/settings");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var body = await resp.Content.ReadFromJsonAsync<ClinicSettingsResponse>();
+        Assert.NotNull(body);
+        Assert.Equal("08:00", body!.StartTime);
+        Assert.Equal("20:00", body.EndTime);
+    }
+
+    [Fact]
+    public async Task GetClinicSettings_AsVet_Returns403()
+    {
+        var vet  = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await vet.GetAsync("/api/schedules/settings");
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateClinicSettings_AsAdmin_Persists()
+    {
+        var admin = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var resp  = await admin.PutAsJsonAsync("/api/schedules/settings", new UpdateClinicSettingsRequest
+        {
+            StartTime = "09:00",
+            EndTime   = "17:00",
+            WorkDays  = ["Monday", "Tuesday", "Wednesday"]
+        });
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var body = await resp.Content.ReadFromJsonAsync<ClinicSettingsResponse>();
+        Assert.Equal("09:00", body!.StartTime);
+        Assert.Equal("17:00", body.EndTime);
+
+        // Restaura para no contaminar otros tests
+        await admin.PutAsJsonAsync("/api/schedules/settings", new UpdateClinicSettingsRequest
+        {
+            StartTime = "08:00",
+            EndTime   = "20:00",
+            WorkDays  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        });
+    }
+
+    [Fact]
+    public async Task CreateAppointment_WhenVetHasLeave_Returns400()
+    {
+        var admin  = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var vetId  = Guid.NewGuid();
+        var target = DateTime.UtcNow.AddDays(5).Date.AddHours(10);
+        var date   = DateOnly.FromDateTime(target);
+
+        var leaveResp = await admin.PostAsJsonAsync($"/api/schedules/leaves/{vetId}", new CreateVeterinarianLeaveRequest
+        {
+            DateFrom = date.ToString("yyyy-MM-dd"),
+            DateTo   = date.ToString("yyyy-MM-dd"),
+            Reason   = "Vacaciones"
+        });
+        Assert.Equal(HttpStatusCode.Created, leaveResp.StatusCode);
+
+        var vet  = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await vet.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
+        {
+            PatientId        = Guid.NewGuid(),
+            VeterinarianId   = vetId,
+            VeterinarianName = "Vet Ausente",
+            OwnerId          = AppointmentsWebFactory.OwnerId,
+            OwnerName        = "Owner Test",
+            OwnerPhone       = "3001234567",
+            PatientName      = "Luna",
+            ScheduledAt      = target,
+            DurationMinutes  = 30,
+            Reason           = "Control"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAppointment_WithCustomVetSchedule_OutsideRange_Returns400()
+    {
+        var admin  = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var vetId  = Guid.NewGuid();
+        var target = GetNextWeekday(DayOfWeek.Monday);
+
+        await admin.PutAsJsonAsync($"/api/schedules/vets/{vetId}", new UpsertVeterinarianScheduleRequest
+        {
+            DayOfWeek = "Monday",
+            StartTime = "08:00",
+            EndTime   = "12:00"
+        });
+
+        var vet  = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await vet.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
+        {
+            PatientId        = Guid.NewGuid(),
+            VeterinarianId   = vetId,
+            VeterinarianName = "Vet Parcial",
+            OwnerId          = AppointmentsWebFactory.OwnerId,
+            OwnerName        = "Owner Test",
+            OwnerPhone       = "3001234567",
+            PatientName      = "Luna",
+            ScheduledAt      = target.Date.AddHours(14),
+            DurationMinutes  = 30,
+            Reason           = "Control"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAppointment_WithCustomVetSchedule_InsideRange_Returns201()
+    {
+        var admin  = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var vetId  = Guid.NewGuid();
+        var target = GetNextWeekday(DayOfWeek.Tuesday);
+
+        await admin.PutAsJsonAsync($"/api/schedules/vets/{vetId}", new UpsertVeterinarianScheduleRequest
+        {
+            DayOfWeek = "Tuesday",
+            StartTime = "08:00",
+            EndTime   = "17:00"
+        });
+
+        var vet  = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await vet.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
+        {
+            PatientId        = Guid.NewGuid(),
+            VeterinarianId   = vetId,
+            VeterinarianName = "Vet Parcial",
+            OwnerId          = AppointmentsWebFactory.OwnerId,
+            OwnerName        = "Owner Test",
+            OwnerPhone       = "3001234567",
+            PatientName      = "Luna",
+            ScheduledAt      = target.Date.AddHours(10),
+            DurationMinutes  = 30,
+            Reason           = "Control"
+        });
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAvailability_WhenVetHasLeave_ReturnsNoSlots()
+    {
+        var admin  = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var vetId  = Guid.NewGuid();
+        var target = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(6).Date);
+
+        await admin.PostAsJsonAsync($"/api/schedules/leaves/{vetId}", new CreateVeterinarianLeaveRequest
+        {
+            DateFrom = target.ToString("yyyy-MM-dd"),
+            DateTo   = target.ToString("yyyy-MM-dd"),
+            Reason   = "Permiso"
+        });
+
+        var vet  = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var resp = await vet.GetAsync($"/api/appointments/availability?veterinarianId={vetId}&date={target:yyyy-MM-dd}&durationMinutes=30");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var body = await resp.Content.ReadFromJsonAsync<AvailabilityResponse>();
+        Assert.NotNull(body);
+        Assert.Empty(body!.AvailableSlots);
+    }
+
+    private static DateTime GetNextWeekday(DayOfWeek day)
+    {
+        var date = DateTime.UtcNow.Date.AddDays(1);
+        while (date.DayOfWeek != day) date = date.AddDays(1);
+        return date;
+    }
 }
+

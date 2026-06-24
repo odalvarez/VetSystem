@@ -7,7 +7,10 @@ public class AppointmentsDbContext : DbContext
 {
     public AppointmentsDbContext(DbContextOptions<AppointmentsDbContext> options) : base(options) { }
 
-    public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<Appointment>           Appointments           => Set<Appointment>();
+    public DbSet<ClinicSettings>        ClinicSettings         => Set<ClinicSettings>();
+    public DbSet<VeterinarianSchedule>  VeterinarianSchedules  => Set<VeterinarianSchedule>();
+    public DbSet<VeterinarianLeave>     VeterinarianLeaves     => Set<VeterinarianLeave>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -38,6 +41,48 @@ public class AppointmentsDbContext : DbContext
             e.HasIndex(a => a.ScheduledAt).HasDatabaseName("IX_Appointments_ScheduledAt");
 
             e.Ignore(a => a.EndsAt);
+        });
+
+        model.Entity<ClinicSettings>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.WorkDays).IsRequired().HasMaxLength(100);
+            // TimeOnly se convierte a string HH:mm para compatibilidad con SQL Server
+            e.Property(s => s.StartTime).HasConversion(
+                t => t.ToString("HH:mm"),
+                s => TimeOnly.Parse(s));
+            e.Property(s => s.EndTime).HasConversion(
+                t => t.ToString("HH:mm"),
+                s => TimeOnly.Parse(s));
+        });
+
+        model.Entity<VeterinarianSchedule>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.DayOfWeek).HasConversion<string>().HasMaxLength(10);
+            e.Property(s => s.StartTime).HasConversion(
+                t => t.ToString("HH:mm"),
+                s => TimeOnly.Parse(s));
+            e.Property(s => s.EndTime).HasConversion(
+                t => t.ToString("HH:mm"),
+                s => TimeOnly.Parse(s));
+            // Un vet solo puede tener un horario por día de la semana
+            e.HasIndex(s => new { s.VeterinarianId, s.DayOfWeek }).IsUnique()
+             .HasDatabaseName("IX_VeterinarianSchedule_VetId_Day");
+        });
+
+        model.Entity<VeterinarianLeave>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.Reason).IsRequired().HasMaxLength(500);
+            e.Property(l => l.DateFrom).HasConversion(
+                d => d.ToDateTime(TimeOnly.MinValue),
+                dt => DateOnly.FromDateTime(dt));
+            e.Property(l => l.DateTo).HasConversion(
+                d => d.ToDateTime(TimeOnly.MinValue),
+                dt => DateOnly.FromDateTime(dt));
+            e.HasIndex(l => new { l.VeterinarianId, l.DateFrom })
+             .HasDatabaseName("IX_VeterinarianLeave_VetId_DateFrom");
         });
     }
 }

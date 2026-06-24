@@ -61,3 +61,48 @@ public class TimeSlot
     public DateTime Start { get; set; }
     public DateTime End   { get; set; }
 }
+
+public class ClinicSettingsResponse
+{
+    public string       StartTime { get; set; } = "08:00";
+    public string       EndTime   { get; set; } = "20:00";
+    public List<string> WorkDays  { get; set; } = new();
+}
+
+public class UpdateClinicSettingsRequest
+{
+    public string       StartTime { get; set; } = "08:00";
+    public string       EndTime   { get; set; } = "20:00";
+    public List<string> WorkDays  { get; set; } = new();
+}
+
+public class VeterinarianScheduleResponse
+{
+    public Guid   VeterinarianId { get; set; }
+    public string DayOfWeek      { get; set; } = "";
+    public string StartTime      { get; set; } = "";
+    public string EndTime        { get; set; } = "";
+}
+
+public class UpsertVeterinarianScheduleRequest
+{
+    public string DayOfWeek { get; set; } = "";
+    public string StartTime { get; set; } = "";
+    public string EndTime   { get; set; } = "";
+}
+
+public class VeterinarianLeaveResponse
+{
+    public Guid   Id             { get; set; }
+    public Guid   VeterinarianId { get; set; }
+    public string DateFrom       { get; set; } = "";
+    public string DateTo         { get; set; } = "";
+    public string Reason         { get; set; } = "";
+}
+
+public class CreateVeterinarianLeaveRequest
+{
+    public string DateFrom { get; set; } = "";
+    public string DateTo   { get; set; } = "";
+    public string Reason   { get; set; } = "";
+}

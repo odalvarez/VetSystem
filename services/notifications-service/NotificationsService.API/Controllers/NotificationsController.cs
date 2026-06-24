@@ -36,9 +36,9 @@ public class NotificationsController : ControllerBase
     /// <response code="401">No autenticado.</response>
     /// <response code="503">Evolution API no disponible.</response>
     [HttpPost("whatsapp")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(NotificationAcceptedResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> SendWhatsApp(
         [FromBody] SendWhatsAppRequest req, CancellationToken ct)
@@ -60,9 +60,9 @@ public class NotificationsController : ControllerBase
     /// <response code="401">No autenticado.</response>
     /// <response code="503">Servidor SMTP no disponible.</response>
     [HttpPost("email")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(NotificationAcceptedResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> SendEmail(
         [FromBody] SendEmailRequest req, CancellationToken ct)
@@ -83,9 +83,9 @@ public class NotificationsController : ControllerBase
     /// <response code="400">Datos inválidos o <c>scheduledAt</c> está en el pasado.</response>
     /// <response code="401">No autenticado.</response>
     [HttpPost("reminder")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(ReminderAcceptedResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ScheduleReminder(
         [FromBody] ScheduleReminderRequest req, CancellationToken ct)
     {
