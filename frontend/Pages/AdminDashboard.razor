@@ -622,7 +622,7 @@
                     <div style="flex:1;min-width:200px">
                         <label class="form-label">Veterinario</label>
                         <select class="filter-select" style="width:100%" @bind="_schedVetId" @bind:after="LoadVetSchedules">
-                            <option value="">— seleccionar —</option>
+                            <option value="">— Selecciona —</option>
                             @foreach (var u in _vets)
                             {
                                 <option value="@u.Id">@u.FullName</option>
@@ -708,7 +708,7 @@
                     <div style="flex:1;min-width:200px">
                         <label class="form-label">Veterinario</label>
                         <select class="filter-select" style="width:100%" @bind="_leaveVetId" @bind:after="LoadVetLeaves">
-                            <option value="">— seleccionar —</option>
+                            <option value="">— Selecciona —</option>
                             @foreach (var u in _vets)
                             {
                                 <option value="@u.Id">@u.FullName</option>

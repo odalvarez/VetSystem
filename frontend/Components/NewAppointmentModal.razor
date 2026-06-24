@@ -87,7 +87,7 @@
                     {
                         <select class="form-control @(_submitted && _selectedVetId == Guid.Empty ? "invalid" : "")"
                                 @onchange="OnVetSelected">
-                            <option value="">— seleccionar —</option>
+                            <option value="">— Selecciona —</option>
                             @foreach (var v in _vets)
                             {
                                 <option value="@v.Id">@v.FullName</option>
