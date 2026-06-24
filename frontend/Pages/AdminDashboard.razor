@@ -1,4 +1,4 @@
-@page "/admin"
+﻿@page "/admin"
 @attribute [Authorize]
 @inject AuthApiClient             AuthApi
 @inject PatientApiClient          PatientApi
@@ -8,16 +8,16 @@
 @inject TokenProvider             Token
 @inject NavigationManager         Nav
 
-<PageTitle>Administración — VetSystem</PageTitle>
+<PageTitle>AdministraciÃ³n â€” VetSystem</PageTitle>
 
 <div class="page-header">
-    <div class="page-title">⚙️ Panel de administración</div>
+    <div class="page-title">âš™ï¸ Panel de administraciÃ³n</div>
     <div class="page-subtitle">Vista global del sistema</div>
 </div>
 
 <div class="page-content">
 
-    @* ── KPIs — cambian según la tab activa ── *@
+    @* â”€â”€ KPIs â€” cambian segÃºn la tab activa â”€â”€ *@
     <div class="stats-row">
         @if (_tab == "users")
         {
@@ -38,30 +38,30 @@
         {
             <div class="stat-card">
                 <div class="stat-label">Total mascotas</div>
-                <div class="stat-value">@(_patientStatsLoaded ? _statPatientsTotal.ToString() : "…")</div>
+                <div class="stat-value">@(_patientStatsLoaded ? _statPatientsTotal.ToString() : "â€¦")</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Machos</div>
-                <div class="stat-value" style="color:#3b82f6">@(_patientStatsLoaded ? _statPatientsMale.ToString() : "…")</div>
+                <div class="stat-value" style="color:#3b82f6">@(_patientStatsLoaded ? _statPatientsMale.ToString() : "â€¦")</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Hembras</div>
-                <div class="stat-value" style="color:#ec4899">@(_patientStatsLoaded ? _statPatientsFemale.ToString() : "…")</div>
+                <div class="stat-value" style="color:#ec4899">@(_patientStatsLoaded ? _statPatientsFemale.ToString() : "â€¦")</div>
             </div>
         }
         else if (_tab == "appointments")
         {
             <div class="stat-card">
                 <div class="stat-label">Total citas</div>
-                <div class="stat-value">@(_apptStatsLoaded ? _statApptsTotal.ToString() : "…")</div>
+                <div class="stat-value">@(_apptStatsLoaded ? _statApptsTotal.ToString() : "â€¦")</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Pendientes</div>
-                <div class="stat-value" style="color:var(--color-warning)">@(_apptStatsLoaded ? _statApptsPending.ToString() : "…")</div>
+                <div class="stat-value" style="color:var(--color-warning)">@(_apptStatsLoaded ? _statApptsPending.ToString() : "â€¦")</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Completadas</div>
-                <div class="stat-value" style="color:var(--color-success)">@(_apptStatsLoaded ? _statApptsCompleted.ToString() : "…")</div>
+                <div class="stat-value" style="color:var(--color-success)">@(_apptStatsLoaded ? _statApptsCompleted.ToString() : "â€¦")</div>
             </div>
         }
         else if (_tab == "species")
@@ -82,11 +82,11 @@
         else if (_tab == "schedules" && _clinicSettings is not null)
         {
             <div class="stat-card">
-                <div class="stat-label">Horario clínica</div>
-                <div class="stat-value" style="font-size:1rem">@_clinicSettings.StartTime – @_clinicSettings.EndTime</div>
+                <div class="stat-label">Horario clÃ­nica</div>
+                <div class="stat-value" style="font-size:1rem">@_clinicSettings.StartTime â€“ @_clinicSettings.EndTime</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Días laborables</div>
+                <div class="stat-label">DÃ­as laborables</div>
                 <div class="stat-value">@_clinicSettings.WorkDays.Count</div>
             </div>
             <div class="stat-card">
@@ -96,28 +96,28 @@
         }
     </div>
 
-    @* ── Tabs ── *@
+    @* â”€â”€ Tabs â”€â”€ *@
     <div class="admin-tabs">
         <button class="admin-tab @(_tab == "users" ? "active" : "")" @onclick='() => SwitchTab("users")'>
-            👥 Usuarios
+            ðŸ‘¥ Usuarios
         </button>
         <button class="admin-tab @(_tab == "patients" ? "active" : "")" @onclick='() => SwitchTab("patients")'>
-            🐾 Mascotas
+            ðŸ¾ Mascotas
         </button>
         <button class="admin-tab @(_tab == "appointments" ? "active" : "")" @onclick='() => SwitchTab("appointments")'>
-            📅 Citas
+            ðŸ“… Citas
         </button>
         <button class="admin-tab @(_tab == "species" ? "active" : "")" @onclick='() => SwitchTab("species")'>
-            🐾 Especies
+            ðŸ¾ Especies
         </button>
         <button class="admin-tab @(_tab == "schedules" ? "active" : "")" @onclick='() => SwitchTab("schedules")'>
-            🕐 Horarios
+            ðŸ• Horarios
         </button>
     </div>
 
-    @* ═══════════════════════════════════════════════
+    @* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
        TAB: USUARIOS
-       ═══════════════════════════════════════════════ *@
+       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• *@
     @if (_tab == "users")
     {
         <div class="card">
@@ -126,8 +126,8 @@
                 <div class="filters-bar mb-0">
                     <button class="btn btn-primary btn-sm" @onclick="OpenCreateModal">+ Nuevo usuario</button>
                     <div class="search-input" style="min-width:200px">
-                        <span class="search-icon">🔍</span>
-                        <input class="form-control" placeholder="Buscar por nombre o correo…"
+                        <span class="search-icon">ðŸ”</span>
+                        <input class="form-control" placeholder="Buscar por nombre o correoâ€¦"
                                value="@_search" @oninput="HandleSearchInput" />
                     </div>
                     <select class="filter-select" @bind="_roleFilter" @bind:after="ReloadUsers">
@@ -147,12 +147,12 @@
             <div class="table-wrapper">
                 @if (_usersLoading)
                 {
-                    <div class="loading-pad"><LoadingSpinner Message="Cargando usuarios…" /></div>
+                    <div class="loading-pad"><LoadingSpinner Message="Cargando usuariosâ€¦" /></div>
                 }
                 else if (_users.Count == 0)
                 {
                     <div class="empty-state">
-                        <div class="empty-state-icon">👥</div>
+                        <div class="empty-state-icon">ðŸ‘¥</div>
                         <div class="empty-state-title">Sin resultados</div>
                         <div class="empty-state-sub">No hay usuarios para los filtros seleccionados.</div>
                     </div>
@@ -164,7 +164,7 @@
                             <tr>
                                 <th>Nombre</th>
                                 <th>Correo</th>
-                                <th>Teléfono</th>
+                                <th>TelÃ©fono</th>
                                 <th>Rol</th>
                                 <th>Estado</th>
                                 <th>Registrado</th>
@@ -178,7 +178,7 @@
                                 <tr style="@(user.IsActive ? "" : "opacity:.6")">
                                     <td data-label="Nombre"><strong>@user.FullName</strong></td>
                                     <td data-label="Correo" style="font-size:.85rem">@user.Email</td>
-                                    <td data-label="Teléfono" style="font-size:.85rem">@(string.IsNullOrEmpty(user.Phone) ? "—" : user.Phone)</td>
+                                    <td data-label="TelÃ©fono" style="font-size:.85rem">@(string.IsNullOrEmpty(user.Phone) ? "â€”" : user.Phone)</td>
                                     <td data-label="Rol"><span class="role-badge role-@user.Role.ToLower()">@RoleLabel(user.Role)</span></td>
                                     <td data-label="Estado">
                                         @if (user.IsActive)
@@ -191,7 +191,7 @@
                                         @{ var isSelf = Token.User != null && user.Id == Token.User.Id; }
                                         <span class="tip-wrap">
                                             <button class="btn btn-sm btn-icon-edit"
-                                                    @onclick="() => OpenEditModal(user)">✏️</button>
+                                                    @onclick="() => OpenEditModal(user)">âœï¸</button>
                                             <span class="tip-txt">Editar usuario</span>
                                         </span>
                                         @if (user.IsActive)
@@ -200,7 +200,7 @@
                                                 <button class="btn btn-sm btn-icon-deact"
                                                         style="@(isSelf ? "opacity:.4;cursor:not-allowed;" : "")"
                                                         disabled="@isSelf"
-                                                        @onclick="() => ToggleActive(user)">⏸</button>
+                                                        @onclick="() => ToggleActive(user)">â¸</button>
                                                 <span class="tip-txt">@(isSelf ? "No puedes desactivar tu propia cuenta" : "Desactivar usuario")</span>
                                             </span>
                                         }
@@ -208,20 +208,20 @@
                                         {
                                             <span class="tip-wrap">
                                                 <button class="btn btn-sm btn-icon-activate"
-                                                        @onclick="() => ToggleActive(user)">▶</button>
+                                                        @onclick="() => ToggleActive(user)">â–¶</button>
                                                 <span class="tip-txt">Activar usuario</span>
                                             </span>
                                         }
                                         <span class="tip-wrap">
                                             <button class="btn btn-sm btn-icon-reset"
-                                                    @onclick="() => OpenResetModal(user)">🔑</button>
-                                            <span class="tip-txt">Resetear contraseña</span>
+                                                    @onclick="() => OpenResetModal(user)">ðŸ”‘</button>
+                                            <span class="tip-txt">Resetear contraseÃ±a</span>
                                         </span>
                                         <span class="tip-wrap">
                                             <button class="btn btn-sm btn-icon-delete"
                                                     style="@(isSelf ? "opacity:.4;cursor:not-allowed;" : "")"
                                                     disabled="@isSelf"
-                                                    @onclick="() => OpenDeleteUserConfirm(user)">🗑️</button>
+                                                    @onclick="() => OpenDeleteUserConfirm(user)">ðŸ—‘ï¸</button>
                                             <span class="tip-txt">@(isSelf ? "No puedes eliminar tu propia cuenta" : "Eliminar usuario")</span>
                                         </span>
                                     </td>
@@ -233,9 +233,9 @@
                     @if (_usersTotal > _usersPageSize)
                     {
                         <div class="pagination pagination-padded">
-                            <button class="page-btn" disabled="@(_usersPage == 1)" @onclick="UsersPrevPage">‹</button>
+                            <button class="page-btn" disabled="@(_usersPage == 1)" @onclick="UsersPrevPage">â€¹</button>
                             <span class="page-btn active">@_usersPage / @UsersTotalPages</span>
-                            <button class="page-btn" disabled="@(_usersPage >= UsersTotalPages)" @onclick="UsersNextPage">›</button>
+                            <button class="page-btn" disabled="@(_usersPage >= UsersTotalPages)" @onclick="UsersNextPage">â€º</button>
                         </div>
                     }
                 }
@@ -243,9 +243,9 @@
         </div>
     }
 
-    @* ═══════════════════════════════════════════════
+    @* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
        TAB: MASCOTAS
-       ═══════════════════════════════════════════════ *@
+       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• *@
     @if (_tab == "patients")
     {
         <div class="card">
@@ -255,8 +255,8 @@
                     <button class="btn btn-primary btn-sm" @onclick="() => _showVetPatientModal = true">+ Registrar mascota</button>
                     <div class="filters-bar mb-0">
                         <div class="search-input" style="min-width:200px">
-                            <span class="search-icon">🔍</span>
-                            <input class="form-control" placeholder="Buscar por nombre…"
+                            <span class="search-icon">ðŸ”</span>
+                            <input class="form-control" placeholder="Buscar por nombreâ€¦"
                                    value="@_patientsSearch" @oninput="HandlePatientsSearch" />
                         </div>
                         <select class="filter-select" @bind="_patientsSpecies" @bind:after="ReloadPatients">
@@ -273,12 +273,12 @@
             <div class="card-body" style="padding:0">
                 @if (_patientsLoading)
                 {
-                    <div class="loading-pad"><LoadingSpinner Message="Cargando mascotas…" /></div>
+                    <div class="loading-pad"><LoadingSpinner Message="Cargando mascotasâ€¦" /></div>
                 }
                 else if (_patients.Count == 0)
                 {
                     <div class="empty-state">
-                        <div class="empty-state-icon">🐾</div>
+                        <div class="empty-state-icon">ðŸ¾</div>
                         <div class="empty-state-title">Sin resultados</div>
                         <div class="empty-state-sub">No hay mascotas registradas con esos filtros.</div>
                     </div>
@@ -296,10 +296,10 @@
                         @if (_patientsTotal > _patientsPageSize)
                         {
                             <div class="pagination">
-                                <button class="page-btn" disabled="@(_patientsPage == 1)" @onclick="PatientsPrevPage">‹</button>
+                                <button class="page-btn" disabled="@(_patientsPage == 1)" @onclick="PatientsPrevPage">â€¹</button>
                                 <span class="page-btn active">@_patientsPage / @PatientsTotalPages</span>
                                 <span style="font-size:.8rem;color:var(--color-text-muted);margin-left:4px">(@_patientsTotal total)</span>
-                                <button class="page-btn" disabled="@(_patientsPage >= PatientsTotalPages)" @onclick="PatientsNextPage">›</button>
+                                <button class="page-btn" disabled="@(_patientsPage >= PatientsTotalPages)" @onclick="PatientsNextPage">â€º</button>
                             </div>
                         }
                     </div>
@@ -308,9 +308,9 @@
         </div>
     }
 
-    @* ═══════════════════════════════════════════════
+    @* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
        TAB: CITAS
-       ═══════════════════════════════════════════════ *@
+       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• *@
     @if (_tab == "appointments")
     {
         <div class="card">
@@ -325,7 +325,7 @@
                             <option value="Confirmed">Confirmadas</option>
                             <option value="Completed">Completadas</option>
                             <option value="Cancelled">Canceladas</option>
-                            <option value="NoShow">No asistió</option>
+                            <option value="NoShow">No asistiÃ³</option>
                         </select>
                         <label class="date-filter-label">
                             <span>Desde</span>
@@ -342,12 +342,12 @@
             <div class="table-wrapper">
                 @if (_apptsLoading)
                 {
-                    <div class="loading-pad"><LoadingSpinner Message="Cargando citas…" /></div>
+                    <div class="loading-pad"><LoadingSpinner Message="Cargando citasâ€¦" /></div>
                 }
                 else if (_appointments.Count == 0)
                 {
                     <div class="empty-state">
-                        <div class="empty-state-icon">📅</div>
+                        <div class="empty-state-icon">ðŸ“…</div>
                         <div class="empty-state-title">Sin resultados</div>
                         <div class="empty-state-sub">No hay citas con los filtros seleccionados.</div>
                     </div>
@@ -360,7 +360,7 @@
                                 <th>Paciente / Propietario</th>
                                 <th>Fecha</th>
                                 <th>Hora</th>
-                                <th>Duración</th>
+                                <th>DuraciÃ³n</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
@@ -379,10 +379,10 @@
                     @if (_apptsTotal > _apptsPageSize)
                     {
                         <div class="pagination pagination-padded">
-                            <button class="page-btn" disabled="@(_apptsPage == 1)" @onclick="ApptsPrevPage">‹</button>
+                            <button class="page-btn" disabled="@(_apptsPage == 1)" @onclick="ApptsPrevPage">â€¹</button>
                             <span class="page-btn active">@_apptsPage / @ApptsTotalPages</span>
                             <span style="font-size:.8rem;color:var(--color-text-muted);margin-left:4px">(@_apptsTotal total)</span>
-                            <button class="page-btn" disabled="@(_apptsPage >= ApptsTotalPages)" @onclick="ApptsNextPage">›</button>
+                            <button class="page-btn" disabled="@(_apptsPage >= ApptsTotalPages)" @onclick="ApptsNextPage">â€º</button>
                         </div>
                     }
                 }
@@ -390,9 +390,9 @@
         </div>
     }
 
-    @* ═══════════════════════════════════════════════
+    @* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
        TAB: ESPECIES
-       ═══════════════════════════════════════════════ *@
+       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• *@
     @if (_tab == "species")
     {
         <div class="card">
@@ -402,11 +402,11 @@
             </div>
 
             @if (!string.IsNullOrEmpty(_speciesError))
-            { <div class="alert alert-danger" style="margin:16px 20px 0">⚠️ @_speciesError</div> }
+            { <div class="alert alert-danger" style="margin:16px 20px 0">âš ï¸ @_speciesError</div> }
 
             @if (_speciesLoading)
             {
-                <div class="loading-pad"><LoadingSpinner Message="Cargando especies…" /></div>
+                <div class="loading-pad"><LoadingSpinner Message="Cargando especiesâ€¦" /></div>
             }
             else
             {
@@ -418,7 +418,7 @@
                                 <button type="button" class="icon-dropdown-trigger"
                                         @onclick="() => _newIconPickerOpen = !_newIconPickerOpen">
                                     <span>@_newSpeciesIcon</span>
-                                    <span class="icon-dropdown-arrow">▾</span>
+                                    <span class="icon-dropdown-arrow">â–¾</span>
                                 </button>
                                 @if (_newIconPickerOpen)
                                 {
@@ -453,9 +453,9 @@
                     @if (_speciesList.Count == 0)
                     {
                         <div class="empty-state">
-                            <div class="empty-state-icon">🐾</div>
+                            <div class="empty-state-icon">ðŸ¾</div>
                             <div class="empty-state-title">Sin especies</div>
-                            <div class="empty-state-sub">Agrega la primera especie con el botón de arriba.</div>
+                            <div class="empty-state-sub">Agrega la primera especie con el botÃ³n de arriba.</div>
                         </div>
                     }
                     else
@@ -484,7 +484,7 @@
                                                         <button type="button" class="icon-dropdown-trigger"
                                                                 @onclick="() => _editIconPickerOpen = !_editIconPickerOpen">
                                                             <span>@_editSpeciesIcon</span>
-                                                            <span class="icon-dropdown-arrow">▾</span>
+                                                            <span class="icon-dropdown-arrow">â–¾</span>
                                                         </button>
                                                         @if (_editIconPickerOpen)
                                                         {
@@ -524,23 +524,23 @@
                                                         @onclick="() => SaveEditSpecies(sp.Id)"
                                                         disabled="@_speciesSaving">
                                                     @if (_speciesSaving) { <span class="spinner spinner-sm"></span> }
-                                                    else { <span>✓</span> }
+                                                    else { <span>âœ“</span> }
                                                 </button>
-                                                <button class="btn btn-sm btn-ghost" @onclick="CancelEditSpecies">✕</button>
+                                                <button class="btn btn-sm btn-ghost" @onclick="CancelEditSpecies">âœ•</button>
                                             }
                                             else
                                             {
                                                 <span class="tip-wrap">
                                                     <button class="btn btn-sm btn-icon-edit"
-                                                            @onclick="() => StartEditSpecies(sp)">✏️</button>
+                                                            @onclick="() => StartEditSpecies(sp)">âœï¸</button>
                                                     <span class="tip-txt">Editar especie</span>
                                                 </span>
                                                 <span class="tip-wrap">
                                                     <button class="btn btn-sm btn-icon-delete"
                                                             style="@(sp.PatientCount > 0 ? "opacity:.4;cursor:not-allowed;" : "")"
                                                             disabled="@(sp.PatientCount > 0)"
-                                                            @onclick="() => DeleteSpecies(sp.Id)">🗑️</button>
-                                                    <span class="tip-txt">@(sp.PatientCount > 0 ? $"Hay {sp.PatientCount} mascota(s) asignada(s) — no se puede eliminar" : "Eliminar especie")</span>
+                                                            @onclick="() => DeleteSpecies(sp.Id)">ðŸ—‘ï¸</button>
+                                                    <span class="tip-txt">@(sp.PatientCount > 0 ? $"Hay {sp.PatientCount} mascota(s) asignada(s) â€” no se puede eliminar" : "Eliminar especie")</span>
                                                 </span>
                                             }
                                         </td>
@@ -554,20 +554,253 @@
         </div>
     }
 
+    @* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       TAB: HORARIOS
+       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• *@
+    @if (_tab == "schedules")
+    {
+        @* â”€â”€ ConfiguraciÃ³n global de la clÃ­nica â”€â”€ *@
+        <div class="card" style="margin-bottom:1.5rem">
+            <div class="card-header">
+                <span class="card-title">Horario global de la clÃ­nica</span>
+            </div>
+            @if (_schedulesLoading)
+            {
+                <div class="loading-pad"><LoadingSpinner Message="Cargando horariosâ€¦" /></div>
+            }
+            else
+            {
+                <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+                        <div>
+                            <label class="form-label">Hora inicio</label>
+                            <input type="time" class="form-control" style="width:120px"
+                                   @bind="_editStart" />
+                        </div>
+                        <div>
+                            <label class="form-label">Hora fin</label>
+                            <input type="time" class="form-control" style="width:120px"
+                                   @bind="_editEnd" />
+                        </div>
+                        <div style="flex:1;min-width:220px">
+                            <label class="form-label">DÃ­as laborables</label>
+                            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.25rem">
+                                @foreach (var day in AllDays)
+                                {
+                                    var d = day;
+                                    var sel = _editWorkDays.Contains(d);
+                                    <button type="button"
+                                            class="badge @(sel ? "badge-success" : "")"
+                                            style="cursor:pointer;border:1px solid var(--color-border);background:@(sel ? "" : "var(--color-surface)")"
+                                            @onclick="() => ToggleWorkDay(d)">
+                                        @DayLabel(d)
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <button class="btn btn-primary btn-sm" @onclick="SaveClinicSettings"
+                                    disabled="@_schedulesSaving">
+                                @(_schedulesSaving ? "Guardandoâ€¦" : "Guardar")
+                            </button>
+                        </div>
+                    </div>
+                    @if (_schedulesError is not null)
+                    {
+                        <div class="alert alert-danger mb-0">@_schedulesError</div>
+                    }
+                </div>
+            }
+        </div>
+
+        @* â”€â”€ Horarios personalizados por veterinario â”€â”€ *@
+        <div class="card" style="margin-bottom:1.5rem">
+            <div class="card-header">
+                <span class="card-title">Horario personalizado por veterinario</span>
+            </div>
+            <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+                <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+                    <div style="flex:1;min-width:200px">
+                        <label class="form-label">Veterinario</label>
+                        <select class="filter-select" style="width:100%" @bind="_schedVetId" @bind:after="LoadVetSchedules">
+                            <option value="">â€” seleccionar â€”</option>
+                            @foreach (var u in _vets)
+                            {
+                                <option value="@u.Id">@u.FullName</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                @if (_schedVetId != Guid.Empty)
+                {
+                    @if (_vetSchedules.Count > 0)
+                    {
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>DÃ­a</th>
+                                        <th>Inicio</th>
+                                        <th>Fin</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var s in _vetSchedules)
+                                    {
+                                        var sc = s;
+                                        <tr>
+                                            <td>@DayLabel(sc.DayOfWeek)</td>
+                                            <td>@sc.StartTime</td>
+                                            <td>@sc.EndTime</td>
+                                            <td>
+                                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetSchedule(sc.DayOfWeek)">
+                                                    Eliminar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p style="color:var(--color-text-muted);font-size:0.875rem">
+                            Este veterinario no tiene horario personalizado. Usa el horario global para todos los dÃ­as.
+                        </p>
+                    }
+
+                    <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:0.75rem">
+                        <div>
+                            <label class="form-label">DÃ­a</label>
+                            <select class="filter-select" @bind="_newSchedDay">
+                                @foreach (var day in AllDays)
+                                {
+                                    <option value="@day">@DayLabel(day)</option>
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Inicio</label>
+                            <input type="time" class="form-control" style="width:110px" @bind="_newSchedStart" />
+                        </div>
+                        <div>
+                            <label class="form-label">Fin</label>
+                            <input type="time" class="form-control" style="width:110px" @bind="_newSchedEnd" />
+                        </div>
+                        <button class="btn btn-primary btn-sm" @onclick="UpsertVetSchedule"
+                                disabled="@_schedulesSaving">
+                            @(_schedulesSaving ? "â€¦" : "Guardar override")
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* â”€â”€ Permisos / Ausencias â”€â”€ *@
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Ausencias y permisos</span>
+            </div>
+            <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+                <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+                    <div style="flex:1;min-width:200px">
+                        <label class="form-label">Veterinario</label>
+                        <select class="filter-select" style="width:100%" @bind="_leaveVetId" @bind:after="LoadVetLeaves">
+                            <option value="">â€” seleccionar â€”</option>
+                            @foreach (var u in _vets)
+                            {
+                                <option value="@u.Id">@u.FullName</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                @if (_leaveVetId != Guid.Empty)
+                {
+                    @if (_vetLeaves.Count > 0)
+                    {
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Desde</th>
+                                        <th>Hasta</th>
+                                        <th>Motivo</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var l in _vetLeaves)
+                                    {
+                                        var lv = l;
+                                        <tr>
+                                            <td>@lv.DateFrom</td>
+                                            <td>@lv.DateTo</td>
+                                            <td>@lv.Reason</td>
+                                            <td>
+                                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetLeave(lv.Id)">
+                                                    Eliminar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p style="color:var(--color-text-muted);font-size:0.875rem">Sin ausencias registradas.</p>
+                    }
+
+                    <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:0.75rem">
+                        <div>
+                            <label class="form-label">Desde</label>
+                            <input type="date" class="form-control" style="width:150px"
+                                   value="@_newLeaveFrom"
+                                   @onchange="e => _newLeaveFrom = e.Value?.ToString() ?? _newLeaveFrom" />
+                        </div>
+                        <div>
+                            <label class="form-label">Hasta</label>
+                            <input type="date" class="form-control" style="width:150px"
+                                   value="@_newLeaveTo"
+                                   @onchange="e => _newLeaveTo = e.Value?.ToString() ?? _newLeaveTo" />
+                        </div>
+                        <div style="flex:1;min-width:200px">
+                            <label class="form-label">Motivo</label>
+                            <input type="text" class="form-control" @bind="_newLeaveReason" placeholder="Ej: Vacaciones, permiso mÃ©dicoâ€¦" />
+                        </div>
+                        <button class="btn btn-primary btn-sm" @onclick="CreateVetLeave"
+                                disabled="@_leavesSaving">
+                            @(_leavesSaving ? "â€¦" : "Registrar ausencia")
+                        </button>
+                    </div>
+                    @if (_leavesError is not null)
+                    {
+                        <div class="alert alert-danger mb-0">@_leavesError</div>
+                    }
+                }
+            </div>
+        </div>
+    }
+
 </div>
 
-@* ── Modal crear/editar usuario ── *@
+@* â”€â”€ Modal crear/editar usuario â”€â”€ *@
 @if (_showUserModal)
 {
     <div class="modal-overlay">
         <div class="modal-box" tabindex="-1" @ref="_userModalRef" @onkeydown="HandleModalKey" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">@(_editingUser == null ? "➕ Nuevo usuario" : "✏️ Editar usuario")</span>
-                <button class="btn-close" @onclick="CloseUserModal">✕</button>
+                <span class="modal-title">@(_editingUser == null ? "âž• Nuevo usuario" : "âœï¸ Editar usuario")</span>
+                <button class="btn-close" @onclick="CloseUserModal">âœ•</button>
             </div>
             <div class="modal-body">
                 @if (!string.IsNullOrEmpty(_modalError))
-                { <div class="alert alert-danger">⚠️ @_modalError</div> }
+                { <div class="alert alert-danger">âš ï¸ @_modalError</div> }
 
                 <div class="form-row">
                     <div class="form-group">
@@ -589,7 +822,7 @@
                 @if (_editingUser == null)
                 {
                     <div class="form-group">
-                        <label class="form-label">Correo electrónico *</label>
+                        <label class="form-label">Correo electrÃ³nico *</label>
                         <input type="email" class="form-control @ModalCls(_formEmail)"
                                @bind="_formEmail" placeholder="correo@ejemplo.com" />
                         @if (_modalSubmitted && string.IsNullOrWhiteSpace(_formEmail))
@@ -599,7 +832,7 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Teléfono</label>
+                        <label class="form-label">TelÃ©fono</label>
                         <PhoneInput @bind-Value="_formPhone" Placeholder="3001234567" />
                     </div>
                     <div class="form-group">
@@ -615,23 +848,23 @@
                 @if (_editingUser == null)
                 {
                     <div class="form-group">
-                        <label class="form-label">Contraseña *</label>
+                        <label class="form-label">ContraseÃ±a *</label>
                         <input type="password"
                                class="form-control @(_modalSubmitted && !PasswordStrength.IsValid(_formPassword) ? "invalid" : "")"
                                value="@_formPassword"
                                @oninput="e => _formPassword = e.Value?.ToString() ?? string.Empty"
-                               placeholder="Mínimo 8 caracteres" />
+                               placeholder="MÃ­nimo 8 caracteres" />
                         <PasswordStrength Password="@_formPassword" />
                         @if (_modalSubmitted && !PasswordStrength.IsValid(_formPassword))
-                        { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
+                        { <div class="validation-message">La contraseÃ±a no cumple los requisitos.</div> }
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Confirmar contraseña *</label>
+                        <label class="form-label">Confirmar contraseÃ±a *</label>
                         <input type="password"
                                class="form-control @(!string.IsNullOrEmpty(_formConfirm) && _formConfirm != _formPassword ? "invalid" : "")"
                                value="@_formConfirm"
                                @oninput="e => _formConfirm = e.Value?.ToString() ?? string.Empty"
-                               placeholder="Repite la contraseña" />
+                               placeholder="Repite la contraseÃ±a" />
                         <PasswordMatchHint Password="@_formPassword" Confirm="@_formConfirm" />
                     </div>
                 }
@@ -647,31 +880,31 @@
     </div>
 }
 
-@* ── Modal resetear contraseña ── *@
+@* â”€â”€ Modal resetear contraseÃ±a â”€â”€ *@
 @if (_showResetModal)
 {
     <div class="modal-overlay">
         <div class="modal-box" style="max-width:420px" tabindex="-1" @ref="_resetModalRef" @onkeydown="HandleResetKey" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">🔑 Resetear contraseña</span>
-                <button class="btn-close" @onclick="() => _showResetModal = false">✕</button>
+                <span class="modal-title">ðŸ”‘ Resetear contraseÃ±a</span>
+                <button class="btn-close" @onclick="() => _showResetModal = false">âœ•</button>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom:12px;color:var(--color-text-muted);font-size:.9rem">
                     Usuario: <strong>@_resetTargetName</strong>
                 </p>
                 @if (!string.IsNullOrEmpty(_resetError))
-                { <div class="alert alert-danger">⚠️ @_resetError</div> }
+                { <div class="alert alert-danger">âš ï¸ @_resetError</div> }
                 <div class="form-group">
-                    <label class="form-label">Nueva contraseña *</label>
+                    <label class="form-label">Nueva contraseÃ±a *</label>
                     <input type="password"
                            class="form-control @(_resetSubmitted && !PasswordStrength.IsValid(_resetPassword) ? "invalid" : "")"
                            value="@_resetPassword"
                            @oninput="e => _resetPassword = e.Value?.ToString() ?? string.Empty"
-                           placeholder="Mínimo 8 caracteres" />
+                           placeholder="MÃ­nimo 8 caracteres" />
                     <PasswordStrength Password="@_resetPassword" />
                     @if (_resetSubmitted && !PasswordStrength.IsValid(_resetPassword))
-                    { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
+                    { <div class="validation-message">La contraseÃ±a no cumple los requisitos.</div> }
                 </div>
                 <div class="form-group">
                     <label class="form-label">Confirmar *</label>
@@ -679,7 +912,7 @@
                            class="form-control @(!string.IsNullOrEmpty(_resetConfirm) && _resetConfirm != _resetPassword ? "invalid" : "")"
                            value="@_resetConfirm"
                            @oninput="e => _resetConfirm = e.Value?.ToString() ?? string.Empty"
-                           placeholder="Repite la contraseña" />
+                           placeholder="Repite la contraseÃ±a" />
                     <PasswordMatchHint Password="@_resetPassword" Confirm="@_resetConfirm" />
                 </div>
             </div>
@@ -694,22 +927,22 @@
     </div>
 }
 
-@* ── Modal confirmación eliminar usuario ── *@
+@* â”€â”€ Modal confirmaciÃ³n eliminar usuario â”€â”€ *@
 @if (_showDeleteUserConfirm)
 {
     <div class="modal-overlay">
         <div class="modal-box" style="max-width:420px" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">🗑️ Eliminar usuario</span>
-                <button class="btn-close" @onclick="() => _showDeleteUserConfirm = false">✕</button>
+                <span class="modal-title">ðŸ—‘ï¸ Eliminar usuario</span>
+                <button class="btn-close" @onclick="() => _showDeleteUserConfirm = false">âœ•</button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom:8px">¿Eliminar a <strong>@_deleteUserTarget?.FullName</strong>?</p>
+                <p style="margin-bottom:8px">Â¿Eliminar a <strong>@_deleteUserTarget?.FullName</strong>?</p>
                 <p style="color:var(--color-text-muted);font-size:.875rem">
-                    Esta acción también eliminará todas sus mascotas del sistema. No se perderán datos — es un borrado suave.
+                    Esta acciÃ³n tambiÃ©n eliminarÃ¡ todas sus mascotas del sistema. No se perderÃ¡n datos â€” es un borrado suave.
                 </p>
                 @if (!string.IsNullOrEmpty(_deleteUserError))
-                { <div class="alert alert-danger" style="margin-top:12px">⚠️ @_deleteUserError</div> }
+                { <div class="alert alert-danger" style="margin-top:12px">âš ï¸ @_deleteUserError</div> }
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showDeleteUserConfirm = false" disabled="@_deleteUserSaving">Cancelar</button>
@@ -722,248 +955,13 @@
     </div>
 }
 
-@* ═══════════════════════════════════════════════
-   TAB: HORARIOS
-   ═══════════════════════════════════════════════ *@
-@if (_tab == "schedules")
-{
-    @* ── Configuración global de la clínica ── *@
-    <div class="card" style="margin-bottom:1.5rem">
-        <div class="card-header">
-            <span class="card-title">Horario global de la clínica</span>
-        </div>
-        @if (_schedulesLoading)
-        {
-            <div class="loading-pad"><LoadingSpinner Message="Cargando horarios…" /></div>
-        }
-        else if (_clinicSettings is not null)
-        {
-            <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
-                <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
-                    <div>
-                        <label class="form-label">Hora inicio</label>
-                        <input type="time" class="form-control" style="width:120px"
-                               @bind="_editStart" />
-                    </div>
-                    <div>
-                        <label class="form-label">Hora fin</label>
-                        <input type="time" class="form-control" style="width:120px"
-                               @bind="_editEnd" />
-                    </div>
-                    <div style="flex:1;min-width:220px">
-                        <label class="form-label">Días laborables</label>
-                        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.25rem">
-                            @foreach (var day in AllDays)
-                            {
-                                var d = day;
-                                var sel = _editWorkDays.Contains(d);
-                                <button type="button"
-                                        class="badge @(sel ? "badge-success" : "")"
-                                        style="cursor:pointer;border:1px solid var(--color-border);background:@(sel ? "" : "var(--color-surface)")"
-                                        @onclick="() => ToggleWorkDay(d)">
-                                    @DayLabel(d)
-                                </button>
-                            }
-                        </div>
-                    </div>
-                    <div>
-                        <button class="btn btn-primary btn-sm" @onclick="SaveClinicSettings"
-                                disabled="@_schedulesSaving">
-                            @(_schedulesSaving ? "Guardando…" : "Guardar")
-                        </button>
-                    </div>
-                </div>
-                @if (_schedulesError is not null)
-                {
-                    <div class="alert alert-danger mb-0">@_schedulesError</div>
-                }
-            </div>
-        }
-    </div>
-
-    @* ── Horarios personalizados por veterinario ── *@
-    <div class="card" style="margin-bottom:1.5rem">
-        <div class="card-header">
-            <span class="card-title">Horario personalizado por veterinario</span>
-        </div>
-        <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
-            @* Selector de vet *@
-            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
-                <div style="flex:1;min-width:200px">
-                    <label class="form-label">Veterinario</label>
-                    <select class="filter-select" style="width:100%" @bind="_schedVetId" @bind:after="LoadVetSchedules">
-                        <option value="">— seleccionar —</option>
-                        @foreach (var u in _vets)
-                        {
-                            <option value="@u.Id">@u.FullName</option>
-                        }
-                    </select>
-                </div>
-            </div>
-
-            @if (_schedVetId != Guid.Empty)
-            {
-                @* Tabla de overrides del vet seleccionado *@
-                @if (_vetSchedules.Count > 0)
-                {
-                    <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Día</th>
-                                    <th>Inicio</th>
-                                    <th>Fin</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var s in _vetSchedules)
-                                {
-                                    var sc = s;
-                                    <tr>
-                                        <td>@DayLabel(sc.DayOfWeek)</td>
-                                        <td>@sc.StartTime</td>
-                                        <td>@sc.EndTime</td>
-                                        <td>
-                                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetSchedule(sc.DayOfWeek)">
-                                                Eliminar
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <p style="color:var(--color-text-muted);font-size:0.875rem">
-                        Este veterinario no tiene horario personalizado. Usa el horario global para todos los días.
-                    </p>
-                }
-
-                @* Formulario para agregar override *@
-                <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:0.75rem">
-                    <div>
-                        <label class="form-label">Día</label>
-                        <select class="filter-select" @bind="_newSchedDay">
-                            @foreach (var day in AllDays)
-                            {
-                                <option value="@day">@DayLabel(day)</option>
-                            }
-                        </select>
-                    </div>
-                    <div>
-                        <label class="form-label">Inicio</label>
-                        <input type="time" class="form-control" style="width:110px" @bind="_newSchedStart" />
-                    </div>
-                    <div>
-                        <label class="form-label">Fin</label>
-                        <input type="time" class="form-control" style="width:110px" @bind="_newSchedEnd" />
-                    </div>
-                    <button class="btn btn-primary btn-sm" @onclick="UpsertVetSchedule"
-                            disabled="@_schedulesSaving">
-                        @(_schedulesSaving ? "…" : "Guardar override")
-                    </button>
-                </div>
-            }
-        </div>
-    </div>
-
-    @* ── Permisos / Ausencias ── *@
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">Ausencias y permisos</span>
-        </div>
-        <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
-            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
-                <div style="flex:1;min-width:200px">
-                    <label class="form-label">Veterinario</label>
-                    <select class="filter-select" style="width:100%" @bind="_leaveVetId" @bind:after="LoadVetLeaves">
-                        <option value="">— seleccionar —</option>
-                        @foreach (var u in _vets)
-                        {
-                            <option value="@u.Id">@u.FullName</option>
-                        }
-                    </select>
-                </div>
-            </div>
-
-            @if (_leaveVetId != Guid.Empty)
-            {
-                @if (_vetLeaves.Count > 0)
-                {
-                    <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Desde</th>
-                                    <th>Hasta</th>
-                                    <th>Motivo</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var l in _vetLeaves)
-                                {
-                                    var lv = l;
-                                    <tr>
-                                        <td>@lv.DateFrom</td>
-                                        <td>@lv.DateTo</td>
-                                        <td>@lv.Reason</td>
-                                        <td>
-                                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetLeave(lv.Id)">
-                                                Eliminar
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <p style="color:var(--color-text-muted);font-size:0.875rem">Sin ausencias registradas.</p>
-                }
-
-                <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:0.75rem">
-                    <div>
-                        <label class="form-label">Desde</label>
-                        <input type="date" class="form-control" style="width:150px"
-                               value="@_newLeaveFrom"
-                               @onchange="e => _newLeaveFrom = e.Value?.ToString() ?? _newLeaveFrom" />
-                    </div>
-                    <div>
-                        <label class="form-label">Hasta</label>
-                        <input type="date" class="form-control" style="width:150px"
-                               value="@_newLeaveTo"
-                               @onchange="e => _newLeaveTo = e.Value?.ToString() ?? _newLeaveTo" />
-                    </div>
-                    <div style="flex:1;min-width:200px">
-                        <label class="form-label">Motivo</label>
-                        <input type="text" class="form-control" @bind="_newLeaveReason" placeholder="Ej: Vacaciones, permiso médico…" />
-                    </div>
-                    <button class="btn btn-primary btn-sm" @onclick="CreateVetLeave"
-                            disabled="@_leavesSaving">
-                        @(_leavesSaving ? "…" : "Registrar ausencia")
-                    </button>
-                </div>
-                @if (_leavesError is not null)
-                {
-                    <div class="alert alert-danger mb-0">@_leavesError</div>
-                }
-            }
-        </div>
-    </div>
-}
 
 @* Modal para que el admin registre una nueva mascota (igual que el vet) *@
 <VetNewPatientModal Visible="_showVetPatientModal"
                     OnSaved="EventCallback.Factory.Create(this, OnPatientCreated)"
                     OnClose="EventCallback.Factory.Create(this, () => _showVetPatientModal = false)" />
 
-@* Modal de detalle: datos, bitácoras e historia clínica *@
+@* Modal de detalle: datos, bitÃ¡coras e historia clÃ­nica *@
 <PatientDetailModal Visible="_showEditPatientModal"
                     Patient="_editingPatient"
                     InitialReferenceLog="_referenceLog"
@@ -971,7 +969,7 @@
                     OnPatientDeleted="EventCallback.Factory.Create(this, OnPatientDeletedFromModal)"
                     OnClose="EventCallback.Factory.Create(this, () => { _showEditPatientModal = false; _editingPatient = null; _referenceLog = null; })" />
 
-@* Modal de bitácora vinculada a una cita *@
+@* Modal de bitÃ¡cora vinculada a una cita *@
 <AppointmentLogModal Visible="_showLogModal"
                      Appointment="_logAppointment"
                      OnClose="EventCallback.Factory.Create(this, () => { _showLogModal = false; _logAppointment = null; })"
@@ -985,32 +983,32 @@
 @if (!string.IsNullOrEmpty(_toast))
 {
     <div class="toast-snack @(_toastIsError ? "toast-error" : "")">
-        @(_toastIsError ? "❌" : "✅") @_toast
+        @(_toastIsError ? "âŒ" : "âœ…") @_toast
     </div>
 }
 
 @code {
-    // ── Tab state ──────────────────────────────────────────────────────────────
+    // â”€â”€ Tab state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private string _tab = "users";
 
-    // ── KPI usuarios ─────────────────────────────────────────────────────────
+    // â”€â”€ KPI usuarios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private int _totalUsers;
     private int _activeUsers;
     private int _inactiveUsers;
 
-    // ── KPI mascotas ─────────────────────────────────────────────────────────
+    // â”€â”€ KPI mascotas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private int  _statPatientsTotal;
     private int  _statPatientsMale;
     private int  _statPatientsFemale;
     private bool _patientStatsLoaded;
 
-    // ── KPI citas ─────────────────────────────────────────────────────────────
+    // â”€â”€ KPI citas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private int  _statApptsTotal;
     private int  _statApptsPending;
     private int  _statApptsCompleted;
     private bool _apptStatsLoaded;
 
-    // ── Users tab ─────────────────────────────────────────────────────────────
+    // â”€â”€ Users tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private List<AdminUserItem> _users       = [];
     private int    _usersTotal;
     private int    _usersPage     = 1;
@@ -1022,7 +1020,7 @@
 
     private int UsersTotalPages => (int)Math.Ceiling((double)_usersTotal / _usersPageSize);
 
-    // ── Patients tab ──────────────────────────────────────────────────────────
+    // â”€â”€ Patients tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private List<PatientResponse> _patients      = [];
     private int    _patientsTotal;
     private int    _patientsPage     = 1;
@@ -1040,7 +1038,7 @@
     private AppointmentResponse?      _logAppointment  = null;
     private ConsultationLogResponse?  _referenceLog    = null;
 
-    // ── Appointments tab ──────────────────────────────────────────────────────
+    // â”€â”€ Appointments tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private List<AppointmentResponse> _appointments = [];
     private int       _apptsTotal;
     private int       _apptsPage     = 1;
@@ -1052,7 +1050,7 @@
 
     private int ApptsTotalPages => (int)Math.Ceiling((double)_apptsTotal / _apptsPageSize);
 
-    // ── User modal ────────────────────────────────────────────────────────────
+    // â”€â”€ User modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private bool           _showUserModal;
     private AdminUserItem? _editingUser;
     private string         _formFirst    = "";
@@ -1068,7 +1066,7 @@
     private ElementReference _userModalRef;
     private bool           _userModalPrev;
 
-    // ── Reset modal ───────────────────────────────────────────────────────────
+    // â”€â”€ Reset modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private bool   _showResetModal;
     private Guid   _resetTargetId;
     private string _resetTargetName = "";
@@ -1083,7 +1081,7 @@
     private string? _toast;
     private bool    _toastIsError;
 
-    // ── Species tab ────────────────────────────────────────────────────────────
+    // â”€â”€ Species tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private List<SpeciesResponse> _speciesList       = [];
     private bool                  _speciesLoading    = false;
     private string?               _speciesError;
@@ -1091,18 +1089,18 @@
     // Formulario nueva especie
     private bool   _showNewSpeciesForm = false;
     private string _newSpeciesName     = "";
-    private string _newSpeciesIcon     = "🐾";
+    private string _newSpeciesIcon     = "ðŸ¾";
     private bool   _newIconPickerOpen  = false;
     private bool   _speciesSubmitted   = false;
     private bool   _speciesSaving      = false;
 
-    // Edición inline
+    // EdiciÃ³n inline
     private Guid   _editingSpeciesId  = Guid.Empty;
     private string _editSpeciesName   = "";
-    private string _editSpeciesIcon   = "🐾";
+    private string _editSpeciesIcon   = "ðŸ¾";
     private bool   _editIconPickerOpen = false;
 
-    // ── Schedules tab ─────────────────────────────────────────────────────────
+    // â”€â”€ Schedules tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private bool                              _schedulesLoading = false;
     private bool                              _schedulesSaving  = false;
     private string?                           _schedulesError;
@@ -1132,12 +1130,12 @@
 
     private static readonly string[] AvailableIcons =
     [
-        "🐾", "🐶", "🐱", "🐦", "🐰",
-        "🐟", "🐷", "🐹", "🐢", "🐍",
-        "🦎", "🐓", "🐄", "🐎", "🐑"
+        "ðŸ¾", "ðŸ¶", "ðŸ±", "ðŸ¦", "ðŸ°",
+        "ðŸŸ", "ðŸ·", "ðŸ¹", "ðŸ¢", "ðŸ",
+        "ðŸ¦Ž", "ðŸ“", "ðŸ„", "ðŸŽ", "ðŸ‘"
     ];
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // â”€â”€ Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     protected override async Task OnInitializedAsync()
     {
@@ -1185,7 +1183,7 @@
             await LoadSchedulesTab();
     }
 
-    // ── Users ──────────────────────────────────────────────────────────────────
+    // â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private async Task LoadUsers()
     {
@@ -1248,7 +1246,7 @@
     private async Task UsersPrevPage() { _usersPage--; await LoadUsers(); }
     private async Task UsersNextPage() { _usersPage++; await LoadUsers(); }
 
-    // ── Patients ───────────────────────────────────────────────────────────────
+    // â”€â”€ Patients â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private async Task LoadPatients()
     {
@@ -1310,7 +1308,7 @@
         ShowToast("Mascota eliminada correctamente.");
     }
 
-    // ── Appointments ───────────────────────────────────────────────────────────
+    // â”€â”€ Appointments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private async Task LoadAppointments()
     {
@@ -1338,7 +1336,7 @@
                 var log = await LogApi.GetByAppointmentAsync(appt.PatientId, appt.Id);
                 if (log == null || log.IsOpen)
                 {
-                    ShowToast("Debes cerrar la bitácora de la cita antes de completarla.", isError: true);
+                    ShowToast("Debes cerrar la bitÃ¡cora de la cita antes de completarla.", isError: true);
                     return;
                 }
             }
@@ -1360,7 +1358,7 @@
     private async Task ApptsPrevPage() { _apptsPage--; await LoadAppointments(); }
     private async Task ApptsNextPage() { _apptsPage++; await LoadAppointments(); }
 
-    // ── Create / Edit user ─────────────────────────────────────────────────────
+    // â”€â”€ Create / Edit user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private void OpenCreateModal()
     {
@@ -1437,7 +1435,7 @@
         finally { _modalSaving = false; }
     }
 
-    // ── Delete user ────────────────────────────────────────────────────────────
+    // â”€â”€ Delete user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private bool           _showDeleteUserConfirm = false;
     private AdminUserItem? _deleteUserTarget;
@@ -1472,7 +1470,7 @@
         finally { _deleteUserSaving = false; }
     }
 
-    // ── Toggle active ──────────────────────────────────────────────────────────
+    // â”€â”€ Toggle active â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private async Task ToggleActive(AdminUserItem user)
     {
@@ -1486,7 +1484,7 @@
         catch (Exception ex) { ShowToast($"Error: {ex.Message}"); }
     }
 
-    // ── Reset password ─────────────────────────────────────────────────────────
+    // â”€â”€ Reset password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private void OpenResetModal(AdminUserItem user)
     {
@@ -1503,22 +1501,22 @@
         _resetSubmitted = true;
         _resetError     = null;
         if (!PasswordStrength.IsValid(_resetPassword))
-        { _resetError = "La contraseña no cumple los requisitos mínimos."; return; }
+        { _resetError = "La contraseÃ±a no cumple los requisitos mÃ­nimos."; return; }
         if (_resetPassword != _resetConfirm)
-        { _resetError = "Las contraseñas no coinciden."; return; }
+        { _resetError = "Las contraseÃ±as no coinciden."; return; }
 
         _resetSaving = true;
         try
         {
             await AuthApi.AdminResetPasswordAsync(_resetTargetId, _resetPassword);
             _showResetModal = false;
-            ShowToast("Contraseña actualizada.");
+            ShowToast("ContraseÃ±a actualizada.");
         }
         catch (Exception ex) { _resetError = ex.Message; }
         finally { _resetSaving = false; }
     }
 
-    // ── Species ────────────────────────────────────────────────────────────────
+    // â”€â”€ Species â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private async Task LoadSpecies()
     {
@@ -1533,7 +1531,7 @@
     {
         _showNewSpeciesForm = true;
         _newSpeciesName     = "";
-        _newSpeciesIcon     = "🐾";
+        _newSpeciesIcon     = "ðŸ¾";
         _newIconPickerOpen  = false;
         _speciesSubmitted   = false;
         _speciesError       = null;
@@ -1544,7 +1542,7 @@
     {
         _showNewSpeciesForm = false;
         _newSpeciesName     = "";
-        _newSpeciesIcon     = "🐾";
+        _newSpeciesIcon     = "ðŸ¾";
         _newIconPickerOpen  = false;
         _speciesSubmitted   = false;
     }
@@ -1561,7 +1559,7 @@
             await SpeciesApi.CreateAsync(new CreateSpeciesRequest { Name = _newSpeciesName, Icon = _newSpeciesIcon });
             _showNewSpeciesForm = false;
             _newSpeciesName     = "";
-            _newSpeciesIcon     = "🐾";
+            _newSpeciesIcon     = "ðŸ¾";
             _speciesSubmitted   = false;
             await LoadSpecies();
             ShowToast("Especie creada.");
@@ -1583,7 +1581,7 @@
     {
         _editingSpeciesId  = Guid.Empty;
         _editSpeciesName   = "";
-        _editSpeciesIcon   = "🐾";
+        _editSpeciesIcon   = "ðŸ¾";
         _editIconPickerOpen = false;
     }
 
@@ -1616,7 +1614,7 @@
         catch (Exception ex) { _speciesError = ex.Message; }
     }
 
-    // ── Schedules ─────────────────────────────────────────────────────────────
+    // â”€â”€ Schedules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private async Task LoadSchedulesTab()
     {
@@ -1649,7 +1647,7 @@
                 EndTime   = _editEnd.ToString("HH:mm"),
                 WorkDays  = [.._editWorkDays]
             });
-            ShowToast("Horario de la clínica actualizado.");
+            ShowToast("Horario de la clÃ­nica actualizado.");
         }
         catch (Exception ex) { _schedulesError = ex.Message; }
         finally { _schedulesSaving = false; }
@@ -1694,7 +1692,7 @@
         {
             await AppointmentApi.DeleteVetScheduleAsync(_schedVetId, day);
             await LoadVetSchedules();
-            ShowToast("Override eliminado. El vet vuelve a usar el horario global ese día.");
+            ShowToast("Override eliminado. El vet vuelve a usar el horario global ese dÃ­a.");
         }
         catch (Exception ex) { _schedulesError = ex.Message; }
     }
@@ -1744,15 +1742,15 @@
     {
         "Monday"    => "Lun",
         "Tuesday"   => "Mar",
-        "Wednesday" => "Mié",
+        "Wednesday" => "MiÃ©",
         "Thursday"  => "Jue",
         "Friday"    => "Vie",
-        "Saturday"  => "Sáb",
+        "Saturday"  => "SÃ¡b",
         "Sunday"    => "Dom",
         _           => day
     };
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static string RoleLabel(string role) => role.ToLower() switch
     {
