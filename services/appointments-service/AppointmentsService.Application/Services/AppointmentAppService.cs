@@ -177,22 +177,30 @@ public class AppointmentAppService
         var dayEnd   = date.ToDateTime(workEnd,   DateTimeKind.Utc);
 
         var existing  = await _repo.GetOverlappingAsync(veterinarianId, dayStart, dayEnd, null, ct);
-        var busySlots = existing
+        var partialLeaves = (await _schedules.GetLeavesOnDateAsync(veterinarianId, date, ct))
+            .Where(l => !l.IsFullDay)
+            .ToList();
+
+        // Combina citas existentes y ausencias parciales como intervalos bloqueados
+        var blockedIntervals = existing
             .Select(a => (a.ScheduledAt, a.EndsAt))
-            .OrderBy(s => s.ScheduledAt)
+            .Concat(partialLeaves.Select(l => (
+                date.ToDateTime(l.StartTime!.Value, DateTimeKind.Utc),
+                date.ToDateTime(l.EndTime!.Value,   DateTimeKind.Utc))))
+            .OrderBy(s => s.Item1)
             .ToList();
 
         var slots  = new List<TimeSlot>();
         var cursor = dayStart;
 
-        foreach (var (start, end) in busySlots)
+        foreach (var (blockStart, blockEnd) in blockedIntervals)
         {
-            while (cursor.AddMinutes(durationMinutes) <= start)
+            while (cursor.AddMinutes(durationMinutes) <= blockStart)
             {
                 slots.Add(new TimeSlot { Start = cursor, End = cursor.AddMinutes(durationMinutes) });
                 cursor = cursor.AddMinutes(durationMinutes);
             }
-            cursor = end > cursor ? end : cursor;
+            cursor = blockEnd > cursor ? blockEnd : cursor;
         }
 
         while (cursor.AddMinutes(durationMinutes) <= dayEnd)
@@ -212,12 +220,14 @@ public class AppointmentAppService
     // ── Resolución de horario efectivo ────────────────────────────────────────
 
     // Devuelve (startTime, endTime, isAvailable).
-    // Prioridad: ausencia → horario personal del vet → horario global de la clínica.
+    // Prioridad: ausencia día completo → horario personal del vet → horario global de la clínica.
+    // Las ausencias parciales no bloquean el día entero; se filtran slot a slot en GetAvailabilityAsync.
     private async Task<(TimeOnly Start, TimeOnly End, bool Available)> ResolveScheduleAsync(
         Guid vetId, DateOnly date, CancellationToken ct)
     {
-        // 1. ¿Está de permiso?
-        if (await _schedules.HasLeaveOnDateAsync(vetId, date, ct))
+        // 1. ¿Tiene alguna ausencia de día completo?
+        var leaves = await _schedules.GetLeavesOnDateAsync(vetId, date, ct);
+        if (leaves.Any(l => l.IsFullDay))
             return (default, default, false);
 
         // 2. ¿Tiene horario personalizado para ese día?

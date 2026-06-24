@@ -70,9 +70,11 @@ public class ScheduleRepository : IScheduleRepository
             .OrderBy(l => l.DateFrom)
             .ToListAsync(ct);
 
-    public async Task<bool> HasLeaveOnDateAsync(Guid vetId, DateOnly date, CancellationToken ct) =>
-        await _db.VeterinarianLeaves.AnyAsync(
-            l => l.VeterinarianId == vetId && l.DateFrom <= date && l.DateTo >= date, ct);
+    public async Task<IReadOnlyList<VeterinarianLeave>> GetLeavesOnDateAsync(
+        Guid vetId, DateOnly date, CancellationToken ct) =>
+        await _db.VeterinarianLeaves
+            .Where(l => l.VeterinarianId == vetId && l.DateFrom <= date && l.DateTo >= date)
+            .ToListAsync(ct);
 
     public async Task<VeterinarianLeave> AddLeaveAsync(VeterinarianLeave leave, CancellationToken ct)
     {

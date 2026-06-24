@@ -83,6 +83,12 @@ public class AppointmentsDbContext : DbContext
             e.Property(l => l.DateTo).HasConversion(
                 d => d.ToDateTime(TimeOnly.MinValue),
                 dt => DateOnly.FromDateTime(dt));
+            e.Property(l => l.StartTime).HasConversion(
+                t => t.HasValue ? t.Value.ToString("HH:mm") : null,
+                s => s != null ? TimeOnly.Parse(s) : (TimeOnly?)null);
+            e.Property(l => l.EndTime).HasConversion(
+                t => t.HasValue ? t.Value.ToString("HH:mm") : null,
+                s => s != null ? TimeOnly.Parse(s) : (TimeOnly?)null);
             e.HasIndex(l => new { l.VeterinarianId, l.DateFrom })
              .HasDatabaseName("IX_VeterinarianLeave_VetId_DateFrom");
         });

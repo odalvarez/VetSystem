@@ -86,7 +86,19 @@ public class ScheduleAppService
             !DateOnly.TryParse(req.DateTo,   out var to))
             throw new ValidationException("Formato de fecha inválido. Use YYYY-MM-DD.");
 
-        var leave = VeterinarianLeave.Create(vetId, from, to, req.Reason);
+        TimeOnly? startTime = null;
+        TimeOnly? endTime   = null;
+
+        if (req.StartTime is not null || req.EndTime is not null)
+        {
+            if (!TimeOnly.TryParse(req.StartTime, out var st) ||
+                !TimeOnly.TryParse(req.EndTime,   out var et))
+                throw new ValidationException("Formato de hora inválido. Use HH:mm.");
+            startTime = st;
+            endTime   = et;
+        }
+
+        var leave = VeterinarianLeave.Create(vetId, from, to, req.Reason, startTime, endTime);
         var saved = await _repo.AddLeaveAsync(leave, ct);
         return MapLeave(saved);
     }
@@ -117,6 +129,8 @@ public class ScheduleAppService
         VeterinarianId = l.VeterinarianId,
         DateFrom       = l.DateFrom.ToString("yyyy-MM-dd"),
         DateTo         = l.DateTo.ToString("yyyy-MM-dd"),
+        StartTime      = l.StartTime?.ToString("HH:mm"),
+        EndTime        = l.EndTime?.ToString("HH:mm"),
         Reason         = l.Reason
     };
 

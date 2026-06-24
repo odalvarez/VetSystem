@@ -832,6 +832,102 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         Assert.Empty(body!.AvailableSlots);
     }
 
+    // ── Ausencias parciales ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CreateLeave_WithPartialTime_Returns201()
+    {
+        var admin = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var vetId = Guid.NewGuid();
+        var date  = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7).Date);
+
+        var resp = await admin.PostAsJsonAsync($"/api/schedules/leaves/{vetId}", new CreateVeterinarianLeaveRequest
+        {
+            DateFrom  = date.ToString("yyyy-MM-dd"),
+            DateTo    = date.ToString("yyyy-MM-dd"),
+            StartTime = "10:00",
+            EndTime   = "12:00",
+            Reason    = "Reunión"
+        });
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+
+        var body = await resp.Content.ReadFromJsonAsync<VeterinarianLeaveResponse>();
+        Assert.NotNull(body);
+        Assert.Equal("10:00", body!.StartTime);
+        Assert.Equal("12:00", body!.EndTime);
+    }
+
+    [Fact]
+    public async Task GetAvailability_WithPartialLeave_BlocksOnlyAffectedSlots()
+    {
+        var admin = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var vet   = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var vetId = Guid.NewGuid();
+        var date  = DateOnly.FromDateTime(GetNextWeekday(DayOfWeek.Wednesday).Date);
+
+        // Ausencia parcial 10:00-12:00
+        await admin.PostAsJsonAsync($"/api/schedules/leaves/{vetId}", new CreateVeterinarianLeaveRequest
+        {
+            DateFrom  = date.ToString("yyyy-MM-dd"),
+            DateTo    = date.ToString("yyyy-MM-dd"),
+            StartTime = "10:00",
+            EndTime   = "12:00",
+            Reason    = "Reunión"
+        });
+
+        var resp = await vet.GetAsync(
+            $"/api/appointments/availability?veterinarianId={vetId}&date={date:yyyy-MM-dd}&durationMinutes=30");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        var body = await resp.Content.ReadFromJsonAsync<AvailabilityResponse>();
+        Assert.NotNull(body);
+
+        // Deben existir slots (no está todo el día bloqueado)
+        Assert.NotEmpty(body!.AvailableSlots);
+
+        // Ningún slot debe solaparse con el bloqueo 10:00-12:00
+        foreach (var slot in body.AvailableSlots)
+        {
+            var slotStart = TimeOnly.FromDateTime(slot.Start);
+            var slotEnd   = TimeOnly.FromDateTime(slot.End);
+            Assert.False(slotStart < new TimeOnly(12, 0) && slotEnd > new TimeOnly(10, 0),
+                $"Slot {slotStart}-{slotEnd} solapa con la ausencia parcial 10:00-12:00");
+        }
+    }
+
+    [Fact]
+    public async Task CreateAppointment_WhenVetHasFullDayLeave_Returns400()
+    {
+        var admin  = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
+        var vet    = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var vetId  = Guid.NewGuid();
+        var target = DateTime.UtcNow.AddDays(8).Date.AddHours(10);
+        var date   = DateOnly.FromDateTime(target);
+
+        // Ausencia completa (sin horas)
+        await admin.PostAsJsonAsync($"/api/schedules/leaves/{vetId}", new CreateVeterinarianLeaveRequest
+        {
+            DateFrom = date.ToString("yyyy-MM-dd"),
+            DateTo   = date.ToString("yyyy-MM-dd"),
+            Reason   = "Vacaciones"
+        });
+
+        var resp = await vet.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
+        {
+            PatientId        = Guid.NewGuid(),
+            VeterinarianId   = vetId,
+            VeterinarianName = "Vet Ausente",
+            OwnerId          = AppointmentsWebFactory.OwnerId,
+            OwnerName        = "Owner Test",
+            OwnerPhone       = "3001234567",
+            PatientName      = "Luna",
+            ScheduledAt      = target,
+            DurationMinutes  = 30,
+            Reason           = "Control"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
     private static DateTime GetNextWeekday(DayOfWeek day)
     {
         var date = DateTime.UtcNow.Date.AddDays(1);

@@ -16,7 +16,7 @@ public interface IScheduleRepository
 
     // ── VeterinarianLeave ─────────────────────────────────────────────────────
     Task<IReadOnlyList<VeterinarianLeave>> GetLeavesForVetAsync(Guid vetId, CancellationToken ct);
-    Task<bool> HasLeaveOnDateAsync(Guid vetId, DateOnly date, CancellationToken ct);
+    Task<IReadOnlyList<VeterinarianLeave>> GetLeavesOnDateAsync(Guid vetId, DateOnly date, CancellationToken ct);
     Task<VeterinarianLeave> AddLeaveAsync(VeterinarianLeave leave, CancellationToken ct);
     Task DeleteLeaveAsync(Guid leaveId, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
