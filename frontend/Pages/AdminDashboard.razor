@@ -635,33 +635,22 @@
                 {
                     @if (_vetSchedules.Count > 0)
                     {
-                        <div class="table-wrapper">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Día</th>
-                                        <th>Inicio</th>
-                                        <th>Fin</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var s in _vetSchedules)
-                                    {
-                                        var sc = s;
-                                        <tr>
-                                            <td>@DayLabel(sc.DayOfWeek)</td>
-                                            <td>@sc.StartTime</td>
-                                            <td>@sc.EndTime</td>
-                                            <td>
-                                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetSchedule(sc.DayOfWeek)">
-                                                    Eliminar
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                        <div style="display:flex;flex-direction:column;gap:0.5rem">
+                            @foreach (var s in _vetSchedules)
+                            {
+                                var sc = s;
+                                <div style="display:flex;align-items:center;justify-content:space-between;
+                                            padding:0.6rem 0.875rem;border-radius:8px;
+                                            background:var(--color-surface-alt);border:1px solid var(--color-border)">
+                                    <div style="display:flex;align-items:center;gap:1rem">
+                                        <span style="font-weight:600;font-size:.875rem;min-width:36px">@DayLabel(sc.DayOfWeek)</span>
+                                        <span style="font-size:.875rem;color:var(--color-text-secondary)">@sc.StartTime – @sc.EndTime</span>
+                                    </div>
+                                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetSchedule(sc.DayOfWeek)">
+                                        Eliminar
+                                    </button>
+                                </div>
+                            }
                         </div>
                     }
                     else
@@ -721,35 +710,35 @@
                 {
                     @if (_vetLeaves.Count > 0)
                     {
-                        <div class="table-wrapper">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Desde</th>
-                                        <th>Hasta</th>
-                                        <th>Horario</th>
-                                        <th>Motivo</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var l in _vetLeaves)
-                                    {
-                                        var lv = l;
-                                        <tr>
-                                            <td>@lv.DateFrom</td>
-                                            <td>@lv.DateTo</td>
-                                            <td>@(lv.StartTime is not null ? $"{lv.StartTime}–{lv.EndTime}" : "Día completo")</td>
-                                            <td>@lv.Reason</td>
-                                            <td>
-                                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetLeave(lv.Id)">
-                                                    Eliminar
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                        <div style="display:flex;flex-direction:column;gap:0.5rem">
+                            @foreach (var l in _vetLeaves)
+                            {
+                                var lv = l;
+                                <div style="display:flex;align-items:center;justify-content:space-between;
+                                            padding:0.6rem 0.875rem;border-radius:8px;
+                                            background:var(--color-surface-alt);border:1px solid var(--color-border)">
+                                    <div style="display:flex;flex-direction:column;gap:2px">
+                                        <div style="font-size:.875rem">
+                                            <span style="font-weight:600">@lv.DateFrom</span>
+                                            @if (lv.DateTo != lv.DateFrom)
+                                            {
+                                                <span style="color:var(--color-text-muted)"> → </span>
+                                                <span style="font-weight:600">@lv.DateTo</span>
+                                            }
+                                            @if (lv.StartTime is not null)
+                                            {
+                                                <span style="margin-left:8px;color:var(--color-text-secondary);font-size:.82rem">
+                                                    @lv.StartTime – @lv.EndTime
+                                                </span>
+                                            }
+                                        </div>
+                                        <div style="font-size:.8rem;color:var(--color-text-muted)">@lv.Reason</div>
+                                    </div>
+                                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetLeave(lv.Id)">
+                                        Eliminar
+                                    </button>
+                                </div>
+                            }
                         </div>
                     }
                     else
