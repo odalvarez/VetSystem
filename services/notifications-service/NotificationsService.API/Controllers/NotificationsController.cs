@@ -16,7 +16,6 @@ namespace NotificationsService.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/notifications")]
-[Authorize]
 [Produces("application/json")]
 public class NotificationsController : ControllerBase
 {
@@ -33,10 +32,9 @@ public class NotificationsController : ControllerBase
     /// <returns>ID y estado inicial de la notificación (<c>pending</c>).</returns>
     /// <response code="202">Notificación encolada. El envío se procesa en segundo plano.</response>
     /// <response code="400">Número de teléfono inválido o mensaje vacío/demasiado largo.</response>
-    /// <response code="401">No autenticado.</response>
+    /// <response code="403">X-Internal-Key ausente o inválida.</response>
     /// <response code="503">Evolution API no disponible.</response>
     [HttpPost("whatsapp")]
-    [AllowAnonymous]
     [ProducesResponseType(typeof(NotificationAcceptedResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -60,7 +58,6 @@ public class NotificationsController : ControllerBase
     /// <response code="401">No autenticado.</response>
     /// <response code="503">Servidor SMTP no disponible.</response>
     [HttpPost("email")]
-    [AllowAnonymous]
     [ProducesResponseType(typeof(NotificationAcceptedResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -83,7 +80,6 @@ public class NotificationsController : ControllerBase
     /// <response code="400">Datos inválidos o <c>scheduledAt</c> está en el pasado.</response>
     /// <response code="401">No autenticado.</response>
     [HttpPost("reminder")]
-    [AllowAnonymous]
     [ProducesResponseType(typeof(ReminderAcceptedResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ScheduleReminder(
@@ -107,6 +103,7 @@ public class NotificationsController : ControllerBase
     /// <response code="200">Lista devuelta correctamente.</response>
     /// <response code="401">No autenticado.</response>
     [HttpGet]
+    [Authorize]
     [ProducesResponseType(typeof(IReadOnlyList<NotificationStatusResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ListAll(
@@ -141,6 +138,7 @@ public class NotificationsController : ControllerBase
     /// <response code="401">No autenticado.</response>
     /// <response code="404">Notificación no encontrada.</response>
     [HttpGet("{id:guid}")]
+    [Authorize]
     [ProducesResponseType(typeof(NotificationStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
