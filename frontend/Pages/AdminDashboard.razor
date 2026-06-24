@@ -727,6 +727,7 @@
                                     <tr>
                                         <th>Desde</th>
                                         <th>Hasta</th>
+                                        <th>Horario</th>
                                         <th>Motivo</th>
                                         <th></th>
                                     </tr>
@@ -738,6 +739,7 @@
                                         <tr>
                                             <td>@lv.DateFrom</td>
                                             <td>@lv.DateTo</td>
+                                            <td>@(lv.StartTime is not null ? $"{lv.StartTime}–{lv.EndTime}" : "Día completo")</td>
                                             <td>@lv.Reason</td>
                                             <td>
                                                 <button class="btn btn-danger btn-sm" @onclick="() => DeleteVetLeave(lv.Id)">
@@ -755,27 +757,56 @@
                         <p style="color:var(--color-text-muted);font-size:0.875rem">Sin ausencias registradas.</p>
                     }
 
-                    <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:0.75rem">
+                    <div style="border-top:1px solid var(--color-border);padding-top:0.75rem;display:flex;flex-direction:column;gap:0.75rem">
+                        <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+                            <div>
+                                <label class="form-label">Desde</label>
+                                <input type="date" class="form-control" style="width:150px"
+                                       value="@_newLeaveFrom"
+                                       @onchange="e => { _newLeaveFrom = e.Value?.ToString() ?? _newLeaveFrom; if (_leavePartial) _newLeaveTo = _newLeaveFrom; }" />
+                            </div>
+                            <div>
+                                <label class="form-label">Hasta</label>
+                                <input type="date" class="form-control" style="width:150px"
+                                       value="@_newLeaveTo"
+                                       disabled="@_leavePartial"
+                                       @onchange="e => _newLeaveTo = e.Value?.ToString() ?? _newLeaveTo" />
+                            </div>
+                            <div style="flex:1;min-width:200px">
+                                <label class="form-label">Motivo</label>
+                                <input type="text" class="form-control" @bind="_newLeaveReason" placeholder="Ej: Vacaciones, permiso médico…" />
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:0.5rem">
+                            <input type="checkbox" id="leavePartialChk" @bind="_leavePartial"
+                                   @bind:after="OnLeavePartialToggled" />
+                            <label for="leavePartialChk" style="font-size:.875rem;cursor:pointer">
+                                Ausencia parcial (solo un rango horario del día)
+                            </label>
+                        </div>
+                        @if (_leavePartial)
+                        {
+                            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;padding-left:1.5rem">
+                                <div>
+                                    <label class="form-label">Hora inicio</label>
+                                    <input type="time" class="form-control" style="width:130px"
+                                           value="@_newLeaveStart"
+                                           @onchange="e => _newLeaveStart = e.Value?.ToString() ?? _newLeaveStart" />
+                                </div>
+                                <div>
+                                    <label class="form-label">Hora fin</label>
+                                    <input type="time" class="form-control" style="width:130px"
+                                           value="@_newLeaveEnd"
+                                           @onchange="e => _newLeaveEnd = e.Value?.ToString() ?? _newLeaveEnd" />
+                                </div>
+                            </div>
+                        }
                         <div>
-                            <label class="form-label">Desde</label>
-                            <input type="date" class="form-control" style="width:150px"
-                                   value="@_newLeaveFrom"
-                                   @onchange="e => _newLeaveFrom = e.Value?.ToString() ?? _newLeaveFrom" />
+                            <button class="btn btn-primary btn-sm" @onclick="CreateVetLeave"
+                                    disabled="@_leavesSaving">
+                                @(_leavesSaving ? "…" : "Registrar ausencia")
+                            </button>
                         </div>
-                        <div>
-                            <label class="form-label">Hasta</label>
-                            <input type="date" class="form-control" style="width:150px"
-                                   value="@_newLeaveTo"
-                                   @onchange="e => _newLeaveTo = e.Value?.ToString() ?? _newLeaveTo" />
-                        </div>
-                        <div style="flex:1;min-width:200px">
-                            <label class="form-label">Motivo</label>
-                            <input type="text" class="form-control" @bind="_newLeaveReason" placeholder="Ej: Vacaciones, permiso médico…" />
-                        </div>
-                        <button class="btn btn-primary btn-sm" @onclick="CreateVetLeave"
-                                disabled="@_leavesSaving">
-                            @(_leavesSaving ? "…" : "Registrar ausencia")
-                        </button>
                     </div>
                     @if (_leavesError is not null)
                     {
@@ -1121,6 +1152,9 @@
     private string                            _newLeaveFrom    = DateTime.Today.ToString("yyyy-MM-dd");
     private string                            _newLeaveTo      = DateTime.Today.ToString("yyyy-MM-dd");
     private string                            _newLeaveReason  = "";
+    private bool                              _leavePartial    = false;
+    private string                            _newLeaveStart   = "08:00";
+    private string                            _newLeaveEnd     = "12:00";
 
     private List<AdminUserItem>               _vets            = [];
 
@@ -1703,6 +1737,12 @@
         _vetLeaves = await AppointmentApi.GetVetLeavesAsync(_leaveVetId) ?? [];
     }
 
+    private void OnLeavePartialToggled()
+    {
+        if (_leavePartial)
+            _newLeaveTo = _newLeaveFrom; // ausencia parcial → mismo día
+    }
+
     private async Task CreateVetLeave()
     {
         _leavesError = null;
@@ -1714,11 +1754,14 @@
         {
             await AppointmentApi.CreateVetLeaveAsync(_leaveVetId, new CreateVeterinarianLeaveRequest
             {
-                DateFrom = _newLeaveFrom,
-                DateTo   = _newLeaveTo,
-                Reason   = _newLeaveReason
+                DateFrom  = _newLeaveFrom,
+                DateTo    = _newLeaveTo,
+                Reason    = _newLeaveReason,
+                StartTime = _leavePartial ? _newLeaveStart : null,
+                EndTime   = _leavePartial ? _newLeaveEnd   : null
             });
             _newLeaveReason = "";
+            _leavePartial   = false;
             await LoadVetLeaves();
             ShowToast("Ausencia registrada.");
         }

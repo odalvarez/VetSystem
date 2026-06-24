@@ -93,16 +93,20 @@ public class UpsertVeterinarianScheduleRequest
 
 public class VeterinarianLeaveResponse
 {
-    public Guid   Id             { get; set; }
-    public Guid   VeterinarianId { get; set; }
-    public string DateFrom       { get; set; } = "";
-    public string DateTo         { get; set; } = "";
-    public string Reason         { get; set; } = "";
+    public Guid    Id             { get; set; }
+    public Guid    VeterinarianId { get; set; }
+    public string  DateFrom       { get; set; } = "";
+    public string  DateTo         { get; set; } = "";
+    public string? StartTime      { get; set; }
+    public string? EndTime        { get; set; }
+    public string  Reason         { get; set; } = "";
 }
 
 public class CreateVeterinarianLeaveRequest
 {
-    public string DateFrom { get; set; } = "";
-    public string DateTo   { get; set; } = "";
-    public string Reason   { get; set; } = "";
+    public string  DateFrom  { get; set; } = "";
+    public string  DateTo    { get; set; } = "";
+    public string  Reason    { get; set; } = "";
+    public string? StartTime { get; set; }
+    public string? EndTime   { get; set; }
 }
