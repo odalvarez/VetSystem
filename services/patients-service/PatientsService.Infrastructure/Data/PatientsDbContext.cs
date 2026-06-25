@@ -7,10 +7,13 @@ public class PatientsDbContext : DbContext
 {
     public PatientsDbContext(DbContextOptions<PatientsDbContext> options) : base(options) { }
 
-    public DbSet<Patient>          Patients          => Set<Patient>();
-    public DbSet<ClinicalRecord>   ClinicalRecords   => Set<ClinicalRecord>();
-    public DbSet<Species>          Species           => Set<Species>();
-    public DbSet<ConsultationLog>  ConsultationLogs  => Set<ConsultationLog>();
+    public DbSet<Patient>            Patients            => Set<Patient>();
+    public DbSet<ClinicalRecord>     ClinicalRecords     => Set<ClinicalRecord>();
+    public DbSet<Species>            Species             => Set<Species>();
+    public DbSet<ConsultationLog>    ConsultationLogs    => Set<ConsultationLog>();
+    public DbSet<VaccineDefinition>  VaccineDefinitions  => Set<VaccineDefinition>();
+    public DbSet<VaccineDoseStep>    VaccineDoseSteps    => Set<VaccineDoseStep>();
+    public DbSet<VaccinationRecord>  VaccinationRecords  => Set<VaccinationRecord>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -103,6 +106,55 @@ public class PatientsDbContext : DbContext
 
             // Slug único: no puede haber dos especies con el mismo identificador
             e.HasIndex(s => s.Slug).IsUnique().HasDatabaseName("IX_Species_Slug");
+        });
+
+        model.Entity<VaccineDefinition>(e =>
+        {
+            e.HasKey(v => v.Id);
+            e.Property(v => v.Name).IsRequired().HasMaxLength(100);
+            e.Property(v => v.Description).HasMaxLength(500);
+            e.Property(v => v.Scheme).HasConversion<string>().IsRequired().HasMaxLength(20);
+            e.Property(v => v.AnnualIntervalMonths).IsRequired().HasDefaultValue(12);
+            e.Property(v => v.IsActive).IsRequired().HasDefaultValue(true);
+            e.HasMany(v => v.DoseSteps)
+             .WithOne()
+             .HasForeignKey(d => d.VaccineDefinitionId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(v => v.Name).HasDatabaseName("IX_VaccineDefinitions_Name");
+        });
+
+        model.Entity<VaccineDoseStep>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.Id).ValueGeneratedOnAdd();
+            e.Property(d => d.DoseNumber).IsRequired();
+            e.Property(d => d.DaysAfterPrevious).IsRequired();
+            e.HasIndex(d => new { d.VaccineDefinitionId, d.DoseNumber })
+             .IsUnique()
+             .HasDatabaseName("IX_VaccineDoseSteps_VaccineId_DoseNumber");
+        });
+
+        model.Entity<VaccinationRecord>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.PatientName).IsRequired().HasMaxLength(100);
+            e.Property(r => r.OwnerName).IsRequired().HasMaxLength(200);
+            e.Property(r => r.OwnerPhone).IsRequired().HasMaxLength(30);
+            e.Property(r => r.OwnerEmail).HasMaxLength(200);
+            e.Property(r => r.VaccineName).IsRequired().HasMaxLength(100);
+            e.Property(r => r.AdministeredByName).IsRequired().HasMaxLength(200);
+            e.Property(r => r.BatchNumber).HasMaxLength(100);
+            e.Property(r => r.Notes).HasMaxLength(1000);
+            e.Property(r => r.AdministeredAt).HasConversion(
+                d => d.ToDateTime(TimeOnly.MinValue),
+                dt => DateOnly.FromDateTime(dt));
+            e.Property(r => r.NextDueDate).HasConversion(
+                d => d.HasValue ? (DateTime?)d.Value.ToDateTime(TimeOnly.MinValue) : null,
+                dt => dt.HasValue ? DateOnly.FromDateTime(dt.Value) : (DateOnly?)null);
+            e.HasIndex(r => r.PatientId).HasDatabaseName("IX_VaccinationRecords_PatientId");
+            e.HasIndex(r => new { r.PatientId, r.VaccineDefinitionId })
+             .HasDatabaseName("IX_VaccinationRecords_PatientId_VaccineId");
+            e.HasIndex(r => r.NextDueDate).HasDatabaseName("IX_VaccinationRecords_NextDueDate");
         });
     }
 }

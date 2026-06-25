@@ -31,5 +31,7 @@ builder.Services.AddHttpClient<SpeciesApiClient>(c => c.BaseAddress = baseAddres
     .AddHttpMessageHandler<AuthInterceptorHandler>();
 builder.Services.AddHttpClient<ConsultationLogApiClient>(c => c.BaseAddress = baseAddress)
     .AddHttpMessageHandler<AuthInterceptorHandler>();
+builder.Services.AddHttpClient<VaccinationApiClient>(c => c.BaseAddress = baseAddress)
+    .AddHttpMessageHandler<AuthInterceptorHandler>();
 
 await builder.Build().RunAsync();

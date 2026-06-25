@@ -10,6 +10,7 @@ using PatientsService.Application.Services;
 using PatientsService.Infrastructure.Data;
 using PatientsService.Infrastructure.Data.Repositories;
 using PatientsService.Infrastructure.Services;
+using PatientsService.API.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -98,9 +99,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IPatientRepository, PatientRepository>();
 builder.Services.AddScoped<ISpeciesRepository, SpeciesRepository>();
 builder.Services.AddScoped<IConsultationLogRepository, ConsultationLogRepository>();
+builder.Services.AddScoped<IVaccinationRepository, VaccinationRepository>();
 builder.Services.AddScoped<PatientAppService>();
 builder.Services.AddScoped<SpeciesAppService>();
 builder.Services.AddScoped<ConsultationLogAppService>();
+builder.Services.AddScoped<VaccinationAppService>();
+builder.Services.AddHostedService<VaccinationReminderWorker>();
 
 var notifBaseUrl     = builder.Configuration["NotificationsService:BaseUrl"]    ?? "http://notifications-service:8080";
 var notifInternalKey = builder.Configuration["NotificationsService:InternalKey"] ?? "";

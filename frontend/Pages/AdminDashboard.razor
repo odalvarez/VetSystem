@@ -90,7 +90,7 @@
                 <div class="stat-value">@_clinicSettings.WorkDays.Count</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Overrides de vet</div>
+                <div class="stat-label">Horarios personalizados</div>
                 <div class="stat-value">@_vetSchedules.Count</div>
             </div>
         }
@@ -680,7 +680,7 @@
                         </div>
                         <button class="btn btn-primary btn-sm" @onclick="UpsertVetSchedule"
                                 disabled="@_schedulesSaving">
-                            @(_schedulesSaving ? "…" : "Guardar override")
+                            @(_schedulesSaving ? "…" : "Guardar horario")
                         </button>
                     </div>
                 }
@@ -1714,7 +1714,7 @@
         {
             await AppointmentApi.DeleteVetScheduleAsync(_schedVetId, day);
             await LoadVetSchedules();
-            ShowToast("Override eliminado. El vet vuelve a usar el horario global ese día.");
+            ShowToast("Horario personalizado eliminado. El veterinario vuelve a usar el horario global ese día.");
         }
         catch (Exception ex) { _schedulesError = ex.Message; }
     }

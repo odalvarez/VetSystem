@@ -3,6 +3,7 @@
    Abierto tanto por el veterinario como por el propietario (lectura diferenciada por rol). *@
 @inject PatientApiClient          PatientApi
 @inject ConsultationLogApiClient  LogApi
+@inject VaccinationApiClient      VaccApi
 @inject TokenProvider             Token
 
 @if (Visible && Patient != null)
@@ -32,6 +33,9 @@
                 </button>
                 <button class="admin-tab @(_tab == "records" ? "active" : "")" @onclick='() => SwitchTab("records")'>
                     🏥 Historia clínica @if (_recordCount > 0) { <span class="tab-count">@_recordCount</span> }
+                </button>
+                <button class="admin-tab @(_tab == "vaccines" ? "active" : "")" @onclick='() => SwitchTab("vaccines")'>
+                    💉 Vacunas @if (_vaccineCount > 0) { <span class="tab-count">@_vaccineCount</span> }
                 </button>
             </div>
 
@@ -409,6 +413,127 @@
                     }
                 }
 
+                @* ════════════════════════════════
+                   TAB: VACUNAS
+                   ════════════════════════════════ *@
+                @if (_tab == "vaccines")
+                {
+                    @if (!IsOwner)
+                    {
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+                            <button class="btn btn-primary btn-sm" @onclick="() => _showVaccineForm = !_showVaccineForm">
+                                @(_showVaccineForm ? "Cancelar" : "+ Registrar dosis")
+                            </button>
+                        </div>
+
+                        @if (_showVaccineForm)
+                        {
+                            <div class="form-card" style="margin-bottom:20px">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Vacuna</label>
+                                        <select class="form-control" @bind="_vaccReq.VaccineDefinitionId">
+                                            <option value="@Guid.Empty">— Selecciona —</option>
+                                            @foreach (var v in _vaccineDefinitions.Where(d => d.IsActive))
+                                            {
+                                                <option value="@v.Id">@v.Name (@v.Scheme)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Fecha de aplicación</label>
+                                        <input class="form-control" type="date"
+                                               value="@_vaccReq.AdministeredAt"
+                                               @onchange="e => _vaccReq.AdministeredAt = e.Value?.ToString() ?? string.Empty" />
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Lote (opcional)</label>
+                                        <input class="form-control" type="text" placeholder="Número de lote"
+                                               value="@_vaccReq.BatchNumber"
+                                               @onchange="e => _vaccReq.BatchNumber = e.Value?.ToString()" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Próximo refuerzo (opcional — sobreescribe cálculo)</label>
+                                        <input class="form-control" type="date"
+                                               value="@_vaccReq.NextDueDateOverride"
+                                               @onchange="e => _vaccReq.NextDueDateOverride = e.Value?.ToString()" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Notas</label>
+                                    <textarea class="form-control" rows="2"
+                                              @onchange="e => _vaccReq.Notes = e.Value?.ToString()">@_vaccReq.Notes</textarea>
+                                </div>
+                                @if (!string.IsNullOrEmpty(_vaccError))
+                                {
+                                    <p style="color:var(--color-danger);margin:6px 0">@_vaccError</p>
+                                }
+                                <div style="display:flex;justify-content:flex-end;margin-top:10px">
+                                    <button class="btn btn-primary" @onclick="SaveVaccinationAsync"
+                                            disabled="@_vaccSaving">
+                                        @(_vaccSaving ? "Guardando..." : "Guardar")
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    }
+
+                    @if (!_vaccRecords.Any())
+                    {
+                        <p class="empty-state-text">No hay vacunas registradas para esta mascota.</p>
+                    }
+                    else
+                    {
+                        @foreach (var r in _vaccRecords)
+                        {
+                            <div class="record-entry" style="margin-bottom:10px">
+                                <div class="record-entry-header">
+                                    <div>
+                                        <span style="font-weight:600">@r.VaccineName</span>
+                                        <span style="margin-left:8px;font-size:.8rem;color:var(--color-text-muted)">Dosis @r.DoseNumber</span>
+                                        @{
+                                            var (badgeColor, badgeLabel) = r.DueStatus switch
+                                            {
+                                                "overdue"  => ("var(--color-danger)", "Vencida"),
+                                                "upcoming" => ("var(--color-warning, #F59E0B)", "Próxima"),
+                                                "ok"       => ("var(--color-success, #10B981)", "Al día"),
+                                                _          => ("var(--color-text-muted)", "Dosis única"),
+                                            };
+                                        }
+                                        <span style="margin-left:8px;font-size:.75rem;font-weight:600;color:@badgeColor">
+                                            @badgeLabel
+                                        </span>
+                                    </div>
+                                    <div style="font-size:.82rem;color:var(--color-text-muted)">
+                                        @r.AdministeredAt
+                                        @if (!string.IsNullOrEmpty(r.NextDueDate))
+                                        { <span style="margin-left:8px">· Próximo: <strong>@r.NextDueDate</strong></span> }
+                                    </div>
+                                </div>
+                                <div class="record-entry-body">
+                                    <RecordField Label="Aplicado por" Value="@r.AdministeredByName" />
+                                    @if (!string.IsNullOrEmpty(r.BatchNumber))
+                                    { <RecordField Label="Lote" Value="@r.BatchNumber" /> }
+                                    @if (!string.IsNullOrEmpty(r.Notes))
+                                    { <RecordField Label="Notas" Value="@r.Notes" /> }
+                                </div>
+                                @if (IsAdmin)
+                                {
+                                    <div style="display:flex;justify-content:flex-end;padding:4px 12px 8px">
+                                        <button class="btn btn-ghost btn-sm"
+                                                style="color:var(--color-danger)"
+                                                @onclick="() => DeleteVaccinationAsync(r.Id)">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                }
+
             </div>@* fin scroll area *@
         </div>
     </div>
@@ -463,6 +588,16 @@
     private ConsultationLogResponse?       _referenceLog;
     private bool                           _refCollapsed   = false;
 
+    // ── Tab vacunas ─────────────────────────────────────────────
+    private List<VaccinationRecordResponse>  _vaccRecords        = [];
+    private List<VaccineDefinitionResponse>  _vaccineDefinitions = [];
+    private bool                             _showVaccineForm    = false;
+    private bool                             _vaccSaving         = false;
+    private string?                          _vaccError;
+    private int                              _vaccineCount;
+    private RegisterVaccinationRequest       _vaccReq            = new()
+        { AdministeredAt = DateTime.Today.ToString("yyyy-MM-dd") };
+
     private bool _prevVisible;
 
     protected override async Task OnParametersSetAsync()
@@ -476,16 +611,20 @@
             _refCollapsed = false;
             _selectedLog  = null;
             _showLogForm  = false;
-            _showRecordForm = false;
+            _showRecordForm   = false;
+            _showVaccineForm  = false;
+            _vaccError        = null;
             _dataError        = null;
             _logError         = null;
             _recordError      = null;
             _confirmingDelete = false;
             _deleteError      = null;
+            _vaccReq          = new() { AdministeredAt = DateTime.Today.ToString("yyyy-MM-dd") };
 
             LoadEditForm();
             await LoadLogsAsync();
             await LoadRecordsAsync();
+            await LoadVaccinationsAsync();
         }
         _prevVisible = Visible;
     }
@@ -679,5 +818,47 @@
         if (months < 12) return months == 1 ? "1 mes" : $"{months} meses";
         var years = months / 12;
         return years == 1 ? "1 año" : $"{years} años";
+    }
+
+    // ── Vacunas ─────────────────────────────────────────────────
+
+    private async Task LoadVaccinationsAsync()
+    {
+        if (Patient == null) return;
+        _vaccRecords        = await VaccApi.ListByPatientAsync(Patient.Id);
+        _vaccineDefinitions = await VaccApi.ListDefinitionsAsync();
+        _vaccineCount       = _vaccRecords.Count;
+    }
+
+    private async Task SaveVaccinationAsync()
+    {
+        if (Patient == null) return;
+        _vaccError  = null;
+        _vaccSaving = true;
+
+        try
+        {
+            if (_vaccReq.VaccineDefinitionId == Guid.Empty)
+            { _vaccError = "Selecciona una vacuna."; return; }
+
+            if (string.IsNullOrEmpty(_vaccReq.AdministeredAt))
+            { _vaccError = "La fecha de aplicación es obligatoria."; return; }
+
+            var result = await VaccApi.RegisterAsync(Patient.Id, _vaccReq);
+            if (result is null)
+            { _vaccError = "No se pudo registrar la vacunación."; return; }
+
+            _showVaccineForm = false;
+            _vaccReq         = new() { AdministeredAt = DateTime.Today.ToString("yyyy-MM-dd") };
+            await LoadVaccinationsAsync();
+        }
+        finally { _vaccSaving = false; }
+    }
+
+    private async Task DeleteVaccinationAsync(Guid recordId)
+    {
+        if (Patient == null) return;
+        await VaccApi.DeleteAsync(Patient.Id, recordId);
+        await LoadVaccinationsAsync();
     }
 }
