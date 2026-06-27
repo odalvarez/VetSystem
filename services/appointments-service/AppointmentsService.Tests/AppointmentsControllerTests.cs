@@ -23,6 +23,15 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         return client;
     }
 
+    // Devuelve el primer día laborable (lun–sáb) a partir de minDays días desde ahora.
+    // Evita fallos cuando AddDays(N) cae en domingo.
+    private static DateTime WorkdayUtc(int minDays, int hour, int minute = 0)
+    {
+        var d = DateTime.UtcNow.AddDays(minDays).Date;
+        if (d.DayOfWeek == DayOfWeek.Sunday) d = d.AddDays(1);
+        return d.AddHours(hour).AddMinutes(minute);
+    }
+
     private async Task<AppointmentResponse> CreateAppointmentAs(HttpClient client, DateTime? scheduledAt = null)
     {
         var resp = await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
@@ -34,7 +43,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Luna",
-            ScheduledAt      = scheduledAt ?? DateTime.UtcNow.AddDays(3).Date.AddHours(10),
+            ScheduledAt      = scheduledAt ?? WorkdayUtc(3, 10),
             DurationMinutes  = 30,
             Reason           = "Control"
         });
@@ -91,7 +100,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Luna",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
+            ScheduledAt      = WorkdayUtc(3, 10),
             DurationMinutes  = 30,
             Reason           = "Control anual"
         });
@@ -147,7 +156,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     public async Task CreateAppointment_ConflictingSlot_Returns409()
     {
         var client      = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
-        var scheduledAt = DateTime.UtcNow.AddDays(10).Date.AddHours(10);
+        var scheduledAt = WorkdayUtc(10, 10);
         var vetId       = Guid.NewGuid();
 
         var baseReq = new CreateAppointmentRequest
@@ -248,7 +257,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Luna",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(19).AddMinutes(30),
+            ScheduledAt      = WorkdayUtc(3, 19, 30),
             DurationMinutes  = 30,
             Reason           = "Control"
         });
@@ -655,7 +664,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Nube",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
+            ScheduledAt      = WorkdayUtc(3, 10),
             DurationMinutes  = 30,
             Reason           = "RevisiÃ³n",
             Notes            = "   "
