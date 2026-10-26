@@ -5,10 +5,10 @@
 @if (Visible)
 {
     <div class="modal-overlay">
-        <div class="modal-box" tabindex="-1" @ref="_modalRef" @onkeydown="HandleKeyDown" @onclick:stopPropagation>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="new-pet-title" tabindex="-1" @ref="_modalRef" @onkeydown="HandleKeyDown" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">🐾 Registrar nueva mascota</span>
-                <button class="btn-close" @onclick="Close">✕</button>
+                <span id="new-pet-title" class="modal-title">🐾 Registrar nueva mascota</span>
+                <button aria-label="Cerrar" class="btn-close" @onclick="Close">✕</button>
             </div>
 
             <div class="modal-body">
@@ -19,21 +19,21 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Nombre *</label>
-                        <input class="form-control @Cls(_request.Name)"
+                        <label class="form-label" for="np-name">Nombre *</label>
+                        <input id="np-name" class="form-control @Cls(_request.Name)"
                                @bind="_request.Name" placeholder="Nombre de la mascota" />
                         @if (_submitted && string.IsNullOrWhiteSpace(_request.Name))
                         { <div class="validation-message">Obligatorio.</div> }
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Especie *</label>
+                        <label class="form-label" for="np-species">Especie *</label>
                         @if (_species == null)
                         {
-                            <select class="form-control" disabled><option>Cargando…</option></select>
+                            <select id="np-species" class="form-control" disabled><option>Cargando…</option></select>
                         }
                         else
                         {
-                            <select class="form-control @Cls(_request.Species)" @bind="_request.Species">
+                            <select id="np-species" class="form-control @Cls(_request.Species)" @bind="_request.Species">
                                 <option value="">— Selecciona —</option>
                                 @foreach (var s in _species)
                                 {
@@ -48,21 +48,21 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Raza *</label>
-                        <input class="form-control @Cls(_request.Breed)" @bind="_request.Breed" placeholder="Raza o mestizo" />
+                        <label class="form-label" for="np-breed">Raza *</label>
+                        <input id="np-breed" class="form-control @Cls(_request.Breed)" @bind="_request.Breed" placeholder="Raza o mestizo" />
                         @if (_submitted && string.IsNullOrWhiteSpace(_request.Breed))
                         { <div class="validation-message">Obligatorio.</div> }
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Color</label>
-                        <input class="form-control" @bind="_request.Color" placeholder="Color del pelaje" />
+                        <label class="form-label" for="np-color">Color</label>
+                        <input id="np-color" class="form-control" @bind="_request.Color" placeholder="Color del pelaje" />
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Sexo *</label>
-                        <select class="form-control @Cls(_request.Sex)" @bind="_request.Sex">
+                        <label class="form-label" for="np-sex">Sexo *</label>
+                        <select id="np-sex" class="form-control @Cls(_request.Sex)" @bind="_request.Sex">
                             <option value="">— Selecciona —</option>
                             <option value="Male">Macho</option>
                             <option value="Female">Hembra</option>
@@ -71,16 +71,16 @@
                         { <div class="validation-message">Obligatorio.</div> }
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Edad *</label>
+                        <label class="form-label" for="np-age">Edad *</label>
                         <div style="display:flex;gap:8px;align-items:center">
-                            <input type="number"
+                            <input id="np-age" type="number"
                                    min="1"
                                    max="@(_ageUnit == "months" ? 11 : 40)"
                                    class="form-control @(_submitted && _ageValue <= 0 ? "invalid" : "")"
                                    style="flex:1"
                                    @bind="_ageValue"
                                    @bind:after="ClampAge" />
-                            <select class="form-control" style="flex:0 0 110px" @bind="_ageUnit" @bind:after="ClampAge">
+                            <select class="form-control" style="flex:0 0 110px" aria-label="Unidad de edad" @bind="_ageUnit" @bind:after="ClampAge">
                                 <option value="years">Años</option>
                                 <option value="months">Meses</option>
                             </select>
@@ -92,16 +92,16 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Peso (kg) *</label>
-                        <input type="number" step="0.1" min="0.01"
+                        <label class="form-label" for="np-weight">Peso (kg) *</label>
+                        <input id="np-weight" type="number" step="0.1" min="0.01"
                                class="form-control @(_submitted && _request.WeightKg <= 0 ? "invalid" : "")"
                                @bind="_request.WeightKg" />
                         @if (_submitted && _request.WeightKg <= 0)
                         { <div class="validation-message">Debe ser mayor a cero.</div> }
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Microchip</label>
-                        <input class="form-control" @bind="_request.MicrochipNumber"
+                        <label class="form-label" for="np-chip">Microchip</label>
+                        <input id="np-chip" class="form-control" @bind="_request.MicrochipNumber"
                                placeholder="Número de microchip" />
                     </div>
                 </div>

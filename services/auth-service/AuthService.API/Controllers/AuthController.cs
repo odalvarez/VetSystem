@@ -32,7 +32,7 @@ public class AuthController : ControllerBase
     /// <response code="409">El correo ya está registrado.</response>
     [HttpPost("register")]
     [AllowAnonymous]
-    [EnableRateLimiting("register")]
+    [EnableRateLimiting(AuthRateLimiting.Register)]
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -55,7 +55,7 @@ public class AuthController : ControllerBase
     /// <response code="401">Credenciales incorrectas.</response>
     [HttpPost("login")]
     [AllowAnonymous]
-    [EnableRateLimiting("login")]
+    [EnableRateLimiting(AuthRateLimiting.Login)]
     [ProducesResponseType(typeof(LoginUserInfo), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

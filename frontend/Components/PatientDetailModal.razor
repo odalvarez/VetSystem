@@ -9,18 +9,18 @@
 @if (Visible && Patient != null)
 {
     <div class="modal-overlay" @onclick="Close">
-        <div class="modal-box" style="max-width:860px;width:100%;max-height:92vh;display:flex;flex-direction:column"
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="pet-detail-title" style="max-width:860px;width:100%;max-height:92vh;display:flex;flex-direction:column"
              @onclick:stopPropagation>
 
             @* ── Cabecera ── *@
             <div class="modal-header" style="flex-shrink:0">
                 <div>
-                    <div class="modal-title">🐾 @Patient.Name</div>
+                    <div id="pet-detail-title" class="modal-title">🐾 @Patient.Name</div>
                     <div style="font-size:.8rem;color:var(--color-text-muted);margin-top:2px">
                         @Patient.SpeciesName · @Patient.Breed · @Patient.OwnerName
                     </div>
                 </div>
-                <button class="btn-close" @onclick="Close">✕</button>
+                <button aria-label="Cerrar" class="btn-close" @onclick="Close">✕</button>
             </div>
 
             @* ── Tabs ── *@
@@ -52,22 +52,22 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Nombre *</label>
-                            <input class="form-control" @bind="_edit.Name" disabled="@IsOwner" />
+                            <label class="form-label" for="pd-name">Nombre *</label>
+                            <input id="pd-name" class="form-control" @bind="_edit.Name" disabled="@IsOwner" />
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Raza *</label>
-                            <input class="form-control" @bind="_edit.Breed" disabled="@IsOwner" />
+                            <label class="form-label" for="pd-breed">Raza *</label>
+                            <input id="pd-breed" class="form-control" @bind="_edit.Breed" disabled="@IsOwner" />
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Especie</label>
-                            <input class="form-control" value="@Patient.SpeciesName" disabled />
+                            <label class="form-label" for="pd-species">Especie</label>
+                            <input id="pd-species" class="form-control" value="@Patient.SpeciesName" disabled />
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Sexo</label>
-                            <select class="form-control" @bind="_edit.Sex" disabled="@IsOwner">
+                            <label class="form-label" for="pd-sex">Sexo</label>
+                            <select id="pd-sex" class="form-control" @bind="_edit.Sex" disabled="@IsOwner">
                                 <option value="male">Macho</option>
                                 <option value="female">Hembra</option>
                             </select>
@@ -75,8 +75,8 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Fecha de nac. aproximada</label>
-                            <input type="date" class="form-control"
+                            <label class="form-label" for="pd-birth-date">Fecha de nac. aproximada</label>
+                            <input id="pd-birth-date" type="date" class="form-control"
                                    value="@_edit.BirthDate.ToString("yyyy-MM-dd")"
                                    max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")"
                                    @oninput="HandleBirthDate"
@@ -84,19 +84,19 @@
                             <div class="form-hint">Edad: <strong>@AgeLabel(_edit.BirthDate)</strong></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Peso (kg) *</label>
-                            <input type="number" step="0.01" min="0.01" class="form-control"
+                            <label class="form-label" for="pd-weight">Peso (kg) *</label>
+                            <input id="pd-weight" type="number" step="0.01" min="0.01" class="form-control"
                                    @bind="_edit.WeightKg" disabled="@IsOwner" />
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Color</label>
-                            <input class="form-control" @bind="_edit.Color" disabled="@IsOwner" />
+                            <label class="form-label" for="pd-color">Color</label>
+                            <input id="pd-color" class="form-control" @bind="_edit.Color" disabled="@IsOwner" />
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Microchip</label>
-                            <input class="form-control" @bind="_edit.MicrochipNumber" disabled="@IsOwner" />
+                            <label class="form-label" for="pd-microchip">Microchip</label>
+                            <input id="pd-microchip" class="form-control" @bind="_edit.MicrochipNumber" disabled="@IsOwner" />
                         </div>
                     </div>
 
@@ -221,10 +221,10 @@
                     @if (_selectedLog != null && !_showLogForm && _closedLog == null)
                     {
                         <div class="modal-overlay" @onclick="() => _selectedLog = null">
-                            <div class="modal-box" style="max-width:760px;width:100%;max-height:90vh;overflow-y:auto"
+                            <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="log-detail-title" style="max-width:760px;width:100%;max-height:90vh;overflow-y:auto"
                                  @onclick:stopPropagation>
                                 <div class="modal-header">
-                                    <span class="modal-title">
+                                    <span id="log-detail-title" class="modal-title">
                                         Bitácora — @_selectedLog.OpenedAt.ToLocalTime().ToString("dd/MM/yyyy")
                                     </span>
                                     <div style="display:flex;gap:8px;align-items:center">
@@ -241,7 +241,7 @@
                                                 else { <span>🔒 Cerrar bitácora</span> }
                                             </button>
                                         }
-                                        <button class="btn-close" @onclick="() => _selectedLog = null">✕</button>
+                                        <button aria-label="Cerrar" class="btn-close" @onclick="() => _selectedLog = null">✕</button>
                                     </div>
                                 </div>
                                 <div class="modal-body">
@@ -272,7 +272,7 @@
                                             @onclick="() => _refCollapsed = !_refCollapsed">
                                         @(_refCollapsed ? "▼ Expandir" : "▲ Colapsar")
                                     </button>
-                                    <button class="btn-close" style="font-size:1rem"
+                                    <button aria-label="Quitar referencia" class="btn-close" style="font-size:1rem"
                                             @onclick="() => _referenceLog = null">✕</button>
                                 </div>
                             </div>
@@ -297,7 +297,7 @@
                         <div class="card" style="margin-bottom:20px">
                             <div class="card-header">
                                 <span class="card-title">Nueva entrada en historia clínica</span>
-                                <button class="btn-close" @onclick="() => _showRecordForm = false">✕</button>
+                                <button aria-label="Cerrar" class="btn-close" @onclick="() => _showRecordForm = false">✕</button>
                             </div>
                             <div class="card-body">
                                 @if (!string.IsNullOrEmpty(_recordError))
@@ -305,48 +305,48 @@
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label class="form-label">Fecha *</label>
-                                        <input type="date" class="form-control"
+                                        <label class="form-label" for="rec-date">Fecha *</label>
+                                        <input id="rec-date" type="date" class="form-control"
                                                value="@_recDateStr"
                                                max="@DateTime.Today.ToString("yyyy-MM-dd")"
                                                @oninput="e => _recDateStr = e.Value?.ToString() ?? string.Empty" />
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">Próxima visita</label>
-                                        <input type="date" class="form-control"
+                                        <label class="form-label" for="rec-next-visit">Próxima visita</label>
+                                        <input id="rec-next-visit" type="date" class="form-control"
                                                value="@_recNextStr"
                                                @oninput="e => _recNextStr = e.Value?.ToString() ?? string.Empty" />
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Motivo *</label>
-                                    <input class="form-control" @bind="_rec.Reason"
+                                    <label class="form-label" for="rec-reason">Motivo *</label>
+                                    <input id="rec-reason" class="form-control" @bind="_rec.Reason"
                                            placeholder="Motivo de la consulta" />
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Diagnóstico *</label>
-                                    <input class="form-control" @bind="_rec.Diagnosis"
+                                    <label class="form-label" for="rec-diagnosis">Diagnóstico *</label>
+                                    <input id="rec-diagnosis" class="form-control" @bind="_rec.Diagnosis"
                                            placeholder="Diagnóstico" />
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Tratamiento *</label>
-                                    <textarea class="form-control" rows="3" @bind="_rec.Treatment"
+                                    <label class="form-label" for="rec-treatment">Tratamiento *</label>
+                                    <textarea id="rec-treatment" class="form-control" rows="3" @bind="_rec.Treatment"
                                               placeholder="Tratamiento indicado…"></textarea>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Notas</label>
-                                    <textarea class="form-control" rows="2" @bind="_rec.Notes"
+                                    <label class="form-label" for="rec-notes">Notas</label>
+                                    <textarea id="rec-notes" class="form-control" rows="2" @bind="_rec.Notes"
                                               placeholder="Observaciones adicionales…"></textarea>
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label class="form-label">Peso (kg)</label>
-                                        <input type="number" step="0.1" min="0" class="form-control"
+                                        <label class="form-label" for="rec-weight">Peso (kg)</label>
+                                        <input id="rec-weight" type="number" step="0.1" min="0" class="form-control"
                                                @bind="_rec.WeightKg" />
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">Temperatura (°C)</label>
-                                        <input type="number" step="0.1" min="35" max="42" class="form-control"
+                                        <label class="form-label" for="rec-temperature">Temperatura (°C)</label>
+                                        <input id="rec-temperature" type="number" step="0.1" min="35" max="42" class="form-control"
                                                @bind="_rec.TemperatureCelsius" />
                                     </div>
                                 </div>
@@ -431,8 +431,8 @@
                             <div class="form-card" style="margin-bottom:20px">
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label>Vacuna</label>
-                                        <select class="form-control" @bind="_vaccReq.VaccineDefinitionId">
+                                        <label for="vac-vaccine">Vacuna</label>
+                                        <select id="vac-vaccine" class="form-control" @bind="_vaccReq.VaccineDefinitionId">
                                             <option value="@Guid.Empty">— Selecciona —</option>
                                             @foreach (var v in _vaccineDefinitions.Where(d => d.IsActive))
                                             {
@@ -441,29 +441,29 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label>Fecha de aplicación</label>
-                                        <input class="form-control" type="date"
+                                        <label for="vac-administered-at">Fecha de aplicación</label>
+                                        <input id="vac-administered-at" class="form-control" type="date"
                                                value="@_vaccReq.AdministeredAt"
                                                @onchange="e => _vaccReq.AdministeredAt = e.Value?.ToString() ?? string.Empty" />
                                     </div>
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label>Lote (opcional)</label>
-                                        <input class="form-control" type="text" placeholder="Número de lote"
+                                        <label for="vac-batch">Lote (opcional)</label>
+                                        <input id="vac-batch" class="form-control" type="text" placeholder="Número de lote"
                                                value="@_vaccReq.BatchNumber"
                                                @onchange="e => _vaccReq.BatchNumber = e.Value?.ToString()" />
                                     </div>
                                     <div class="form-group">
-                                        <label>Próximo refuerzo (opcional — sobreescribe cálculo)</label>
-                                        <input class="form-control" type="date"
+                                        <label for="vac-next-due">Próximo refuerzo (opcional — sobreescribe cálculo)</label>
+                                        <input id="vac-next-due" class="form-control" type="date"
                                                value="@_vaccReq.NextDueDateOverride"
                                                @onchange="e => _vaccReq.NextDueDateOverride = e.Value?.ToString()" />
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label>Notas</label>
-                                    <textarea class="form-control" rows="2"
+                                    <label for="vac-notes">Notas</label>
+                                    <textarea id="vac-notes" class="form-control" rows="2"
                                               @onchange="e => _vaccReq.Notes = e.Value?.ToString()">@_vaccReq.Notes</textarea>
                                 </div>
                                 @if (!string.IsNullOrEmpty(_vaccError))

@@ -9,10 +9,10 @@
 @if (Visible)
 {
     <div class="modal-overlay">
-        <div class="modal-box" style="max-width:600px" tabindex="-1" @ref="_modalRef" @onkeydown="HandleKeyDown" @onclick:stopPropagation>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="new-appt-title" style="max-width:600px" tabindex="-1" @ref="_modalRef" @onkeydown="HandleKeyDown" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">📅 Solicitar cita</span>
-                <button class="btn-close" @onclick="Close">✕</button>
+                <span id="new-appt-title" class="modal-title">📅 Solicitar cita</span>
+                <button aria-label="Cerrar" class="btn-close" @onclick="Close">✕</button>
             </div>
 
             <div class="modal-body">
@@ -23,7 +23,7 @@
 
                 @* Mascota *@
                 <div class="form-group">
-                    <label class="form-label">Mascota *</label>
+                    <label class="form-label" for="na-patient">Mascota *</label>
                     @if (_patients == null)
                     {
                         <LoadingSpinner Message="Cargando mascotas…" />
@@ -31,7 +31,7 @@
                     else
                     {
                         <div style="position:relative">
-                            <input class="form-control @(_submitted && _selectedPatientId == Guid.Empty ? "invalid" : "")"
+                            <input id="na-patient" class="form-control @(_submitted && _selectedPatientId == Guid.Empty ? "invalid" : "")"
                                    placeholder="Buscar por nombre, raza, dueño o teléfono…"
                                    value="@_patientSearch"
                                    @oninput="OnPatientSearchInput"
@@ -78,14 +78,14 @@
 
                 @* Veterinario *@
                 <div class="form-group">
-                    <label class="form-label">Veterinario *</label>
+                    <label class="form-label" for="na-vet">Veterinario *</label>
                     @if (_vets == null)
                     {
                         <LoadingSpinner Message="Cargando veterinarios…" />
                     }
                     else
                     {
-                        <select class="form-control @(_submitted && _selectedVetId == Guid.Empty ? "invalid" : "")"
+                        <select id="na-vet" class="form-control @(_submitted && _selectedVetId == Guid.Empty ? "invalid" : "")"
                                 @onchange="OnVetSelected">
                             <option value="">— Selecciona —</option>
                             @foreach (var v in _vets)
@@ -101,15 +101,15 @@
                 @* Fecha y duración *@
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Fecha *</label>
-                        <input type="date" class="form-control @(_submitted && _date == default ? "invalid" : "")"
+                        <label class="form-label" for="na-date">Fecha *</label>
+                        <input id="na-date" type="date" class="form-control @(_submitted && _date == default ? "invalid" : "")"
                                value="@(_date == default ? "" : _date.ToString("yyyy-MM-dd"))"
                                min="@DateTime.Today.ToString("yyyy-MM-dd")"
                                @onchange="OnDateChanged" />
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Duración</label>
-                        <select class="form-control" value="@_request.DurationMinutes"
+                        <label class="form-label" for="na-duration">Duración</label>
+                        <select id="na-duration" class="form-control" value="@_request.DurationMinutes"
                                 @onchange="OnDurationChanged">
                             <option value="20">20 min — Consulta rápida</option>
                             <option value="40">40 min — Consulta estándar</option>
@@ -159,8 +159,8 @@
 
                 @* Motivo *@
                 <div class="form-group">
-                    <label class="form-label">Motivo de la cita *</label>
-                    <textarea class="form-control @(_submitted && string.IsNullOrWhiteSpace(_request.Reason) ? "invalid" : "")"
+                    <label class="form-label" for="na-reason">Motivo de la cita *</label>
+                    <textarea id="na-reason" class="form-control @(_submitted && string.IsNullOrWhiteSpace(_request.Reason) ? "invalid" : "")"
                               rows="2" @bind="_request.Reason"
                               placeholder="Describe brevemente el motivo de la consulta…"></textarea>
                     @if (_submitted && string.IsNullOrWhiteSpace(_request.Reason))

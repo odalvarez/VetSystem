@@ -1,0 +1,99 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  Stack E2E aislado — se usa SIEMPRE con su propio nombre de proyecto:
+#
+#     docker compose -p vetsystem-e2e --env-file tests/VetSystem.E2E/e2e.env \
+#       -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --wait
+#     docker compose -p vetsystem-e2e -f docker-compose.yml -f docker-compose.e2e.yml down -v
+#
+#  El "-p" separa contenedores, red y volúmenes del stack de desarrollo, por eso aquí
+#  "down -v" solo borra datos de prueba. No se carga docker-compose.override.yml para
+#  que el frontend corra con el nginx.conf real de producción.
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+
+  sqlserver:
+    container_name: vetsystem-e2e-sqlserver
+    ports: !reset []
+
+  # Evolution real no hace falta: WireMock responde como Evolution API v2
+  redis-evolution:
+    profiles: ["disabled"]
+
+  postgres-evolution:
+    profiles: ["disabled"]
+
+  evolution-api:
+    image: wiremock/wiremock:3.10.0
+    container_name: vetsystem-e2e-wiremock
+    command: ["--port", "8080", "--disable-banner"]
+    environment: !reset {}
+    depends_on: !reset {}
+    ports: !override ["127.0.0.1:18080:8080"]
+    volumes:
+      - ./tests/VetSystem.E2E/wiremock:/home/wiremock:ro
+    healthcheck: !override
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/__admin/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    container_name: vetsystem-e2e-mailpit
+    ports:
+      - "127.0.0.1:18025:8025"
+    networks:
+      - vetsystem
+
+  # Certificado autofirmado para que el frontend corra con el server 443 real de nginx.conf
+  certgen:
+    image: alpine:3.20
+    container_name: vetsystem-e2e-certgen
+    command:
+      - sh
+      - -c
+      - apk add --no-cache openssl >/dev/null && openssl req -x509 -nodes -newkey rsa:2048 -days 2 -subj /CN=localhost -keyout /certs/origin.key -out /certs/origin.crt
+    volumes:
+      - e2e_certs:/certs
+
+  auth-service:
+    container_name: vetsystem-e2e-auth
+    environment:
+      # Toda la suite entra desde la misma IP; el limitador se prueba en los tests de integración
+      RateLimiting__Login__PermitLimit:    "10000"
+      RateLimiting__Register__PermitLimit: "10000"
+
+  patients-service:
+    container_name: vetsystem-e2e-patients
+
+  notifications-service:
+    container_name: vetsystem-e2e-notifications
+    environment:
+      # Mailpit no ofrece STARTTLS; en producción el valor por defecto sigue siendo StartTls
+      Smtp__Security: "None"
+    depends_on:
+      mailpit:
+        condition: service_started
+
+  appointments-service:
+    container_name: vetsystem-e2e-appointments
+
+  frontend:
+    container_name: vetsystem-e2e-frontend
+    ports:
+      - "127.0.0.1:18443:443"
+      - "127.0.0.1:18081:80"
+    volumes:
+      - e2e_certs:/etc/nginx/certs:ro
+    depends_on:
+      certgen:
+        condition: service_completed_successfully
+    healthcheck: !override
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  e2e_certs:

@@ -56,11 +56,11 @@
                     <div class="filters-bar mb-0">
                         <div class="search-input" style="min-width:180px">
                             <span class="search-icon">🔍</span>
-                            <input class="form-control" placeholder="Buscar por nombre…"
+                            <input aria-label="Buscar mascotas" class="form-control" placeholder="Buscar por nombre…"
                                    value="@_patientSearch"
                                    @oninput="HandleSearchInput" />
                         </div>
-                        <select class="filter-select" @bind="_speciesFilter" @bind:after="LoadPatients">
+                        <select aria-label="Filtrar por especie" class="filter-select" @bind="_speciesFilter" @bind:after="LoadPatients">
                             <option value="">Todas las especies</option>
                             <option value="Dog">Perros</option>
                             <option value="Cat">Gatos</option>
@@ -73,13 +73,13 @@
                             {
                                 <div class="owner-chip">
                                     <span>@_selectedOwner.FullName</span>
-                                    <button class="owner-chip-clear" @onclick="() => SelectOwner(null)" title="Quitar filtro">✕</button>
+                                    <button aria-label="Quitar filtro de dueño" class="owner-chip-clear" @onclick="() => SelectOwner(null)" title="Quitar filtro">✕</button>
                                 </div>
                             }
                             else
                             {
                                 <div style="position:relative">
-                                    <input class="form-control filter-select"
+                                    <input aria-label="Buscar dueño" class="form-control filter-select"
                                            style="min-width:200px"
                                            placeholder="Buscar dueño…"
                                            value="@_ownerSearch"
@@ -138,9 +138,9 @@
                         @if (_totalPatients > _pageSize)
                         {
                             <div class="pagination">
-                                <button class="page-btn" disabled="@(_page == 1)" @onclick="PrevPage">‹</button>
+                                <button aria-label="Página anterior" class="page-btn" disabled="@(_page == 1)" @onclick="PrevPage">‹</button>
                                 <span class="page-btn active">@_page</span>
-                                <button class="page-btn" disabled="@(_page * _pageSize >= _totalPatients)" @onclick="NextPage">›</button>
+                                <button aria-label="Página siguiente" class="page-btn" disabled="@(_page * _pageSize >= _totalPatients)" @onclick="NextPage">›</button>
                             </div>
                         }
                     </div>
@@ -160,7 +160,7 @@
                 <div class="card-header-actions">
                     <button class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">+ Nueva cita</button>
                     <div class="filters-bar mb-0">
-                        <select class="filter-select" @bind="_statusFilter" @bind:after="LoadAppointments">
+                        <select aria-label="Filtrar por estado" class="filter-select" @bind="_statusFilter" @bind:after="LoadAppointments">
                             <option value="">Todos los estados</option>
                             <option value="Scheduled">Programadas</option>
                             <option value="Confirmed">Confirmadas</option>

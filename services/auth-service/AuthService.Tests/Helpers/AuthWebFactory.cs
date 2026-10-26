@@ -19,6 +19,9 @@ public class AuthWebFactory : WebApplicationFactory<Program>
     public Guid VetId   { get; private set; }
     public Guid OwnerId { get; private set; }
 
+    // Cada factory usa su propia base en memoria para no compartir usuarios sembrados
+    protected virtual string DatabaseName => "AuthTestDb";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -32,7 +35,9 @@ public class AuthWebFactory : WebApplicationFactory<Program>
                 ["Jwt:Audience"]       = JwtTestHelper.Audience,
                 ["AdminSeed:Email"]    = AdminEmail,
                 ["AdminSeed:Password"] = AdminPassword,
-                ["ConnectionStrings:Default"] = "InMemory"
+                ["ConnectionStrings:Default"] = "InMemory",
+                // La mayoría de tests hace muchas llamadas seguidas; el limitador se prueba aparte
+                ["RateLimiting:Enabled"]      = "false"
             });
         });
 
@@ -45,7 +50,7 @@ public class AuthWebFactory : WebApplicationFactory<Program>
             services.RemoveAll(typeof(AuthDbContext));
 
             services.AddDbContext<AuthDbContext>(opt =>
-                opt.UseInMemoryDatabase("AuthTestDb"));
+                opt.UseInMemoryDatabase(DatabaseName));
         });
     }
 

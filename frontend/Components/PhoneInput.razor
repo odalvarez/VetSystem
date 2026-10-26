@@ -10,7 +10,7 @@
         {
             <div class="phone-picker-overlay" @onclick="ClosePickerOverlay" @onclick:stopPropagation></div>
             <div class="phone-picker-dropdown" @onclick:stopPropagation>
-                <input class="phone-picker-search"
+                <input aria-label="Buscar país" class="phone-picker-search"
                        @bind="_search" @bind:event="oninput"
                        placeholder="Buscar país…" />
                 <div class="phone-picker-list">
@@ -26,7 +26,7 @@
             </div>
         }
     </div>
-    <input class="phone-number"
+    <input id="@Id" class="phone-number"
            value="@_local"
            @oninput="HandleLocal"
            placeholder="@Placeholder"
@@ -40,6 +40,8 @@
     [Parameter] public string  Value        { get; set; } = "";
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
     [Parameter] public string  Placeholder  { get; set; } = "3001234567";
+    // Permite asociar el <label> del formulario padre al campo del número
+    [Parameter] public string? Id           { get; set; }
 
     // ── Estado interno ────────────────────────────────────────────────────────
 

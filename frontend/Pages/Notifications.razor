@@ -28,8 +28,8 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Tipo</label>
-                            <select class="form-control" @bind="_notifType">
+                            <label class="form-label" for="notif-type">Tipo</label>
+                            <select id="notif-type" class="form-control" @bind="_notifType">
                                 <option value="whatsapp">WhatsApp</option>
                                 <option value="email">Email</option>
                             </select>
@@ -38,31 +38,31 @@
                         @if (_notifType == "whatsapp")
                         {
                             <div class="form-group" style="flex:2">
-                                <label class="form-label">Número WhatsApp</label>
-                                <PhoneInput @bind-Value="_whatsappTo" />
+                                <label class="form-label" for="notif-whatsapp">Número WhatsApp</label>
+                                <PhoneInput Id="notif-whatsapp" @bind-Value="_whatsappTo" />
                             </div>
                         }
                         else
                         {
                             <div class="form-group" style="flex:2">
-                                <label class="form-label">Correo destino</label>
-                                <input class="form-control" @bind="_recipient"
+                                <label class="form-label" for="notif-email">Correo destino</label>
+                                <input id="notif-email" class="form-control" @bind="_recipient"
                                        placeholder="correo@ejemplo.com" inputmode="email" />
                             </div>
                         }
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Mensaje</label>
-                        <textarea class="form-control" rows="3" @bind="_message"
+                        <label class="form-label" for="notif-message">Mensaje</label>
+                        <textarea id="notif-message" class="form-control" rows="3" @bind="_message"
                                   placeholder="Escribe el mensaje a enviar…"></textarea>
                     </div>
 
                     @if (_notifType == "email")
                     {
                         <div class="form-group">
-                            <label class="form-label">Asunto</label>
-                            <input class="form-control" @bind="_subject" placeholder="Asunto del correo" />
+                            <label class="form-label" for="notif-subject">Asunto</label>
+                            <input id="notif-subject" class="form-control" @bind="_subject" placeholder="Asunto del correo" />
                         </div>
                     }
 
@@ -90,13 +90,13 @@
             <div class="card-body" style="padding-bottom:0;border-bottom:1px solid var(--color-border)">
                 <div class="filters-bar">
 
-                    <select class="filter-select" @bind="_filterType">
+                    <select aria-label="Filtrar por tipo" class="filter-select" @bind="_filterType">
                         <option value="">Todos los tipos</option>
                         <option value="whatsapp">WhatsApp</option>
                         <option value="email">Email</option>
                     </select>
 
-                    <select class="filter-select" @bind="_filterStatus">
+                    <select aria-label="Filtrar por estado" class="filter-select" @bind="_filterStatus">
                         <option value="">Todos los estados</option>
                         <option value="pending">Pendiente</option>
                         <option value="sent">Enviada</option>
@@ -121,7 +121,7 @@
                         <Authorized>
                             <div class="search-input" style="min-width:200px">
                                 <span class="search-icon">🔍</span>
-                                <input class="form-control"
+                                <input aria-label="Buscar destinatario" class="form-control"
                                        placeholder="Buscar destinatario…"
                                        @bind="_filterRecipient"
                                        @bind:event="oninput" />
@@ -189,7 +189,7 @@
                                     </td>
                                     <td data-label="" class="td-actions">
                                         <span class="tip-wrap">
-                                            <button class="btn btn-sm btn-icon-view"
+                                            <button aria-label="Ver detalle" class="btn btn-sm btn-icon-view"
                                                     @onclick="() => OpenDetail(n)">👁</button>
                                             <span class="tip-txt">Ver detalle</span>
                                         </span>
@@ -208,10 +208,10 @@
 @if (_detailNotif != null)
 {
     <div class="modal-overlay" @onclick="CloseDetail">
-        <div class="modal-box" style="max-width:520px;width:100%" @onclick:stopPropagation>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="notif-detail-title" style="max-width:520px;width:100%" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">Detalle de notificación</span>
-                <button class="btn-close" @onclick="CloseDetail">✕</button>
+                <span id="notif-detail-title" class="modal-title">Detalle de notificación</span>
+                <button aria-label="Cerrar" class="btn-close" @onclick="CloseDetail">✕</button>
             </div>
             <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
 

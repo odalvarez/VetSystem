@@ -121,7 +121,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Max",
-            ScheduledAt      = DateTime.UtcNow.AddDays(5).Date.AddHours(10),
+            ScheduledAt      = WorkdayUtc(5, 10),
             DurationMinutes  = 45,
             Reason           = "VacunaciÃ³n"
         });
@@ -142,7 +142,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Toby",
-            ScheduledAt      = DateTime.UtcNow.AddDays(7).Date.AddHours(10),
+            ScheduledAt      = WorkdayUtc(7, 10),
             DurationMinutes  = 30,
             Reason           = "RevisiÃ³n"
         });
@@ -197,7 +197,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Luna",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(6),
+            ScheduledAt      = WorkdayUtc(3, 6),
             DurationMinutes  = 30,
             Reason           = "Control"
         });
@@ -217,7 +217,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Luna",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(21),
+            ScheduledAt      = WorkdayUtc(3, 21),
             DurationMinutes  = 30,
             Reason           = "Control"
         });
@@ -237,7 +237,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Luna",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(19).AddMinutes(45),
+            ScheduledAt      = WorkdayUtc(3, 19).AddMinutes(45),
             DurationMinutes  = 30,
             Reason           = "Control"
         });
@@ -310,7 +310,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
 
         var resp = await owner.PutAsJsonAsync($"/api/appointments/{appointment.Id}", new UpdateAppointmentRequest
         {
-            ScheduledAt     = DateTime.UtcNow.AddDays(8).Date.AddHours(10),
+            ScheduledAt     = WorkdayUtc(8, 10),
             DurationMinutes = 30,
             Reason          = "RevisiÃ³n ajustada"
         });
@@ -396,7 +396,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     public async Task GetAvailability_Authenticated_Returns200()
     {
         var client = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
-        var date   = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14).Date.AddHours(10));
+        var date   = DateOnly.FromDateTime(WorkdayUtc(14, 10));
         var vetId  = Guid.NewGuid();
 
         var resp = await client.GetAsync(
@@ -423,7 +423,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner B",
             OwnerPhone       = "3009999999",
             PatientName      = "Firulais",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
+            ScheduledAt      = WorkdayUtc(3, 10),
             DurationMinutes  = 30,
             Reason           = "RevisiÃ³n ajena"
         });
@@ -453,7 +453,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     {
         // Actualizar manteniendo el mismo horario no debe generar conflicto con la propia cita
         var vet         = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
-        var appointment = await CreateAppointmentAs(vet, DateTime.UtcNow.AddDays(20).Date.AddHours(9));
+        var appointment = await CreateAppointmentAs(vet, WorkdayUtc(20, 9));
 
         var resp = await vet.PutAsJsonAsync($"/api/appointments/{appointment.Id}", new UpdateAppointmentRequest
         {
@@ -580,7 +580,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Mini",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
+            ScheduledAt      = WorkdayUtc(3, 10),
             DurationMinutes  = 5,
             Reason           = "DuraciÃ³n invÃ¡lida"
         });
@@ -603,7 +603,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
             OwnerName        = "Owner Test",
             OwnerPhone       = "3001234567",
             PatientName      = "Max",
-            ScheduledAt      = DateTime.UtcNow.AddDays(3).Date.AddHours(10),
+            ScheduledAt      = WorkdayUtc(3, 10),
             DurationMinutes  = 600,
             Reason           = "DuraciÃ³n excesiva"
         });
@@ -617,7 +617,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         // El slot ocupado por una cita existente no debe aparecer en la disponibilidad
         var client  = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
         var vetId   = Guid.NewGuid();
-        var date    = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30).Date.AddHours(10));
+        var date    = DateOnly.FromDateTime(WorkdayUtc(30, 10));
         var slotAt  = date.ToDateTime(new TimeOnly(10, 0), DateTimeKind.Utc);
 
         await client.PostAsJsonAsync("/api/appointments", new CreateAppointmentRequest
@@ -729,7 +729,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     {
         var admin  = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
         var vetId  = Guid.NewGuid();
-        var target = DateTime.UtcNow.AddDays(5).Date.AddHours(10);
+        var target = WorkdayUtc(5, 10);
         var date   = DateOnly.FromDateTime(target);
 
         var leaveResp = await admin.PostAsJsonAsync($"/api/schedules/leaves/{vetId}", new CreateVeterinarianLeaveRequest
@@ -824,7 +824,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     {
         var admin  = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
         var vetId  = Guid.NewGuid();
-        var target = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(6).Date);
+        var target = DateOnly.FromDateTime(WorkdayUtc(6, 0));
 
         await admin.PostAsJsonAsync($"/api/schedules/leaves/{vetId}", new CreateVeterinarianLeaveRequest
         {
@@ -848,7 +848,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
     {
         var admin = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
         var vetId = Guid.NewGuid();
-        var date  = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7).Date);
+        var date  = DateOnly.FromDateTime(WorkdayUtc(7, 0));
 
         var resp = await admin.PostAsJsonAsync($"/api/schedules/leaves/{vetId}", new CreateVeterinarianLeaveRequest
         {
@@ -910,7 +910,7 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         var admin  = ClientAs(AppointmentsWebFactory.AdminId, "admin@test.com", "Admin");
         var vet    = ClientAs(AppointmentsWebFactory.VetId, "vet@test.com", "Veterinarian");
         var vetId  = Guid.NewGuid();
-        var target = DateTime.UtcNow.AddDays(8).Date.AddHours(10);
+        var target = WorkdayUtc(8, 10);
         var date   = DateOnly.FromDateTime(target);
 
         // Ausencia completa (sin horas)

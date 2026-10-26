@@ -20,8 +20,8 @@
         }
 
         <div class="form-group">
-            <label class="form-label">Correo electrónico</label>
-            <input type="email"
+            <label class="form-label" for="login-email">Correo electrónico</label>
+            <input id="login-email" type="email"
                    class="form-control @(_submitted && string.IsNullOrWhiteSpace(_email) ? "invalid" : "")"
                    @bind="_email"
                    @bind:event="oninput"
@@ -32,8 +32,8 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Contraseña</label>
-            <input type="password"
+            <label class="form-label" for="login-password">Contraseña</label>
+            <input id="login-password" type="password"
                    class="form-control @(_submitted && string.IsNullOrWhiteSpace(_password) ? "invalid" : "")"
                    @bind="_password"
                    @bind:event="oninput"

@@ -94,6 +94,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddHttpClient<IWhatsAppSender, EvolutionWhatsAppSender>();
+// Se resuelve al arrancar para que una configuración SMTP inválida tumbe el despliegue y no el primer envío
+builder.Services.AddSingleton(SmtpSettings.FromConfiguration(builder.Configuration));
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<NotificationAppService>();

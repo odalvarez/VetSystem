@@ -127,16 +127,16 @@
                     <button class="btn btn-primary btn-sm" @onclick="OpenCreateModal">+ Nuevo usuario</button>
                     <div class="search-input" style="min-width:200px">
                         <span class="search-icon">🔍</span>
-                        <input class="form-control" placeholder="Buscar por nombre o correo…"
+                        <input aria-label="Buscar usuarios" class="form-control" placeholder="Buscar por nombre o correo…"
                                value="@_search" @oninput="HandleSearchInput" />
                     </div>
-                    <select class="filter-select" @bind="_roleFilter" @bind:after="ReloadUsers">
+                    <select aria-label="Filtrar por rol" class="filter-select" @bind="_roleFilter" @bind:after="ReloadUsers">
                         <option value="">Todos los roles</option>
                         <option value="Owner">Propietarios</option>
                         <option value="Veterinarian">Veterinarios</option>
                         <option value="Admin">Administradores</option>
                     </select>
-                    <select class="filter-select" @bind="_activeFilter" @bind:after="ReloadUsers">
+                    <select aria-label="Filtrar por estado" class="filter-select" @bind="_activeFilter" @bind:after="ReloadUsers">
                         <option value="">Todos los estados</option>
                         <option value="true">Activos</option>
                         <option value="false">Inactivos</option>
@@ -190,14 +190,14 @@
                                     <td data-label="Acciones" class="td-actions">
                                         @{ var isSelf = Token.User != null && user.Id == Token.User.Id; }
                                         <span class="tip-wrap">
-                                            <button class="btn btn-sm btn-icon-edit"
+                                            <button aria-label="Editar usuario" class="btn btn-sm btn-icon-edit"
                                                     @onclick="() => OpenEditModal(user)">✏️</button>
                                             <span class="tip-txt">Editar usuario</span>
                                         </span>
                                         @if (user.IsActive)
                                         {
                                             <span class="tip-wrap">
-                                                <button class="btn btn-sm btn-icon-deact"
+                                                <button aria-label="Desactivar usuario" class="btn btn-sm btn-icon-deact"
                                                         style="@(isSelf ? "opacity:.4;cursor:not-allowed;" : "")"
                                                         disabled="@isSelf"
                                                         @onclick="() => ToggleActive(user)">⏸</button>
@@ -207,18 +207,18 @@
                                         else
                                         {
                                             <span class="tip-wrap">
-                                                <button class="btn btn-sm btn-icon-activate"
+                                                <button aria-label="Activar usuario" class="btn btn-sm btn-icon-activate"
                                                         @onclick="() => ToggleActive(user)">▶</button>
                                                 <span class="tip-txt">Activar usuario</span>
                                             </span>
                                         }
                                         <span class="tip-wrap">
-                                            <button class="btn btn-sm btn-icon-reset"
+                                            <button aria-label="Resetear contraseña" class="btn btn-sm btn-icon-reset"
                                                     @onclick="() => OpenResetModal(user)">🔑</button>
                                             <span class="tip-txt">Resetear contraseña</span>
                                         </span>
                                         <span class="tip-wrap">
-                                            <button class="btn btn-sm btn-icon-delete"
+                                            <button aria-label="Eliminar usuario" class="btn btn-sm btn-icon-delete"
                                                     style="@(isSelf ? "opacity:.4;cursor:not-allowed;" : "")"
                                                     disabled="@isSelf"
                                                     @onclick="() => OpenDeleteUserConfirm(user)">🗑️</button>
@@ -233,9 +233,9 @@
                     @if (_usersTotal > _usersPageSize)
                     {
                         <div class="pagination pagination-padded">
-                            <button class="page-btn" disabled="@(_usersPage == 1)" @onclick="UsersPrevPage">‹</button>
+                            <button aria-label="Página anterior" class="page-btn" disabled="@(_usersPage == 1)" @onclick="UsersPrevPage">‹</button>
                             <span class="page-btn active">@_usersPage / @UsersTotalPages</span>
-                            <button class="page-btn" disabled="@(_usersPage >= UsersTotalPages)" @onclick="UsersNextPage">›</button>
+                            <button aria-label="Página siguiente" class="page-btn" disabled="@(_usersPage >= UsersTotalPages)" @onclick="UsersNextPage">›</button>
                         </div>
                     }
                 }
@@ -256,10 +256,10 @@
                     <div class="filters-bar mb-0">
                         <div class="search-input" style="min-width:200px">
                             <span class="search-icon">🔍</span>
-                            <input class="form-control" placeholder="Buscar por nombre…"
+                            <input aria-label="Buscar mascotas" class="form-control" placeholder="Buscar por nombre…"
                                    value="@_patientsSearch" @oninput="HandlePatientsSearch" />
                         </div>
-                        <select class="filter-select" @bind="_patientsSpecies" @bind:after="ReloadPatients">
+                        <select aria-label="Filtrar por especie" class="filter-select" @bind="_patientsSpecies" @bind:after="ReloadPatients">
                             <option value="">Todas las especies</option>
                             @foreach (var s in _speciesList)
                             {
@@ -296,10 +296,10 @@
                         @if (_patientsTotal > _patientsPageSize)
                         {
                             <div class="pagination">
-                                <button class="page-btn" disabled="@(_patientsPage == 1)" @onclick="PatientsPrevPage">‹</button>
+                                <button aria-label="Página anterior" class="page-btn" disabled="@(_patientsPage == 1)" @onclick="PatientsPrevPage">‹</button>
                                 <span class="page-btn active">@_patientsPage / @PatientsTotalPages</span>
                                 <span style="font-size:.8rem;color:var(--color-text-muted);margin-left:4px">(@_patientsTotal total)</span>
-                                <button class="page-btn" disabled="@(_patientsPage >= PatientsTotalPages)" @onclick="PatientsNextPage">›</button>
+                                <button aria-label="Página siguiente" class="page-btn" disabled="@(_patientsPage >= PatientsTotalPages)" @onclick="PatientsNextPage">›</button>
                             </div>
                         }
                     </div>
@@ -319,7 +319,7 @@
                 <div class="card-header-actions">
                     <button class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">+ Nueva cita</button>
                     <div class="filters-bar mb-0">
-                        <select class="filter-select" @bind="_apptsStatus" @bind:after="ReloadAppointments">
+                        <select aria-label="Filtrar por estado" class="filter-select" @bind="_apptsStatus" @bind:after="ReloadAppointments">
                             <option value="">Todos los estados</option>
                             <option value="Scheduled">Programadas</option>
                             <option value="Confirmed">Confirmadas</option>
@@ -379,10 +379,10 @@
                     @if (_apptsTotal > _apptsPageSize)
                     {
                         <div class="pagination pagination-padded">
-                            <button class="page-btn" disabled="@(_apptsPage == 1)" @onclick="ApptsPrevPage">‹</button>
+                            <button aria-label="Página anterior" class="page-btn" disabled="@(_apptsPage == 1)" @onclick="ApptsPrevPage">‹</button>
                             <span class="page-btn active">@_apptsPage / @ApptsTotalPages</span>
                             <span style="font-size:.8rem;color:var(--color-text-muted);margin-left:4px">(@_apptsTotal total)</span>
-                            <button class="page-btn" disabled="@(_apptsPage >= ApptsTotalPages)" @onclick="ApptsNextPage">›</button>
+                            <button aria-label="Página siguiente" class="page-btn" disabled="@(_apptsPage >= ApptsTotalPages)" @onclick="ApptsNextPage">›</button>
                         </div>
                     }
                 }
@@ -434,7 +434,7 @@
                                     </div>
                                 }
                             </div>
-                            <input class="form-control @(_speciesSubmitted && string.IsNullOrWhiteSpace(_newSpeciesName) ? "invalid" : "")"
+                            <input aria-label="Nombre de la nueva especie" class="form-control @(_speciesSubmitted && string.IsNullOrWhiteSpace(_newSpeciesName) ? "invalid" : "")"
                                    style="flex:1;min-width:180px;max-width:320px"
                                    placeholder="Nombre de la especie (ej. Tortuga)"
                                    @bind="_newSpeciesName" @bind:event="oninput" />
@@ -500,7 +500,7 @@
                                                             </div>
                                                         }
                                                     </div>
-                                                    <input class="form-control"
+                                                    <input aria-label="Nombre de la especie" class="form-control"
                                                            style="max-width:200px"
                                                            @bind="_editSpeciesName" @bind:event="oninput" />
                                                 </div>
@@ -520,23 +520,23 @@
                                         <td data-label="Acciones" class="td-actions">
                                             @if (_editingSpeciesId == sp.Id)
                                             {
-                                                <button class="btn btn-sm btn-icon-save"
+                                                <button aria-label="Guardar especie" class="btn btn-sm btn-icon-save"
                                                         @onclick="() => SaveEditSpecies(sp.Id)"
                                                         disabled="@_speciesSaving">
                                                     @if (_speciesSaving) { <span class="spinner spinner-sm"></span> }
                                                     else { <span>✓</span> }
                                                 </button>
-                                                <button class="btn btn-sm btn-ghost" @onclick="CancelEditSpecies">✕</button>
+                                                <button aria-label="Cancelar edición" class="btn btn-sm btn-ghost" @onclick="CancelEditSpecies">✕</button>
                                             }
                                             else
                                             {
                                                 <span class="tip-wrap">
-                                                    <button class="btn btn-sm btn-icon-edit"
+                                                    <button aria-label="Editar especie" class="btn btn-sm btn-icon-edit"
                                                             @onclick="() => StartEditSpecies(sp)">✏️</button>
                                                     <span class="tip-txt">Editar especie</span>
                                                 </span>
                                                 <span class="tip-wrap">
-                                                    <button class="btn btn-sm btn-icon-delete"
+                                                    <button aria-label="Eliminar especie" class="btn btn-sm btn-icon-delete"
                                                             style="@(sp.PatientCount > 0 ? "opacity:.4;cursor:not-allowed;" : "")"
                                                             disabled="@(sp.PatientCount > 0)"
                                                             @onclick="() => DeleteSpecies(sp.Id)">🗑️</button>
@@ -560,9 +560,9 @@
     @if (_tab == "schedules")
     {
         @* ── Configuración global de la clínica ── *@
-        <div class="card" style="margin-bottom:1.5rem">
+        <section class="card" aria-labelledby="clinic-schedule-title" style="margin-bottom:1.5rem">
             <div class="card-header">
-                <span class="card-title">Horario global de la clínica</span>
+                <span id="clinic-schedule-title" class="card-title">Horario global de la clínica</span>
             </div>
             @if (_schedulesLoading)
             {
@@ -573,13 +573,13 @@
                 <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
                     <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
                         <div>
-                            <label class="form-label">Hora inicio</label>
-                            <input type="time" class="form-control" style="width:120px"
+                            <label class="form-label" for="clinic-start">Hora inicio</label>
+                            <input id="clinic-start" type="time" class="form-control" style="width:120px"
                                    @bind="_editStart" />
                         </div>
                         <div>
-                            <label class="form-label">Hora fin</label>
-                            <input type="time" class="form-control" style="width:120px"
+                            <label class="form-label" for="clinic-end">Hora fin</label>
+                            <input id="clinic-end" type="time" class="form-control" style="width:120px"
                                    @bind="_editEnd" />
                         </div>
                         <div style="flex:1;min-width:220px">
@@ -589,7 +589,7 @@
                                 {
                                     var d = day;
                                     var sel = _editWorkDays.Contains(d);
-                                    <button type="button"
+                                    <button type="button" aria-pressed="@(sel ? "true" : "false")"
                                             style="cursor:pointer;padding:4px 10px;border-radius:6px;font-size:.8rem;font-weight:500;border:1.5px solid @(sel ? "var(--color-primary)" : "var(--color-border)");background:@(sel ? "var(--color-primary)" : "transparent");color:@(sel ? "#fff" : "var(--color-text-secondary)");"
                                             @onclick="() => ToggleWorkDay(d)">
                                         @DayLabel(d)
@@ -610,18 +610,18 @@
                     }
                 </div>
             }
-        </div>
+        </section>
 
         @* ── Horarios personalizados por veterinario ── *@
-        <div class="card" style="margin-bottom:1.5rem">
+        <section class="card" aria-labelledby="vet-schedule-title" style="margin-bottom:1.5rem">
             <div class="card-header">
-                <span class="card-title">Horario personalizado por veterinario</span>
+                <span id="vet-schedule-title" class="card-title">Horario personalizado por veterinario</span>
             </div>
             <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
                 <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
                     <div style="flex:1;min-width:200px">
-                        <label class="form-label">Veterinario</label>
-                        <select class="filter-select" style="width:100%" @bind="_schedVetId" @bind:after="LoadVetSchedules">
+                        <label class="form-label" for="schedule-vet">Veterinario</label>
+                        <select id="schedule-vet" class="filter-select" style="width:100%" @bind="_schedVetId" @bind:after="LoadVetSchedules">
                             <option value="">— Selecciona —</option>
                             @foreach (var u in _vets)
                             {
@@ -662,8 +662,8 @@
 
                     <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;border-top:1px solid var(--color-border);padding-top:0.75rem">
                         <div>
-                            <label class="form-label">Día</label>
-                            <select class="filter-select" @bind="_newSchedDay">
+                            <label class="form-label" for="schedule-day">Día</label>
+                            <select id="schedule-day" class="filter-select" @bind="_newSchedDay">
                                 @foreach (var day in AllDays)
                                 {
                                     <option value="@day">@DayLabel(day)</option>
@@ -671,12 +671,12 @@
                             </select>
                         </div>
                         <div>
-                            <label class="form-label">Inicio</label>
-                            <input type="time" class="form-control" style="width:110px" @bind="_newSchedStart" />
+                            <label class="form-label" for="schedule-start">Inicio</label>
+                            <input id="schedule-start" type="time" class="form-control" style="width:110px" @bind="_newSchedStart" />
                         </div>
                         <div>
-                            <label class="form-label">Fin</label>
-                            <input type="time" class="form-control" style="width:110px" @bind="_newSchedEnd" />
+                            <label class="form-label" for="schedule-end">Fin</label>
+                            <input id="schedule-end" type="time" class="form-control" style="width:110px" @bind="_newSchedEnd" />
                         </div>
                         <button class="btn btn-primary btn-sm" @onclick="UpsertVetSchedule"
                                 disabled="@_schedulesSaving">
@@ -685,18 +685,18 @@
                     </div>
                 }
             </div>
-        </div>
+        </section>
 
         @* ── Permisos / Ausencias ── *@
-        <div class="card">
+        <section class="card" aria-labelledby="leaves-title">
             <div class="card-header">
-                <span class="card-title">Ausencias y permisos</span>
+                <span id="leaves-title" class="card-title">Ausencias y permisos</span>
             </div>
             <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
                 <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
                     <div style="flex:1;min-width:200px">
-                        <label class="form-label">Veterinario</label>
-                        <select class="filter-select" style="width:100%" @bind="_leaveVetId" @bind:after="LoadVetLeaves">
+                        <label class="form-label" for="leave-vet">Veterinario</label>
+                        <select id="leave-vet" class="filter-select" style="width:100%" @bind="_leaveVetId" @bind:after="LoadVetLeaves">
                             <option value="">— Selecciona —</option>
                             @foreach (var u in _vets)
                             {
@@ -749,21 +749,21 @@
                     <div style="border-top:1px solid var(--color-border);padding-top:0.75rem;display:flex;flex-direction:column;gap:0.75rem">
                         <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
                             <div>
-                                <label class="form-label">Desde</label>
-                                <input type="date" class="form-control" style="width:150px"
+                                <label class="form-label" for="leave-from">Desde</label>
+                                <input id="leave-from" type="date" class="form-control" style="width:150px"
                                        value="@_newLeaveFrom"
                                        @onchange="e => { _newLeaveFrom = e.Value?.ToString() ?? _newLeaveFrom; if (_leavePartial) _newLeaveTo = _newLeaveFrom; }" />
                             </div>
                             <div>
-                                <label class="form-label">Hasta</label>
-                                <input type="date" class="form-control" style="width:150px"
+                                <label class="form-label" for="leave-to">Hasta</label>
+                                <input id="leave-to" type="date" class="form-control" style="width:150px"
                                        value="@_newLeaveTo"
                                        disabled="@_leavePartial"
                                        @onchange="e => _newLeaveTo = e.Value?.ToString() ?? _newLeaveTo" />
                             </div>
                             <div style="flex:1;min-width:200px">
-                                <label class="form-label">Motivo</label>
-                                <input type="text" class="form-control" @bind="_newLeaveReason" placeholder="Ej: Vacaciones, permiso médico…" />
+                                <label class="form-label" for="leave-reason">Motivo</label>
+                                <input id="leave-reason" type="text" class="form-control" @bind="_newLeaveReason" placeholder="Ej: Vacaciones, permiso médico…" />
                             </div>
                         </div>
                         <div style="display:flex;align-items:center;gap:0.5rem">
@@ -777,14 +777,14 @@
                         {
                             <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;padding-left:1.5rem">
                                 <div>
-                                    <label class="form-label">Hora inicio</label>
-                                    <input type="time" class="form-control" style="width:130px"
+                                    <label class="form-label" for="leave-start-time">Hora inicio</label>
+                                    <input id="leave-start-time" type="time" class="form-control" style="width:130px"
                                            value="@_newLeaveStart"
                                            @onchange="e => _newLeaveStart = e.Value?.ToString() ?? _newLeaveStart" />
                                 </div>
                                 <div>
-                                    <label class="form-label">Hora fin</label>
-                                    <input type="time" class="form-control" style="width:130px"
+                                    <label class="form-label" for="leave-end-time">Hora fin</label>
+                                    <input id="leave-end-time" type="time" class="form-control" style="width:130px"
                                            value="@_newLeaveEnd"
                                            @onchange="e => _newLeaveEnd = e.Value?.ToString() ?? _newLeaveEnd" />
                                 </div>
@@ -803,7 +803,7 @@
                     }
                 }
             </div>
-        </div>
+        </section>
     }
 
 </div>
@@ -812,10 +812,10 @@
 @if (_showUserModal)
 {
     <div class="modal-overlay">
-        <div class="modal-box" tabindex="-1" @ref="_userModalRef" @onkeydown="HandleModalKey" @onclick:stopPropagation>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="user-modal-title" tabindex="-1" @ref="_userModalRef" @onkeydown="HandleModalKey" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">@(_editingUser == null ? "➕ Nuevo usuario" : "✏️ Editar usuario")</span>
-                <button class="btn-close" @onclick="CloseUserModal">✕</button>
+                <span id="user-modal-title" class="modal-title">@(_editingUser == null ? "➕ Nuevo usuario" : "✏️ Editar usuario")</span>
+                <button aria-label="Cerrar" class="btn-close" @onclick="CloseUserModal">✕</button>
             </div>
             <div class="modal-body">
                 @if (!string.IsNullOrEmpty(_modalError))
@@ -823,15 +823,15 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Nombre *</label>
-                        <input class="form-control @ModalCls(_formFirst)"
+                        <label class="form-label" for="user-first-name">Nombre *</label>
+                        <input id="user-first-name" class="form-control @ModalCls(_formFirst)"
                                @bind="_formFirst" placeholder="Nombre" />
                         @if (_modalSubmitted && string.IsNullOrWhiteSpace(_formFirst))
                         { <div class="validation-message">Obligatorio.</div> }
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Apellido *</label>
-                        <input class="form-control @ModalCls(_formLast)"
+                        <label class="form-label" for="user-last-name">Apellido *</label>
+                        <input id="user-last-name" class="form-control @ModalCls(_formLast)"
                                @bind="_formLast" placeholder="Apellido" />
                         @if (_modalSubmitted && string.IsNullOrWhiteSpace(_formLast))
                         { <div class="validation-message">Obligatorio.</div> }
@@ -841,8 +841,8 @@
                 @if (_editingUser == null)
                 {
                     <div class="form-group">
-                        <label class="form-label">Correo electrónico *</label>
-                        <input type="email" class="form-control @ModalCls(_formEmail)"
+                        <label class="form-label" for="user-email">Correo electrónico *</label>
+                        <input id="user-email" type="email" class="form-control @ModalCls(_formEmail)"
                                @bind="_formEmail" placeholder="correo@ejemplo.com" />
                         @if (_modalSubmitted && string.IsNullOrWhiteSpace(_formEmail))
                         { <div class="validation-message">Obligatorio.</div> }
@@ -851,12 +851,12 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Teléfono</label>
-                        <PhoneInput @bind-Value="_formPhone" Placeholder="3001234567" />
+                        <label class="form-label" for="user-phone">Teléfono</label>
+                        <PhoneInput Id="user-phone" @bind-Value="_formPhone" Placeholder="3001234567" />
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Rol *</label>
-                        <select class="form-control" @bind="_formRole">
+                        <label class="form-label" for="user-role">Rol *</label>
+                        <select id="user-role" class="form-control" @bind="_formRole">
                             <option value="Owner">Propietario</option>
                             <option value="Veterinarian">Veterinario</option>
                             <option value="Admin">Administrador</option>
@@ -867,8 +867,8 @@
                 @if (_editingUser == null)
                 {
                     <div class="form-group">
-                        <label class="form-label">Contraseña *</label>
-                        <input type="password"
+                        <label class="form-label" for="user-password">Contraseña *</label>
+                        <input id="user-password" type="password"
                                class="form-control @(_modalSubmitted && !PasswordStrength.IsValid(_formPassword) ? "invalid" : "")"
                                value="@_formPassword"
                                @oninput="e => _formPassword = e.Value?.ToString() ?? string.Empty"
@@ -878,8 +878,8 @@
                         { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Confirmar contraseña *</label>
-                        <input type="password"
+                        <label class="form-label" for="user-password-confirm">Confirmar contraseña *</label>
+                        <input id="user-password-confirm" type="password"
                                class="form-control @(!string.IsNullOrEmpty(_formConfirm) && _formConfirm != _formPassword ? "invalid" : "")"
                                value="@_formConfirm"
                                @oninput="e => _formConfirm = e.Value?.ToString() ?? string.Empty"
@@ -903,10 +903,10 @@
 @if (_showResetModal)
 {
     <div class="modal-overlay">
-        <div class="modal-box" style="max-width:420px" tabindex="-1" @ref="_resetModalRef" @onkeydown="HandleResetKey" @onclick:stopPropagation>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title" style="max-width:420px" tabindex="-1" @ref="_resetModalRef" @onkeydown="HandleResetKey" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">🔑 Resetear contraseña</span>
-                <button class="btn-close" @onclick="() => _showResetModal = false">✕</button>
+                <span id="reset-modal-title" class="modal-title">🔑 Resetear contraseña</span>
+                <button aria-label="Cerrar" class="btn-close" @onclick="() => _showResetModal = false">✕</button>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom:12px;color:var(--color-text-muted);font-size:.9rem">
@@ -915,8 +915,8 @@
                 @if (!string.IsNullOrEmpty(_resetError))
                 { <div class="alert alert-danger">⚠️ @_resetError</div> }
                 <div class="form-group">
-                    <label class="form-label">Nueva contraseña *</label>
-                    <input type="password"
+                    <label class="form-label" for="reset-password">Nueva contraseña *</label>
+                    <input id="reset-password" type="password"
                            class="form-control @(_resetSubmitted && !PasswordStrength.IsValid(_resetPassword) ? "invalid" : "")"
                            value="@_resetPassword"
                            @oninput="e => _resetPassword = e.Value?.ToString() ?? string.Empty"
@@ -926,8 +926,8 @@
                     { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Confirmar *</label>
-                    <input type="password"
+                    <label class="form-label" for="reset-password-confirm">Confirmar *</label>
+                    <input id="reset-password-confirm" type="password"
                            class="form-control @(!string.IsNullOrEmpty(_resetConfirm) && _resetConfirm != _resetPassword ? "invalid" : "")"
                            value="@_resetConfirm"
                            @oninput="e => _resetConfirm = e.Value?.ToString() ?? string.Empty"
@@ -950,10 +950,10 @@
 @if (_showDeleteUserConfirm)
 {
     <div class="modal-overlay">
-        <div class="modal-box" style="max-width:420px" @onclick:stopPropagation>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="delete-user-modal-title" style="max-width:420px" @onclick:stopPropagation>
             <div class="modal-header">
-                <span class="modal-title">🗑️ Eliminar usuario</span>
-                <button class="btn-close" @onclick="() => _showDeleteUserConfirm = false">✕</button>
+                <span id="delete-user-modal-title" class="modal-title">🗑️ Eliminar usuario</span>
+                <button aria-label="Cerrar" class="btn-close" @onclick="() => _showDeleteUserConfirm = false">✕</button>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom:8px">¿Eliminar a <strong>@_deleteUserTarget?.FullName</strong>?</p>

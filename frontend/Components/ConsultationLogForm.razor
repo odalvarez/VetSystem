@@ -5,7 +5,7 @@
 <div class="card">
     <div class="card-header">
         <span class="card-title">@(Log == null ? "Nueva bitácora" : "Editar bitácora")</span>
-        <button class="btn-close" @onclick="OnCancel">✕</button>
+        <button aria-label="Cerrar" class="btn-close" @onclick="OnCancel">✕</button>
     </div>
     <div class="card-body">
         @if (!string.IsNullOrEmpty(_error))
@@ -13,8 +13,8 @@
 
         @* ── Motivo (obligatorio) ── *@
         <div class="form-group">
-            <label class="form-label">Motivo de consulta *</label>
-            <input class="form-control @(_submitted && string.IsNullOrWhiteSpace(_req.ReasonForVisit) ? "invalid" : "")"
+            <label class="form-label" for="log-reason">Motivo de consulta *</label>
+            <input id="log-reason" class="form-control @(_submitted && string.IsNullOrWhiteSpace(_req.ReasonForVisit) ? "invalid" : "")"
                    @bind="_req.ReasonForVisit"
                    placeholder="Motivo principal de la consulta" />
             @if (_submitted && string.IsNullOrWhiteSpace(_req.ReasonForVisit))
@@ -23,8 +23,8 @@
 
         @* ── Anamnesis ── *@
         <div class="form-group">
-            <label class="form-label">Anamnesis</label>
-            <textarea class="form-control" rows="3" @bind="_req.Anamnesis"
+            <label class="form-label" for="log-anamnesis">Anamnesis</label>
+            <textarea id="log-anamnesis" class="form-control" rows="3" @bind="_req.Anamnesis"
                       placeholder="Historia clínica previa, síntomas referidos por el propietario…"></textarea>
         </div>
 
@@ -40,27 +40,27 @@
                 <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Frecuencia cardíaca</label>
-                            <input class="form-control" @bind="_req.HeartRate" placeholder="ej. 72 lpm" />
+                            <label class="form-label" for="log-heart-rate">Frecuencia cardíaca</label>
+                            <input id="log-heart-rate" class="form-control" @bind="_req.HeartRate" placeholder="ej. 72 lpm" />
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Frecuencia respiratoria</label>
-                            <input class="form-control" @bind="_req.RespiratoryRate" placeholder="ej. 18 rpm" />
+                            <label class="form-label" for="log-respiratory-rate">Frecuencia respiratoria</label>
+                            <input id="log-respiratory-rate" class="form-control" @bind="_req.RespiratoryRate" placeholder="ej. 18 rpm" />
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Condición corporal</label>
-                            <input class="form-control" @bind="_req.BodyCondition" placeholder="ej. 3/5" />
+                            <label class="form-label" for="log-body-condition">Condición corporal</label>
+                            <input id="log-body-condition" class="form-control" @bind="_req.BodyCondition" placeholder="ej. 3/5" />
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Estado de mucosas</label>
-                            <input class="form-control" @bind="_req.MucousMembranes" placeholder="ej. Rosadas, húmedas" />
+                            <label class="form-label" for="log-mucous-membranes">Estado de mucosas</label>
+                            <input id="log-mucous-membranes" class="form-control" @bind="_req.MucousMembranes" placeholder="ej. Rosadas, húmedas" />
                         </div>
                     </div>
                     <div class="form-group" style="max-width:50%">
-                        <label class="form-label">Hidratación</label>
-                        <input class="form-control" @bind="_req.Hydration" placeholder="ej. Normal" />
+                        <label class="form-label" for="log-hydration">Hidratación</label>
+                        <input id="log-hydration" class="form-control" @bind="_req.Hydration" placeholder="ej. Normal" />
                     </div>
                 </div>
             }
@@ -69,12 +69,12 @@
         @* ── Peso y temperatura ── *@
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label">Peso (kg)</label>
-                <input type="number" step="0.01" min="0" class="form-control" @bind="_req.WeightKg" />
+                <label class="form-label" for="log-weight">Peso (kg)</label>
+                <input id="log-weight" type="number" step="0.01" min="0" class="form-control" @bind="_req.WeightKg" />
             </div>
             <div class="form-group">
-                <label class="form-label">Temperatura (°C)</label>
-                <input type="number" step="0.1" min="35" max="42" class="form-control"
+                <label class="form-label" for="log-temperature">Temperatura (°C)</label>
+                <input id="log-temperature" type="number" step="0.1" min="35" max="42" class="form-control"
                        @bind="_req.TemperatureCelsius" />
             </div>
         </div>
@@ -90,13 +90,13 @@
             {
                 <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
                     <div class="form-group">
-                        <label class="form-label">Exámenes solicitados</label>
-                        <textarea class="form-control" rows="2" @bind="_req.RequestedTests"
+                        <label class="form-label" for="log-exams-requested">Exámenes solicitados</label>
+                        <textarea id="log-exams-requested" class="form-control" rows="2" @bind="_req.RequestedTests"
                                   placeholder="Hemograma, bioquímica, radiografías…"></textarea>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Resultados de exámenes</label>
-                        <textarea class="form-control" rows="2" @bind="_req.TestResults"
+                        <label class="form-label" for="log-exam-results">Resultados de exámenes</label>
+                        <textarea id="log-exam-results" class="form-control" rows="2" @bind="_req.TestResults"
                                   placeholder="Resultados obtenidos…"></textarea>
                     </div>
                 </div>
@@ -106,13 +106,13 @@
         @* ── Diagnóstico y pronóstico ── *@
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label">Diagnóstico</label>
-                <textarea class="form-control" rows="2" @bind="_req.Diagnosis"
+                <label class="form-label" for="log-diagnosis">Diagnóstico</label>
+                <textarea id="log-diagnosis" class="form-control" rows="2" @bind="_req.Diagnosis"
                           placeholder="Diagnóstico presuntivo o definitivo…"></textarea>
             </div>
             <div class="form-group">
-                <label class="form-label">Pronóstico</label>
-                <textarea class="form-control" rows="2" @bind="_req.Prognosis"
+                <label class="form-label" for="log-prognosis">Pronóstico</label>
+                <textarea id="log-prognosis" class="form-control" rows="2" @bind="_req.Prognosis"
                           placeholder="Pronóstico del caso…"></textarea>
             </div>
         </div>
@@ -128,13 +128,13 @@
             {
                 <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
                     <div class="form-group">
-                        <label class="form-label">Plan terapéutico (medicamentos y tratamiento)</label>
-                        <textarea class="form-control" rows="3" @bind="_req.TherapeuticPlan"
+                        <label class="form-label" for="log-treatment-plan">Plan terapéutico (medicamentos y tratamiento)</label>
+                        <textarea id="log-treatment-plan" class="form-control" rows="3" @bind="_req.TherapeuticPlan"
                                   placeholder="Medicamentos, dosis, duración, tratamiento indicado…"></textarea>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Plan diagnóstico</label>
-                        <textarea class="form-control" rows="2" @bind="_req.DiagnosticPlan"
+                        <label class="form-label" for="log-diagnostic-plan">Plan diagnóstico</label>
+                        <textarea id="log-diagnostic-plan" class="form-control" rows="2" @bind="_req.DiagnosticPlan"
                                   placeholder="Estudios adicionales a realizar…"></textarea>
                     </div>
                 </div>
@@ -143,13 +143,13 @@
 
         @* ── Recomendaciones y próxima visita ── *@
         <div class="form-group">
-            <label class="form-label">Recomendaciones</label>
-            <textarea class="form-control" rows="2" @bind="_req.Recommendations"
+            <label class="form-label" for="log-recommendations">Recomendaciones</label>
+            <textarea id="log-recommendations" class="form-control" rows="2" @bind="_req.Recommendations"
                       placeholder="Cuidados en casa, dieta, ejercicio…"></textarea>
         </div>
         <div class="form-group" style="max-width:50%">
-            <label class="form-label">Próxima visita</label>
-            <input type="date" class="form-control"
+            <label class="form-label" for="log-next-visit">Próxima visita</label>
+            <input id="log-next-visit" type="date" class="form-control"
                    value="@_nextVisitStr"
                    min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")"
                    @oninput="e => _nextVisitStr = e.Value?.ToString() ?? string.Empty" />
