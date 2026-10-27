@@ -195,6 +195,7 @@
         _patientSearch   = e.Value?.ToString() ?? "";
         _selectedPatient = null;
         _showSuggestions = true;
+        _error           = null;
 
         _searchCts?.Cancel();
         _searchCts?.Dispose();

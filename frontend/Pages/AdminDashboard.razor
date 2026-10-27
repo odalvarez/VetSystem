@@ -760,7 +760,7 @@
 @* ── Crear / editar usuario ── *@
 @if (_showUserModal)
 {
-    <ModalShell Title="@(_editingUser == null ? "Nuevo usuario" : "Editar usuario")" Icon="@(_editingUser == null ? "plus" : "pencil")" OnClose="CloseUserModalAsync">
+    <ModalShell Title="@(_editingUser == null ? "Nuevo usuario" : "Editar usuario")" Icon="@(_editingUser == null ? "plus" : "pencil")" OnClose="EventCallback.Factory.Create(this, CloseUserModal)">
         <ChildContent>
             @if (!string.IsNullOrEmpty(_modalError))
             {
@@ -828,7 +828,7 @@
             }
         </ChildContent>
         <Footer>
-            <button type="button" class="btn btn-ghost" @onclick="CloseUserModalAsync" disabled="@_modalSaving">Cancelar</button>
+            <button type="button" class="btn btn-ghost" @onclick="CloseUserModal" disabled="@_modalSaving">Cancelar</button>
             <button type="button" class="btn btn-primary" @onclick="SaveUser" disabled="@_modalSaving">
                 @if (_modalSaving) { <span class="spinner spinner-sm" aria-hidden="true"></span> }
                 @(_editingUser == null ? "Crear usuario" : "Guardar cambios")
@@ -840,7 +840,7 @@
 @* ── Resetear contraseña ── *@
 @if (_showResetModal)
 {
-    <ModalShell Title="Resetear contraseña" Icon="key" Size="ModalSize.Small" OnClose="CloseResetModalAsync">
+    <ModalShell Title="Resetear contraseña" Icon="key" Size="ModalSize.Small" OnClose="EventCallback.Factory.Create(this, () => _showResetModal = false)">
         <ChildContent>
             <p class="text-muted">Usuario: <strong>@_resetTargetName</strong></p>
             @if (!string.IsNullOrEmpty(_resetError))
@@ -868,7 +868,7 @@
             </div>
         </ChildContent>
         <Footer>
-            <button type="button" class="btn btn-ghost" @onclick="CloseResetModalAsync">Cancelar</button>
+            <button type="button" class="btn btn-ghost" @onclick="() => _showResetModal = false">Cancelar</button>
             <button type="button" class="btn btn-primary" @onclick="DoResetPassword" disabled="@_resetSaving">
                 @if (_resetSaving) { <span class="spinner spinner-sm" aria-hidden="true"></span> }
                 Confirmar
@@ -880,7 +880,7 @@
 @* ── Confirmar eliminación de usuario ── *@
 @if (_showDeleteUserConfirm)
 {
-    <ModalShell Title="Eliminar usuario" Icon="trash" Danger="true" Size="ModalSize.Small" OnClose="CloseDeleteUserAsync">
+    <ModalShell Title="Eliminar usuario" Icon="trash" Danger="true" Size="ModalSize.Small" OnClose="EventCallback.Factory.Create(this, () => _showDeleteUserConfirm = false)">
         <ChildContent>
             <p>¿Eliminar a <strong>@_deleteUserTarget?.FullName</strong>?</p>
             <p class="text-muted text-sm">
@@ -892,7 +892,7 @@
             }
         </ChildContent>
         <Footer>
-            <button type="button" class="btn btn-ghost" @onclick="CloseDeleteUserAsync" disabled="@_deleteUserSaving">Cancelar</button>
+            <button type="button" class="btn btn-ghost" @onclick="() => _showDeleteUserConfirm = false" disabled="@_deleteUserSaving">Cancelar</button>
             <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteUser" disabled="@_deleteUserSaving">
                 @if (_deleteUserSaving) { <span class="spinner spinner-sm" aria-hidden="true"></span> }
                 Eliminar
@@ -1146,11 +1146,21 @@
         var load = ++_usersLoad;
         _usersLoading = true;
         bool? active = _activeFilter switch { "true" => true, "false" => false, _ => null };
-        var result = await AuthApi.AdminListUsersAsync(_roleFilter, _search, active, _usersPage, _usersPageSize);
-        if (load != _usersLoad) return;
-        _users      = result.Items;
-        _usersTotal = result.TotalCount;
-        _usersLoading = false;
+        try
+        {
+            var result = await AuthApi.AdminListUsersAsync(_roleFilter, _search, active, _usersPage, _usersPageSize);
+            if (load != _usersLoad) return;
+            _users      = result.Items;
+            _usersTotal = result.TotalCount;
+        }
+        catch
+        {
+            if (load == _usersLoad) { _users = []; _usersTotal = 0; }
+        }
+        finally
+        {
+            if (load == _usersLoad) _usersLoading = false;
+        }
     }
 
     private async Task LoadStats()
@@ -1212,14 +1222,24 @@
     {
         var load = ++_patientsLoad;
         _patientsLoading = true;
-        var result = await PatientApi.ListAsync(
-            page: _patientsPage, pageSize: _patientsPageSize,
-            species: string.IsNullOrEmpty(_patientsSpecies) ? null : _patientsSpecies,
-            search:  string.IsNullOrEmpty(_patientsSearch)  ? null : _patientsSearch);
-        if (load != _patientsLoad) return;
-        _patients      = result?.Items ?? [];
-        _patientsTotal = result?.TotalCount ?? 0;
-        _patientsLoading = false;
+        try
+        {
+            var result = await PatientApi.ListAsync(
+                page: _patientsPage, pageSize: _patientsPageSize,
+                species: string.IsNullOrEmpty(_patientsSpecies) ? null : _patientsSpecies,
+                search:  string.IsNullOrEmpty(_patientsSearch)  ? null : _patientsSearch);
+            if (load != _patientsLoad) return;
+            _patients      = result?.Items ?? [];
+            _patientsTotal = result?.TotalCount ?? 0;
+        }
+        catch
+        {
+            if (load == _patientsLoad) { _patients = []; _patientsTotal = 0; }
+        }
+        finally
+        {
+            if (load == _patientsLoad) _patientsLoading = false;
+        }
     }
 
     private async Task ReloadPatients() { _patientsPage = 1; await LoadPatients(); }
@@ -1278,16 +1298,26 @@
     {
         var load = ++_apptsLoad;
         _apptsLoading = true;
-        var result = await AppointmentApi.ListPagedAsync(
-            status:   string.IsNullOrEmpty(_apptsStatus) ? null : _apptsStatus,
-            from:     _apptsFrom,
-            to:       _apptsTo,
-            page:     _apptsPage,
-            pageSize: _apptsPageSize);
-        if (load != _apptsLoad) return;
-        _appointments = result?.Items ?? [];
-        _apptsTotal   = result?.TotalCount ?? 0;
-        _apptsLoading = false;
+        try
+        {
+            var result = await AppointmentApi.ListPagedAsync(
+                status:   string.IsNullOrEmpty(_apptsStatus) ? null : _apptsStatus,
+                from:     _apptsFrom,
+                to:       _apptsTo,
+                page:     _apptsPage,
+                pageSize: _apptsPageSize);
+            if (load != _apptsLoad) return;
+            _appointments = result?.Items ?? [];
+            _apptsTotal   = result?.TotalCount ?? 0;
+        }
+        catch
+        {
+            if (load == _apptsLoad) { _appointments = []; _apptsTotal = 0; }
+        }
+        finally
+        {
+            if (load == _apptsLoad) _apptsLoading = false;
+        }
     }
 
     private async Task ReloadAppointments() { _apptsPage = 1; await LoadAppointments(); }
@@ -1740,9 +1770,6 @@
     private string  TabClass(string tab)    => _tab == tab ? "active" : "";
     private string? AriaCurrent(string tab) => _tab == tab ? "true" : null;
 
-    private Task CloseUserModalAsync()    { CloseUserModal(); return Task.CompletedTask; }
-    private Task CloseResetModalAsync()   { _showResetModal = false; return Task.CompletedTask; }
-    private Task CloseDeleteUserAsync()   { _showDeleteUserConfirm = false; return Task.CompletedTask; }
 
     private void OpenAppointmentLog(AppointmentResponse appt)
     {

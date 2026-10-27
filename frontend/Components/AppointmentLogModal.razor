@@ -5,7 +5,11 @@
 
 <ModalShell Title="Bitácora de consulta" Icon="clipboard" Size="ModalSize.Large"
             Subtitle="@($"{Appointment.PatientName} — {Appointment.ScheduledAt:dd/MM/yyyy HH:mm}")" OnClose="OnClose">
-    @if (_loading)
+    @if (_loadError is not null)
+    {
+        <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_loadError</div>
+    }
+    else if (_loading)
     {
         <LoadingSpinner Message="Cargando bitácora…" />
     }
@@ -73,13 +77,25 @@
     private bool    _closing;
     private bool    _justClosed;
     private string? _error;
+    private string? _loadError;
 
     protected override async Task OnInitializedAsync() => await LoadLogAsync();
 
     private async Task LoadLogAsync()
     {
-        _log     = await LogApi.GetByAppointmentAsync(Appointment.PatientId, Appointment.Id);
-        _loading = false;
+        try
+        {
+            _log       = await LogApi.GetByAppointmentAsync(Appointment.PatientId, Appointment.Id);
+            _loadError = null;
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"No se pudo cargar la bitácora: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task OnLogSaved() => await LoadLogAsync();

@@ -5,7 +5,7 @@
 @inject VaccinationApiClient      VaccApi
 @inject TokenProvider             Token
 
-<ModalShell Title="@Patient.Name" Icon="paw" Size="ModalSize.Large" CloseOnBackdrop="true"
+<ModalShell Title="@Patient.Name" Icon="paw" Size="ModalSize.Large" CloseOnBackdrop="@IsOwner"
             Subtitle="@($"{Patient.SpeciesName} · {Patient.Breed} · {Patient.OwnerName}")" OnClose="OnClose">
     <div class="stack">
         <div class="admin-tabs" role="group" aria-label="Secciones de la mascota">

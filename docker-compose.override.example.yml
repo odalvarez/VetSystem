@@ -1,3 +1,5 @@
+# Copia este archivo como docker-compose.override.yml para desarrollo local (sin TLS y con puertos de los servicios).
+# El de la VM de producción es otro (certificados, imagen ARM64) y nunca se versiona.
 services:
   frontend:
     volumes:

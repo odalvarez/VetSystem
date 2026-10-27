@@ -50,6 +50,8 @@ out/
 *.env
 .env
 .env.*
+# El override real es local (desarrollo) y distinto en la VM de producción; se versiona solo el ejemplo
+docker-compose.override.yml
 # Valores de prueba del stack E2E aislado (sin secretos reales); CI los necesita
 !tests/VetSystem.E2E/e2e.env
 secrets.json

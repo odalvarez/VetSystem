@@ -209,7 +209,7 @@
 
 @if (_detailNotif != null)
 {
-    <ModalShell Title="Detalle de notificación" Icon="bell" Size="ModalSize.Small" CloseOnBackdrop="true" OnClose="CloseDetailAsync">
+    <ModalShell Title="Detalle de notificación" Icon="bell" Size="ModalSize.Small" CloseOnBackdrop="true" OnClose="EventCallback.Factory.Create(this, CloseDetail)">
         <ChildContent>
             <div class="stack">
                 <div class="row">
@@ -268,7 +268,6 @@
 
     private void OpenDetail(NotificationStatusResponse n) => _detailNotif = n;
     private void CloseDetail() => _detailNotif = null;
-    private Task CloseDetailAsync() { CloseDetail(); return Task.CompletedTask; }
 
     // Filtros del historial
     private string    _filterType      = "";
