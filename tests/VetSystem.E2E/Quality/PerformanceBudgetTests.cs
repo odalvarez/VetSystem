@@ -46,10 +46,13 @@ public class PerformanceBudgetTests(StackFixture stack) : E2ETest(stack)
 
         Assert.True(baseline.ContainsKey(scenario), $"No hay línea base para '{scenario}'; grabarla con E2E_RECORD_BASELINE=1.");
         var limit = baseline[scenario];
-        Assert.True(median.TransferKb <= limit.TransferKb * Tolerance, $"{scenario}: {median.TransferKb:F0} KB > {limit.TransferKb:F0} KB +10%");
+        Assert.True(median.TransferKb <= limit.TransferKb * Tolerance, $"{scenario}: {median.TransferKb:F0} KB > {limit.TransferKb:F0} KB +10%. Mayores: {_largest}");
         Assert.True(median.Requests  <= limit.Requests * Tolerance,   $"{scenario}: {median.Requests} peticiones > {limit.Requests} +10%");
         Assert.True(median.LcpMs     <= limit.LcpMs * Tolerance,      $"{scenario}: LCP {median.LcpMs:F0} ms > {limit.LcpMs:F0} ms +10%");
     }
+
+    // Recursos más pesados de la última medición: si se pasa el presupuesto, el mensaje dice quién lo causó
+    private string _largest = "";
 
     private async Task<PageMetrics> MeasureAsync(string scenario)
     {
@@ -85,10 +88,13 @@ public class PerformanceBudgetTests(StackFixture stack) : E2ETest(stack)
                 const nav = performance.getEntriesByType('navigation')[0];
                 const res = performance.getEntriesByType('resource');
                 const bytes = res.reduce((a, r) => a + (r.transferSize || r.encodedBodySize || 0), nav ? (nav.transferSize || 0) : 0);
-                resolve({ kb: bytes / 1024, requests: res.length + 1, lcp: lcp || (nav ? nav.domContentLoadedEventEnd : 0) });
+                const largest = [...res].sort((a, b) => (b.transferSize || 0) - (a.transferSize || 0)).slice(0, 5)
+                    .map(r => r.name.split('/').pop() + ' ' + Math.round((r.transferSize || 0) / 1024) + ' KB').join(', ');
+                resolve({ kb: bytes / 1024, requests: res.length + 1, lcp: lcp || (nav ? nav.domContentLoadedEventEnd : 0), largest });
             }, 500);
         })");
 
+        _largest = json.GetProperty("largest").GetString() ?? "";
         await page.Context.CloseAsync();
         return new PageMetrics(json.GetProperty("kb").GetDouble(), json.GetProperty("requests").GetInt32(), json.GetProperty("lcp").GetDouble());
     }

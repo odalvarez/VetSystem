@@ -13,7 +13,9 @@ public abstract class E2ETest(StackFixture stack) : IAsyncLifetime
     {
         var context = await Stack.NewContextAsync(width, height);
         _contexts.Add(context);
-        return await context.NewPageAsync();
+        var page = await context.NewPageAsync();
+        Ui.Track(page);
+        return page;
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

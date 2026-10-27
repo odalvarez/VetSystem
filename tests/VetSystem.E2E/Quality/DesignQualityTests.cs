@@ -196,6 +196,37 @@ public class DesignQualityTests(StackFixture stack) : E2ETest(stack)
         Assert.Empty(violations);
     }
 
+    // Un arranque que a veces se queda en la splash no lo ve ninguna otra prueba hasta que le toca a una al azar;
+    // aquí se repite la carga en frío y, si falla, el mensaje trae lo que el navegador reportó
+    [Fact]
+    public async Task App_BootsReliablyOnColdLoads()
+    {
+        var failures = new List<string>();
+        for (var i = 1; i <= 12; i++)
+        {
+            var page   = await NewPageAsync();
+            var events = new List<string>();
+            page.Console      += (_, m) => { if (m.Type is "error" or "warning") events.Add($"console {m.Type}: {m.Text}"); };
+            page.PageError    += (_, e) => events.Add($"pageerror: {e}");
+            page.RequestFailed += (_, r) => events.Add($"requestfailed: {r.Url} {r.Failure}");
+            page.Response     += (_, r) => { if (r.Status >= 400) events.Add($"http {r.Status}: {r.Url}"); };
+
+            await page.GotoAsync("/login");
+            try
+            {
+                await Expect(page.GetByLabel("Correo electrónico")).ToBeVisibleAsync(new() { Timeout = 20_000 });
+            }
+            catch (PlaywrightException)
+            {
+                var state = await page.EvaluateAsync<string>("document.getElementById('app')?.innerHTML.slice(0, 160) ?? 'sin #app'");
+                failures.Add($"carga {i}: no arrancó. #app = {state}. Eventos: {string.Join(" | ", events.Take(6))}");
+            }
+            await page.Context.CloseAsync();
+        }
+
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
+    }
+
     [Fact]
     public async Task Splash_IsReplacedByTheApp_UnderStrictCsp()
     {

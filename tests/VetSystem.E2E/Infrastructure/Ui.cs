@@ -22,8 +22,32 @@ public static class Ui
         await WaitForBootAsync(page);
     }
 
-    private static Task WaitForBootAsync(IPage page) =>
-        Expect(page.Locator(".app-layout, .auth-wrapper").First).ToBeAttachedAsync(new() { Timeout = BootTimeoutMs });
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IPage, List<string>> PageEvents = new();
+
+    // Guarda lo que el navegador reporta de cada página para poder explicar un arranque que no ocurre
+    public static void Track(IPage page)
+    {
+        var events = PageEvents.GetOrCreateValue(page);
+        page.Console       += (_, m) => { if (m.Type is "error" or "warning") events.Add($"console {m.Type}: {m.Text}"); };
+        page.PageError     += (_, e) => events.Add($"pageerror: {e}");
+        page.RequestFailed += (_, r) => events.Add($"requestfailed: {r.Url} {r.Failure}");
+        page.Response      += (_, r) => { if (r.Status >= 400) events.Add($"http {r.Status}: {r.Url}"); };
+        page.Crash         += (_, _) => events.Add("crash de la página");
+    }
+
+    private static async Task WaitForBootAsync(IPage page)
+    {
+        try
+        {
+            await Expect(page.Locator(".app-layout, .auth-wrapper").First).ToBeAttachedAsync(new() { Timeout = BootTimeoutMs });
+        }
+        catch (PlaywrightException ex)
+        {
+            var app    = await page.EvaluateAsync<string>("document.getElementById('app')?.innerHTML.slice(0, 200) ?? 'sin #app'");
+            var events = PageEvents.TryGetValue(page, out var list) ? string.Join(" | ", list.Take(8)) : "sin seguimiento";
+            throw new InvalidOperationException($"La app no arrancó en {BootTimeoutMs / 1000:0} s en {page.Url}. #app = {app}. Eventos: {events}", ex);
+        }
+    }
 
     public static async Task LoginAsync(IPage page, string email, string password)
     {
@@ -36,7 +60,19 @@ public static class Ui
     public static async Task LoginAsync(IPage page, TestUser user, string expectedPath)
     {
         await LoginAsync(page, user.Email, user.Password);
-        await Expect(page).ToHaveURLAsync(new Regex(Regex.Escape(expectedPath) + "$"));
+        try
+        {
+            await Expect(page).ToHaveURLAsync(new Regex(Regex.Escape(expectedPath) + "$"));
+        }
+        catch (PlaywrightException ex)
+        {
+            // Distingue un login rechazado (alerta visible) de uno que ni siquiera llegó a enviarse o se cayó
+            var alerts = await page.Locator(".alert, .validation-message").AllInnerTextsAsync();
+            var email  = await page.GetByLabel("Correo electrónico").InputValueAsync();
+            var events = PageEvents.TryGetValue(page, out var list) ? string.Join(" | ", list.Take(8)) : "sin seguimiento";
+            throw new InvalidOperationException(
+                $"El login no llegó a {expectedPath} (URL {page.Url}). Alertas: [{string.Join("; ", alerts)}]. Correo en el campo: '{email}'. Eventos: {events}", ex);
+        }
     }
 
     // Si un formulario no se cierra tras enviarlo, el fallo dice qué error mostró en vez de solo "visible"
