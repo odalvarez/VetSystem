@@ -623,8 +623,9 @@
     .form-control:disabled { background: rgba(255, 255, 255, .4); color: var(--color-text-strong); cursor: not-allowed; }
     .form-control.invalid { border: 1.5px solid var(--color-danger); }
 
+    /* Solo los select: un input de fecha con .filter-select ya trae su icono de calendario */
     select.form-control,
-    .filter-select {
+    select.filter-select {
         appearance: none;
         -webkit-appearance: none;
         cursor: pointer;
@@ -907,9 +908,14 @@
     .vet-table tbody tr { border-top: 1px solid rgba(255, 255, 255, .65); }
     .vet-table tbody tr:hover { background: rgba(255, 255, 255, .3); }
     .vet-table td { padding: 13px 16px; vertical-align: middle; }
-    .vet-table td.td-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+    /* Celda de tabla real y sin salto: como flex dejaba de medir con la tabla y apilaba los iconos en 2×2 */
+    .vet-table td.td-actions { white-space: nowrap; text-align: right; }
+    .vet-table td.td-actions > * { vertical-align: middle; }
+    .vet-table td.td-actions > * + * { margin-left: 6px; }
     .cell-sub     { font-size: .87rem; color: var(--color-text-muted); }
     .cell-nowrap  { white-space: nowrap; }
+    /* Un correo largo no tiene espacios donde partir: sin esto ensancha la tabla y empuja las acciones fuera de la vista */
+    .cell-break   { overflow-wrap: anywhere; }
 
     /* ── Tarjetas de mascota ── */
     .patients-grid {
@@ -1308,7 +1314,8 @@
     .species-name { flex: 1 1 180px; max-width: 320px; }
     .schedule-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
     .schedule-row .form-group { margin-bottom: 0; }
-    .schedule-row .grow, .form-group.grow { flex: 1 1 220px; margin-bottom: 0; }
+    /* Solo en filas: dentro de una columna flexible la base de 220px se volvía alto y dejaba un hueco bajo el select */
+    .schedule-row .grow { flex: 1 1 220px; margin-bottom: 0; }
     .time-input { width: 130px; }
     .separated { border-top: 1px solid var(--divider); padding-top: 14px; }
     .item-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
@@ -1376,7 +1383,8 @@
             color: var(--color-text-muted);
         }
         .vet-table td[data-label=""]::before { display: none; }
-        .vet-table td.td-actions { justify-content: flex-end; }
+        .vet-table td.td-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; white-space: normal; }
+        .vet-table td.td-actions > * + * { margin-left: 0; }
     }
 
     @media (max-width: 480px) {

@@ -180,7 +180,7 @@
                                 var isSelf = Token.User != null && user.Id == Token.User.Id;
                                 <tr class="@(user.IsActive ? "" : "row-inactive")">
                                     <td data-label="Nombre"><strong>@user.FullName</strong></td>
-                                    <td data-label="Correo">@user.Email</td>
+                                    <td data-label="Correo" class="cell-break">@user.Email</td>
                                     <td data-label="Teléfono">@(string.IsNullOrEmpty(user.Phone) ? "—" : user.Phone)</td>
                                     <td data-label="Rol"><span class="role-badge role-@user.Role.ToLower()">@RoleLabel(user.Role)</span></td>
                                     <td data-label="Estado"><StatusBadge Status="@(user.IsActive ? "active" : "inactive")" /></td>
@@ -592,7 +592,7 @@
                 <h2 id="vet-schedule-title" class="card-title">Horario personalizado por veterinario</h2>
             </div>
             <div class="card-body stack">
-                <div class="form-group grow">
+                <div class="form-group">
                     <label class="form-label" for="schedule-vet">Veterinario</label>
                     <select id="schedule-vet" class="form-control" @bind="_schedVetId" @bind:after="LoadVetSchedules">
                         <option value="">— Selecciona —</option>
@@ -659,7 +659,7 @@
                 <h2 id="leaves-title" class="card-title">Ausencias y permisos</h2>
             </div>
             <div class="card-body stack">
-                <div class="form-group grow">
+                <div class="form-group">
                     <label class="form-label" for="leave-vet">Veterinario</label>
                     <select id="leave-vet" class="form-control" @bind="_leaveVetId" @bind:after="LoadVetLeaves">
                         <option value="">— Selecciona —</option>
