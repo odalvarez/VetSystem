@@ -35,17 +35,30 @@ En Linux/CI, reemplazar la ruta de `node` por `linux_x64`.
 
 ## Correr la suite
 
-`E2E_BROWSER` elige el motor: `chromium` (por defecto), `firefox` o `webkit`.
+El camino recomendado (y el de CI) es el contenedor: Linux, navegadores de Playwright con versión fija y las mismas fuentes que en CI. Requiere el stack levantado.
+
+```bash
+MSYS_NO_PATHCONV=1 sh tests/VetSystem.E2E/run-in-container.sh chromium
+```
+
+El primer argumento es el navegador (`chromium`, `firefox` o `webkit`) y el segundo, un filtro opcional de xUnit. Por defecto excluye `Performance` y `Evidence`. `E2E_PARALLEL` limita los hilos de xUnit (en WebKit son 4 por defecto, ver más abajo).
+
+Sin contenedor, contra el stack local, `E2E_BROWSER` elige el motor:
 
 ```bash
 E2E_BROWSER=chromium dotnet test tests/VetSystem.E2E --filter "Category!=Performance&Category!=Evidence"
 ```
+
+### WebKit
+
+El WebKit de Playwright en Linux no es Safari: el runtime de .NET WebAssembly se cae al iniciar de forma intermitente (`Out of bounds memory access`, `garbage appeared in memory at address 0`). Medido: 0 de 240 cargas con la plantilla vacía de Blazor y entre 0,4 % y 4,6 % con esta app, según la memoria libre del equipo; sin nginx no se reprodujo en 120 cargas. Hay un antecedente en WebKit con el mismo síntoma al correr varias instancias a la vez ([bug 286266](https://bugs.webkit.org/show_bug.cgi?id=286266)). Por eso en CI es informativo y no bloquea, y el arranque fallido se reporta con el contenido de `#app` y los eventos del navegador en lugar de un simple tiempo de espera.
 
 ### Categorías
 
 | Categoría | Qué hace | Cuándo |
 |---|---|---|
 | (sin categoría) | Regresión funcional por rol y enrutamiento de la API | Siempre, en los 3 navegadores |
+| `Design` | Accesibilidad (axe) en 16 pantallas, desbordes, modales, CSP, fuente Inter y arranque en frío | Siempre, en los 3 navegadores |
 | `Performance` | Presupuesto de rendimiento contra `perf-baseline.json` (mediana de 5 cargas en frío, tolerancia 10%) | Solo Chromium |
 | `Evidence` | Capturas de cada pantalla a 1440px y 390px en `E2E_EVIDENCE_DIR` | A pedido |
 
