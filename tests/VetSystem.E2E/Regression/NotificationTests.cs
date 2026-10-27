@@ -5,15 +5,15 @@ using static Microsoft.Playwright.Assertions;
 namespace VetSystem.E2E.Regression;
 
 [Collection(StackCollection.Name)]
-public class NotificationTests(StackFixture stack)
+public class NotificationTests(StackFixture stack) : E2ETest(stack)
 {
     // WireMock responde 500 a los números terminados en 3009999999 para simular un fallo de Evolution API
     private const string FailingLocalNumber = "3009999999";
 
     private async Task<IPage> NotificationsPageAsync()
     {
-        var page = await stack.NewPageAsync();
-        await Ui.LoginAsync(page, stack.Vet, "/vet-dashboard");
+        var page = await NewPageAsync();
+        await Ui.LoginAsync(page, Stack.Vet, "/vet-dashboard");
         await page.GetByRole(AriaRole.Link, new() { Name = "Notificaciones" }).ClickAsync();
         await Expect(page.GetByText("Enviar notificación manual")).ToBeVisibleAsync();
         return page;
@@ -36,7 +36,7 @@ public class NotificationTests(StackFixture stack)
 
         await SendWhatsAppAsync(page, local, message);
 
-        using var doubles = new MessageDoubles(stack.Env);
+        using var doubles = new MessageDoubles(Stack.Env);
         var calls = await MessageDoubles.EventuallyAsync(() => doubles.WhatsAppCallsToAsync($"57{local}"), c => c > 0);
         Assert.True(calls > 0, "WireMock no recibió el WhatsApp manual");
 

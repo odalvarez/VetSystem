@@ -5,12 +5,12 @@ using static Microsoft.Playwright.Assertions;
 namespace VetSystem.E2E.Regression;
 
 [Collection(StackCollection.Name)]
-public class OwnerTests(StackFixture stack)
+public class OwnerTests(StackFixture stack) : E2ETest(stack)
 {
     private async Task<(IPage Page, TestUser Owner)> OwnerSessionAsync()
     {
-        var owner = await stack.CreateUserAsync("Owner", "Camila", "Rojas");
-        var page  = await stack.NewPageAsync();
+        var owner = await Stack.CreateUserAsync("Owner", "Camila", "Rojas");
+        var page  = await NewPageAsync();
         await Ui.LoginAsync(page, owner, "/owner-portal");
         return (page, owner);
     }
@@ -26,7 +26,7 @@ public class OwnerTests(StackFixture stack)
         await Flows.FillPetFormAsync(dialog, petName);
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Registrar mascota" }).ClickAsync();
 
-        await Expect(dialog).ToBeHiddenAsync();
+        await Ui.ExpectSubmittedAsync(dialog);
         await Expect(page.GetByText(petName)).ToBeVisibleAsync();
     }
 
@@ -35,17 +35,17 @@ public class OwnerTests(StackFixture stack)
     {
         var (page, owner) = await OwnerSessionAsync();
         var petName       = $"Milo{Random.Shared.Next(1000, 9999)}";
-        await stack.Admin.CreatePatientAsync(owner.Id, owner.FullName, owner.Phone, petName);
-        await page.ReloadAsync();
+        await Stack.Admin.CreatePatientAsync(owner.Id, owner.FullName, owner.Phone, petName);
+        await Ui.ReloadAsync(page);
 
         await Ui.Button(page, "Solicitar cita").ClickAsync();
-        await Flows.RequestAppointmentAsync(page, petName, stack.Vet.FullName, "Control anual", daysAhead: 9);
+        await Flows.RequestAppointmentAsync(page, petName, Stack.Vet.FullName, "Control anual", daysAhead: 9);
 
         var row = page.GetByRole(AriaRole.Row).Filter(new() { HasText = petName });
         await Expect(row).ToContainTextAsync("Programada");
         await Expect(row).ToContainTextAsync("Control anual");
 
-        using var doubles = new MessageDoubles(stack.Env);
+        using var doubles = new MessageDoubles(Stack.Env);
         var emails = await MessageDoubles.EventuallyAsync(() => doubles.EmailsToAsync(owner.Email), m => m.Count > 0);
         Assert.NotEmpty(emails);
         var calls = await MessageDoubles.EventuallyAsync(() => doubles.WhatsAppCallsToAsync(owner.Phone), c => c > 0);
@@ -57,8 +57,8 @@ public class OwnerTests(StackFixture stack)
     {
         var (page, owner) = await OwnerSessionAsync();
         var petName       = $"Simba{Random.Shared.Next(1000, 9999)}";
-        await stack.Admin.CreatePatientAsync(owner.Id, owner.FullName, owner.Phone, petName, "cat");
-        await page.ReloadAsync();
+        await Stack.Admin.CreatePatientAsync(owner.Id, owner.FullName, owner.Phone, petName, "cat");
+        await Ui.ReloadAsync(page);
 
         await page.GetByText(petName).ClickAsync();
         var dialog = Flows.Dialog(page, petName);

@@ -6,7 +6,7 @@ namespace VetSystem.E2E.Regression;
 // Toda ruta de API que use el frontend debe llegar a un microservicio. Si nginx no la conoce,
 // la petición cae en el SPA y devuelve index.html con 200, un fallo silencioso (así se rompió /api/vaccines).
 [Collection(StackCollection.Name)]
-public class ApiRoutingTests(StackFixture stack)
+public class ApiRoutingTests(StackFixture stack) : E2ETest(stack)
 {
     [Theory]
     [InlineData("/api/auth/me")]
@@ -19,7 +19,7 @@ public class ApiRoutingTests(StackFixture stack)
     public async Task ApiPrefix_IsProxiedToAService_NotToTheSpa(string path)
     {
         using var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (_, _, _, _) => true };
-        using var http    = new HttpClient(handler) { BaseAddress = new Uri(stack.Env.BaseUrl) };
+        using var http    = new HttpClient(handler) { BaseAddress = new Uri(Stack.Env.BaseUrl) };
 
         var resp = await http.GetAsync(path);
 

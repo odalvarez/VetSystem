@@ -1,0 +1,17 @@
+{
+  "vet": {
+    "TransferKb": 198.0458984375,
+    "Requests": 13,
+    "LcpMs": 822.1000000014901
+  },
+  "owner": {
+    "TransferKb": 163.0888671875,
+    "Requests": 13,
+    "LcpMs": 823.4000000003725
+  },
+  "login": {
+    "TransferKb": 3573.4169921875,
+    "Requests": 63,
+    "LcpMs": 290.09999999962747
+  }
+}

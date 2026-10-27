@@ -47,17 +47,14 @@ public sealed class StackFixture : IAsyncLifetime
         return new TestUser(id, firstName, lastName, email, Password, phone);
     }
 
-    public async Task<IPage> NewPageAsync(int width = 1440, int height = 900)
-    {
-        var context = await Browser.NewContextAsync(new()
+    public Task<IBrowserContext> NewContextAsync(int width, int height) =>
+        Browser.NewContextAsync(new()
         {
             IgnoreHTTPSErrors = true,
             BaseURL           = Env.BaseUrl,
             ViewportSize      = new() { Width = width, Height = height },
             Locale            = "es-CO"
         });
-        return await context.NewPageAsync();
-    }
 
     public async Task DisposeAsync()
     {

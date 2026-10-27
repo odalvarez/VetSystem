@@ -5,24 +5,24 @@ using static Microsoft.Playwright.Assertions;
 namespace VetSystem.E2E.Regression;
 
 [Collection(StackCollection.Name)]
-public class PublicTests(StackFixture stack)
+public class PublicTests(StackFixture stack) : E2ETest(stack)
 {
     [Fact]
     public async Task Login_WithValidCredentials_GoesToRoleHome()
     {
-        var page = await stack.NewPageAsync();
+        var page = await NewPageAsync();
 
-        await Ui.LoginAsync(page, stack.Vet, "/vet-dashboard");
+        await Ui.LoginAsync(page, Stack.Vet, "/vet-dashboard");
 
-        await Expect(page.GetByText(stack.Vet.FullName)).ToBeVisibleAsync();
+        await Expect(page.GetByText(Stack.Vet.FullName)).ToBeVisibleAsync();
     }
 
     [Fact]
     public async Task Login_WithWrongPassword_ShowsErrorAndStays()
     {
-        var page = await stack.NewPageAsync();
+        var page = await NewPageAsync();
 
-        await Ui.LoginAsync(page, stack.Vet.Email, "Incorrecta#2026");
+        await Ui.LoginAsync(page, Stack.Vet.Email, "Incorrecta#2026");
 
         await Expect(page.GetByText("Correo o contraseña incorrectos.")).ToBeVisibleAsync();
         await Expect(page).ToHaveURLAsync(new Regex("/login$"));
@@ -31,10 +31,10 @@ public class PublicTests(StackFixture stack)
     [Fact]
     public async Task Register_NewOwner_ThenCanLogin()
     {
-        var page  = await stack.NewPageAsync();
+        var page  = await NewPageAsync();
         var email = $"e2e-{Guid.NewGuid():N}@example.com";
 
-        await page.GotoAsync("/register");
+        await Ui.OpenAsync(page, "/register");
         await page.GetByLabel("Nombre *").FillAsync("Camila");
         await page.GetByLabel("Apellido *").FillAsync("Rojas");
         await page.GetByLabel("Correo electrónico *").FillAsync(email);
@@ -52,12 +52,12 @@ public class PublicTests(StackFixture stack)
     [Fact]
     public async Task Register_WithExistingEmail_ShowsError()
     {
-        var page = await stack.NewPageAsync();
+        var page = await NewPageAsync();
 
-        await page.GotoAsync("/register");
+        await Ui.OpenAsync(page, "/register");
         await page.GetByLabel("Nombre *").FillAsync("Otra");
         await page.GetByLabel("Apellido *").FillAsync("Persona");
-        await page.GetByLabel("Correo electrónico *").FillAsync(stack.Vet.Email);
+        await page.GetByLabel("Correo electrónico *").FillAsync(Stack.Vet.Email);
         await page.GetByLabel("Contraseña *", new() { Exact = true }).FillAsync(StackFixture.Password);
         await page.GetByLabel("Confirmar contraseña *").FillAsync(StackFixture.Password);
         await Ui.Button(page, "Crear cuenta").ClickAsync();

@@ -15,15 +15,19 @@ public static class Flows
         var dialog = Dialog(page, "Solicitar cita");
         await Expect(dialog).ToBeVisibleAsync();
 
-        await dialog.GetByLabel("Mascota *").FillAsync(petName);
+        var pet = dialog.GetByLabel("Mascota *");
+        await pet.FillAsync(petName);
         await dialog.GetByText(petName).Last.ClickAsync();
+        // Al elegir una sugerencia el campo pasa a "Nombre (Dueño)"
+        await Expect(pet).ToHaveValueAsync(new Regex($@"^{Regex.Escape(petName)} \("));
         await dialog.GetByLabel("Veterinario *").SelectOptionAsync(new SelectOptionValue { Label = vetName });
         await dialog.GetByLabel("Fecha *").FillAsync(Ui.Workday(daysAhead));
-        await dialog.GetByRole(AriaRole.Button, new() { NameRegex = new Regex(@"^\d{2}:\d{2}$") }).First.ClickAsync();
+        // Por texto y no por rol: la hora pasó de botón a radio con el rediseño
+        await dialog.GetByText(new Regex(@"^\d{2}:\d{2}$")).First.ClickAsync();
         await dialog.GetByLabel("Motivo de la cita *").FillAsync(reason);
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Solicitar cita", Exact = true }).ClickAsync();
 
-        await Expect(dialog).ToBeHiddenAsync();
+        await Ui.ExpectSubmittedAsync(dialog);
     }
 
     // Elige la opción cuyo texto contiene el valor buscado: el formato exacto de la etiqueta puede cambiar

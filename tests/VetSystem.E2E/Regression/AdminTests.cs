@@ -5,12 +5,12 @@ using static Microsoft.Playwright.Assertions;
 namespace VetSystem.E2E.Regression;
 
 [Collection(StackCollection.Name)]
-public class AdminTests(StackFixture stack)
+public class AdminTests(StackFixture stack) : E2ETest(stack)
 {
     private async Task<IPage> AdminSessionAsync()
     {
-        var page = await stack.NewPageAsync();
-        await Ui.LoginAsync(page, stack.Env.AdminEmail, stack.Env.AdminPassword);
+        var page = await NewPageAsync();
+        await Ui.LoginAsync(page, Stack.Env.AdminEmail, Stack.Env.AdminPassword);
         await Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"/admin(\?.*)?$"));
         return page;
     }
@@ -33,7 +33,7 @@ public class AdminTests(StackFixture stack)
         await form.GetByLabel("Contraseña *", new() { Exact = true }).FillAsync(StackFixture.Password);
         await form.GetByLabel("Confirmar contraseña *").FillAsync(StackFixture.Password);
         await form.GetByRole(AriaRole.Button, new() { Name = "Crear usuario" }).ClickAsync();
-        await Expect(form).ToBeHiddenAsync();
+        await Ui.ExpectSubmittedAsync(form);
 
         await page.GetByLabel("Buscar usuarios").FillAsync(email);
         await Expect(UserRow(page, email)).ToContainTextAsync("Julián Herrera");
@@ -50,9 +50,9 @@ public class AdminTests(StackFixture stack)
         await reset.GetByLabel("Nueva contraseña *").FillAsync(newPassword);
         await reset.GetByLabel("Confirmar *").FillAsync(newPassword);
         await reset.GetByRole(AriaRole.Button, new() { Name = "Confirmar", Exact = true }).ClickAsync();
-        await Expect(reset).ToBeHiddenAsync();
+        await Ui.ExpectSubmittedAsync(reset);
 
-        var userPage = await stack.NewPageAsync();
+        var userPage = await NewPageAsync();
         await Ui.LoginAsync(userPage, email, newPassword);
         await Expect(userPage).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/vet-dashboard$"));
 
@@ -102,15 +102,17 @@ public class AdminTests(StackFixture stack)
             await Expect(sunday).ToHaveAttributeAsync("aria-pressed", "false");
             await sunday.ClickAsync();
             await clinic.GetByRole(AriaRole.Button, new() { Name = "Guardar", Exact = true }).ClickAsync();
+            // Recargar antes de la confirmación cancela el PUT en curso
+            await Expect(page.GetByText("Horario de la clínica actualizado.")).ToBeVisibleAsync();
 
-            await page.ReloadAsync();
+            await Ui.ReloadAsync(page);
             await page.GetByRole(AriaRole.Button, new() { Name = "Horarios" }).ClickAsync();
             await Expect(sunday).ToHaveAttributeAsync("aria-pressed", "true");
         }
         finally
         {
             // El resto de la suite asume que el domingo está cerrado
-            await stack.Admin.SetClinicHoursAsync("08:00", "18:00",
+            await Stack.Admin.SetClinicHoursAsync("08:00", "18:00",
                 "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday");
         }
     }
@@ -118,7 +120,7 @@ public class AdminTests(StackFixture stack)
     [Fact]
     public async Task VetLeave_IsRegistered()
     {
-        var vet  = await stack.CreateUserAsync("Veterinarian", "Laura", $"Martínez{Random.Shared.Next(100, 999)}");
+        var vet  = await Stack.CreateUserAsync("Veterinarian", "Laura", $"Martínez{Random.Shared.Next(100, 999)}");
         var page = await AdminSessionAsync();
         await page.GetByRole(AriaRole.Button, new() { Name = "Horarios" }).ClickAsync();
 

@@ -11,7 +11,7 @@ public sealed record PageMetrics(double TransferKb, int Requests, double LcpMs);
 // Solo se corre en Chromium (filtro Category=Performance): LCP y CDP no están disponibles igual en los demás motores.
 [Collection(StackCollection.Name)]
 [Trait("Category", "Performance")]
-public class PerformanceBudgetTests(StackFixture stack)
+public class PerformanceBudgetTests(StackFixture stack) : E2ETest(stack)
 {
     private const int Runs = 5;
     private const double Tolerance = 1.10;
@@ -53,16 +53,16 @@ public class PerformanceBudgetTests(StackFixture stack)
 
     private async Task<PageMetrics> MeasureAsync(string scenario)
     {
-        var page = await stack.NewPageAsync();
+        var page = await NewPageAsync();
         string target;
         switch (scenario)
         {
             case "vet":
-                await Ui.LoginAsync(page, stack.Vet, "/vet-dashboard");
+                await Ui.LoginAsync(page, Stack.Vet, "/vet-dashboard");
                 target = "/vet-dashboard";
                 break;
             case "owner":
-                var owner = await stack.CreateUserAsync("Owner", "Medición", "Rendimiento");
+                var owner = await Stack.CreateUserAsync("Owner", "Medición", "Rendimiento");
                 await Ui.LoginAsync(page, owner, "/owner-portal");
                 target = "/owner-portal";
                 break;

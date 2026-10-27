@@ -4,7 +4,7 @@ Suite de regresión de punta a punta con Playwright. Corre contra un **stack Doc
 (`-p vetsystem-e2e`) que no comparte contenedores, red ni volúmenes con el stack de desarrollo.
 
 Cómo está armado el stack:
-- **Frontend:** usa el `nginx.conf` real de producción, con TLS y un certificado autofirmado que se genera en cada corrida.
+- **Frontend:** usa la configuración de nginx de producción (`frontend/nginx/default.conf`), con TLS y un certificado autofirmado que se genera en cada corrida.
 - **Correo:** va a **Mailpit**, que guarda los mensajes en lugar de entregarlos.
 - **WhatsApp:** responde **WireMock** como si fuera Evolution API. Los números que terminan en `3009999999` reciben un 500, para simular un fallo de envío.
 - **Datos:** salen de `e2e.env`. Son valores solo de prueba y no se usa el `.env` real.

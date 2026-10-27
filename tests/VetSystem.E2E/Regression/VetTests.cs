@@ -6,20 +6,20 @@ using static Microsoft.Playwright.Assertions;
 namespace VetSystem.E2E.Regression;
 
 [Collection(StackCollection.Name)]
-public class VetTests(StackFixture stack)
+public class VetTests(StackFixture stack) : E2ETest(stack)
 {
     private async Task<IPage> VetSessionAsync()
     {
-        var page = await stack.NewPageAsync();
-        await Ui.LoginAsync(page, stack.Vet, "/vet-dashboard");
+        var page = await NewPageAsync();
+        await Ui.LoginAsync(page, Stack.Vet, "/vet-dashboard");
         return page;
     }
 
     private async Task<(TestUser Owner, string PetName)> OwnerWithPetAsync(string prefix, string species = "dog")
     {
-        var owner   = await stack.CreateUserAsync("Owner", "Andrés", $"Gómez{Random.Shared.Next(100, 999)}");
+        var owner   = await Stack.CreateUserAsync("Owner", "Andrés", $"Gómez{Random.Shared.Next(100, 999)}");
         var petName = $"{prefix}{Random.Shared.Next(1000, 9999)}";
-        await stack.Admin.CreatePatientAsync(owner.Id, owner.FullName, owner.Phone, petName, species);
+        await Stack.Admin.CreatePatientAsync(owner.Id, owner.FullName, owner.Phone, petName, species);
         return (owner, petName);
     }
 
@@ -64,7 +64,7 @@ public class VetTests(StackFixture stack)
     [Fact]
     public async Task RegisterPetForOwner()
     {
-        var owner   = await stack.CreateUserAsync("Owner", "Valentina", $"Pérez{Random.Shared.Next(100, 999)}");
+        var owner   = await Stack.CreateUserAsync("Owner", "Valentina", $"Pérez{Random.Shared.Next(100, 999)}");
         var petName = $"Kiwi{Random.Shared.Next(1000, 9999)}";
         var page    = await VetSessionAsync();
 
@@ -75,7 +75,7 @@ public class VetTests(StackFixture stack)
         await Flows.FillPetFormAsync(dialog, petName);
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Registrar mascota" }).ClickAsync();
 
-        await Expect(dialog).ToBeHiddenAsync();
+        await Ui.ExpectSubmittedAsync(dialog);
         await page.GetByLabel("Buscar mascotas").FillAsync(petName);
         await Expect(page.GetByText(petName)).ToBeVisibleAsync();
     }
@@ -88,7 +88,7 @@ public class VetTests(StackFixture stack)
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Citas" }).ClickAsync();
         await Ui.Button(page, "Nueva cita").ClickAsync();
-        await Flows.RequestAppointmentAsync(page, petName, stack.Vet.FullName, "Vacunación", daysAhead: 12);
+        await Flows.RequestAppointmentAsync(page, petName, Stack.Vet.FullName, "Vacunación", daysAhead: 12);
 
         var row = page.GetByRole(AriaRole.Row).Filter(new() { HasText = petName });
         await Expect(row).ToContainTextAsync("Programada");
@@ -124,7 +124,7 @@ public class VetTests(StackFixture stack)
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Guardar cambios" }).ClickAsync();
         await Expect(page.GetByText("Mascota actualizada correctamente.")).ToBeVisibleAsync();
 
-        await page.ReloadAsync();
+        await Ui.ReloadAsync(page);
         var reopened = await OpenPetDetailAsync(page, petName);
         await Expect(reopened.GetByLabel("Peso (kg) *")).ToHaveValueAsync(new Regex(@"^31[.,]2"));
     }
