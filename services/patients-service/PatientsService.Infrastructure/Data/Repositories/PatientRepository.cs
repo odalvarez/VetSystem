@@ -26,7 +26,8 @@ public class PatientRepository : IPatientRepository
             q = q.Where(p => p.SpeciesId == speciesId.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
-            q = q.Where(p => p.Name.Contains(search) || p.OwnerName.Contains(search));
+            q = q.Where(p => p.Name.Contains(search) || p.Breed.Contains(search)
+                          || p.OwnerName.Contains(search) || p.OwnerPhone.Contains(search));
 
         var total = await q.CountAsync(ct);
         var data  = await q.OrderBy(p => p.Name)

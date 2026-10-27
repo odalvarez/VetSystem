@@ -22,4 +22,9 @@
     <ProjectReference Include="..\AuthService.API\AuthService.API.csproj" />
   </ItemGroup>
 
+  <!-- Casos compartidos con las pruebas del frontend: si las reglas divergen, ambas suites lo detectan -->
+  <ItemGroup>
+    <None Include="..\..\..\tests\password-cases.json" Link="password-cases.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

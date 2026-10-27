@@ -1,3 +1,4 @@
+using AppointmentsService.API;
 using System.Text;
 using AppointmentsService.API.Middleware;
 using Microsoft.OpenApi.Models;
@@ -12,7 +13,8 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(o => o.ModelMetadataDetailsProviders.Add(new SpanishValidationMessages()))
+    .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ValidationErrorResponse.Create);
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

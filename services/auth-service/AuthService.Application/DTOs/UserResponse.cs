@@ -68,23 +68,48 @@ public class AdminPagedUsers
 
 public class AdminCreateUserRequest
 {
-    [Required] [MaxLength(50)]  public string FirstName { get; set; } = default!;
-    [Required] [MaxLength(50)]  public string LastName  { get; set; } = default!;
-    [Required] [EmailAddress]   public string Email     { get; set; } = default!;
-    [Required] [MinLength(8)]   public string Password  { get; set; } = default!;
-    [MaxLength(20)]             public string Phone     { get; set; } = "";
-    public string Role { get; set; } = "Owner";
+    [Required(ErrorMessage = ValidationMessages.FirstNameRequired)]
+    [MaxLength(ValidationMessages.NameMaxLength, ErrorMessage = ValidationMessages.FirstNameTooLong)]
+    public string FirstName { get; set; } = default!;
+
+    [Required(ErrorMessage = ValidationMessages.LastNameRequired)]
+    [MaxLength(ValidationMessages.NameMaxLength, ErrorMessage = ValidationMessages.LastNameTooLong)]
+    public string LastName { get; set; } = default!;
+
+    [Required(ErrorMessage = ValidationMessages.EmailRequired)]
+    [EmailAddress(ErrorMessage = ValidationMessages.EmailInvalid)]
+    [MaxLength(ValidationMessages.EmailMaxLength, ErrorMessage = ValidationMessages.EmailTooLong)]
+    public string Email { get; set; } = default!;
+
+    [Required(ErrorMessage = ValidationMessages.PasswordRequired)]
+    public string Password { get; set; } = default!;
+
+    [MaxLength(ValidationMessages.PhoneMaxLength, ErrorMessage = ValidationMessages.PhoneTooLong)]
+    public string Phone { get; set; } = "";
+
+    [Required(ErrorMessage = ValidationMessages.RoleRequired)]
+    public string Role { get; set; } = default!;
 }
 
 public class AdminUpdateUserRequest
 {
+    [Required(ErrorMessage = ValidationMessages.FirstNameRequired)]
+    [MaxLength(ValidationMessages.NameMaxLength, ErrorMessage = ValidationMessages.FirstNameTooLong)]
     public string FirstName { get; set; } = default!;
-    public string LastName  { get; set; } = default!;
-    public string Phone     { get; set; } = "";
-    public string Role      { get; set; } = default!;
+
+    [Required(ErrorMessage = ValidationMessages.LastNameRequired)]
+    [MaxLength(ValidationMessages.NameMaxLength, ErrorMessage = ValidationMessages.LastNameTooLong)]
+    public string LastName { get; set; } = default!;
+
+    [MaxLength(ValidationMessages.PhoneMaxLength, ErrorMessage = ValidationMessages.PhoneTooLong)]
+    public string Phone { get; set; } = "";
+
+    [Required(ErrorMessage = ValidationMessages.RoleRequired)]
+    public string Role { get; set; } = default!;
 }
 
 public class AdminResetPasswordRequest
 {
+    [Required(ErrorMessage = ValidationMessages.PasswordRequired)]
     public string NewPassword { get; set; } = default!;
 }

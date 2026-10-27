@@ -13,7 +13,8 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ValidationErrorResponse.Create);
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -119,6 +120,9 @@ using (var scope = app.Services.CreateScope())
         ?? throw new InvalidOperationException("AdminSeed:Email no está configurado.");
     var adminPwd = app.Configuration["AdminSeed:Password"]
         ?? throw new InvalidOperationException("AdminSeed:Password no está configurado.");
+    // El seed no pasa por los endpoints; se avisa en vez de fallar para no tumbar el servicio en producción
+    if (!AuthService.Application.Security.PasswordPolicy.IsValid(adminPwd))
+        app.Logger.LogWarning("AdminSeed:Password no cumple la política de contraseñas; cámbiala por una que la cumpla.");
     if (!await db.Users.AnyAsync(u => u.Role == AuthService.Domain.Enums.UserRole.Admin))
     {
         var adminUser = AuthService.Domain.Entities.User.Create(

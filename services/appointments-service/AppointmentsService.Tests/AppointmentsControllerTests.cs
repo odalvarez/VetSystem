@@ -609,6 +609,9 @@ public class AppointmentsControllerTests : IClassFixture<AppointmentsWebFactory>
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        Assert.Equal("application/problem+json", resp.Content.Headers.ContentType?.MediaType);
+        var body = await resp.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonNode>();
+        Assert.Contains("duración", body!["detail"]!.GetValue<string>());
     }
 
     [Fact]
