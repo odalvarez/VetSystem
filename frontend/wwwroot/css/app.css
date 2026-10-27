@@ -1,8 +1,9 @@
 /* ============================================================
    VetSystem — Sistema visual "glass"
    Capas: tokens → base → layout → components → utilities.
-   Los estilos aislados de cada componente (.razor.css) no usan capas, así que prevalecen
-   sobre estos sin necesidad de !important. Guía de uso: docs/design-system.md
+   Todo el CSS vive en este archivo, sin estilos en línea ni .razor.css: la especificidad se controla con
+   las capas, y !important solo aparece donde debe ganar siempre (reduced-motion y visually-hidden).
+   Guía de uso: docs/design-system.md
    ============================================================ */
 
 @layer tokens, base, layout, components, utilities;
@@ -331,7 +332,6 @@
 @layer components {
 
     /* ── Superficies de vidrio ── */
-    .glass,
     .sidebar,
     .topbar,
     .page-header,
@@ -364,8 +364,7 @@
     .results-count { margin-left: auto; align-self: center; white-space: nowrap; }
 
     /* Tarjeta interna (formulario o bloque dentro de un modal) */
-    .form-card,
-    .inner-card {
+    .form-card {
         padding: 16px;
         border-radius: var(--radius-lg);
         background: rgba(255, 255, 255, .55);
@@ -621,7 +620,6 @@
     .owner-filter { min-width: 200px; }
     .filter-select { width: auto; min-width: 150px; min-height: 40px; border-radius: var(--radius-sm); font-size: .87rem; }
 
-    .form-hint          { font-size: .82rem; color: var(--color-text-muted); }
     .validation-message { font-size: .82rem; font-weight: 600; color: var(--state-danger-fg); }
 
     /* ── Teléfono con indicativo ── */
@@ -686,7 +684,6 @@
     /* ── Desplegables flotantes (autocompletar, selector de ícono, indicativo) ── */
     .popover,
     .phone-picker-dropdown,
-    .owner-suggest-dropdown,
     .icon-dropdown-panel {
         border-radius: var(--radius-lg);
         background: rgba(255, 255, 255, .9);
@@ -695,9 +692,7 @@
         border: 1px solid var(--control-border);
         box-shadow: 0 16px 40px rgba(12, 38, 46, .18);
     }
-    .owner-search-wrap,
     .suggest-wrap { position: relative; }
-    .owner-suggest-dropdown,
     .suggest-list {
         position: absolute;
         top: calc(100% + 6px);
@@ -708,7 +703,6 @@
         overflow-y: auto;
         z-index: 500;
     }
-    .owner-suggest-item,
     .suggest-item {
         display: flex;
         flex-direction: column;
@@ -721,13 +715,10 @@
         text-align: left;
         cursor: pointer;
     }
-    .owner-suggest-item:first-child,
     .suggest-item:first-child { border-top: 0; }
-    .owner-suggest-item:hover,
     .suggest-item:hover,
     .suggest-item:focus-visible { background: var(--state-info-bg); }
     .suggest-item-title { font-weight: 600; font-size: .93rem; }
-    .owner-suggest-sub,
     .suggest-item-sub { font-size: .82rem; color: var(--color-text-muted); }
     .suggest-empty { padding: 12px 14px; font-size: .87rem; color: var(--color-text-muted); }
 
@@ -754,8 +745,7 @@
     .date-filter-label .filter-select { min-width: 0; }
 
     /* Chip (filtros activos) */
-    .chip,
-    .owner-chip {
+    .chip {
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -768,8 +758,7 @@
         font-weight: 600;
         white-space: nowrap;
     }
-    .chip-clear,
-    .owner-chip-clear {
+    .chip-clear {
         width: 26px; height: 26px;
         display: grid; place-items: center;
         border: 0;
@@ -880,7 +869,6 @@
     .vet-table tbody tr:hover { background: rgba(255, 255, 255, .3); }
     .vet-table td { padding: 13px 16px; vertical-align: middle; }
     .vet-table td.td-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
-    .cell-primary { font-weight: 600; }
     .cell-sub     { font-size: .87rem; color: var(--color-text-muted); }
     .cell-nowrap  { white-space: nowrap; }
 
@@ -976,7 +964,6 @@
 
     /* ── Bitácoras, historia clínica y vacunas ── */
     .entry-list { display: flex; flex-direction: column; gap: 12px; }
-    .entry,
     .log-list-item,
     .record-entry {
         display: flex;
@@ -992,7 +979,6 @@
     }
     .log-list-item { cursor: pointer; flex-direction: row; align-items: center; justify-content: space-between; }
     .log-list-item:hover { background: rgba(255, 255, 255, .8); }
-    .entry-head,
     .record-entry-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
     .entry-title { font-weight: 700; }
     .entry-meta  { font-size: .87rem; color: var(--color-text-muted); }
@@ -1006,7 +992,6 @@
     .log-readonly, .log-readonly-compact { display: flex; flex-direction: column; gap: 10px; }
     .log-readonly-compact .log-section-block { padding: 8px 12px; }
 
-    .log-read-view { display: flex; flex-direction: column; gap: 12px; }
     .log-section-block,
     .read-block {
         padding: 12px 14px;
@@ -1025,16 +1010,6 @@
     .log-section-content,
     .read-field { font-size: .93rem; white-space: pre-wrap; }
 
-    .form-section {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding: 16px;
-        border-radius: var(--radius-lg);
-        background: rgba(255, 255, 255, .4);
-        border: 1px solid rgba(255, 255, 255, .85);
-        margin-bottom: 14px;
-    }
     /* Secciones plegables con <details> nativo: teclado y lector de pantalla sin código */
     .collapse { border-radius: var(--radius-md); background: rgba(255, 255, 255, .4); border: 1px solid rgba(255, 255, 255, .85); }
     .collapse > summary {
@@ -1057,17 +1032,6 @@
         text-transform: uppercase;
         color: var(--color-primary-strong);
     }
-    .section-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        border: 0;
-        background: transparent;
-        cursor: pointer;
-        padding: 0;
-    }
-    .section-body { display: flex; flex-direction: column; gap: 12px; }
 
     .reference-log-panel {
         border-radius: var(--radius-lg);
@@ -1154,7 +1118,6 @@
         font-size: 1.3rem;
         cursor: pointer;
     }
-    .icon-dropdown-arrow { font-size: .7rem; color: var(--color-text-muted); }
     .icon-dropdown-backdrop { position: fixed; inset: 0; z-index: 99; }
     .icon-dropdown-panel {
         position: absolute;
@@ -1167,6 +1130,7 @@
         width: 232px;
         padding: 8px;
     }
+    .icon-dropdown-panel.drop-up { top: auto; bottom: calc(100% + 6px); }
     .emoji-option {
         width: 36px; height: 36px;
         display: grid; place-items: center;
@@ -1239,7 +1203,6 @@
     }
     .day-toggle[aria-pressed="true"] { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary); }
 
-    .schedule-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
 
     /* Horarios disponibles en el modal de cita: radios reales con aspecto de botón */
     .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
@@ -1400,7 +1363,6 @@
         border: 0;
     }
     .stack    { display: flex; flex-direction: column; gap: 16px; }
-    .stack-sm { display: flex; flex-direction: column; gap: 8px; }
     .row      { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
     .row.nowrap { flex-wrap: nowrap; }
     .age-unit { flex: 0 0 110px; width: 110px; }
@@ -1413,7 +1375,6 @@
     .text-warning { color: var(--state-warning-fg); }
     .text-sm     { font-size: .87rem; }
     .fw-600      { font-weight: 600; }
-    .w-100       { width: 100%; }
     .loading-pad { padding: 40px; }
     .grid-pad    { padding: 20px 22px; }
     .pagination-padded { padding: 4px 20px 16px; }

@@ -21,9 +21,11 @@
         <NotFound>
             <PageTitle>Página no encontrada — VetSystem</PageTitle>
             <LayoutView Layout="@typeof(MainLayout)">
-                <div class="not-found-container">
-                    <h2>404 — Página no encontrada</h2>
-                    <a href="/">Volver al inicio</a>
+                <div class="auth-wrapper">
+                    <div class="auth-card empty-state">
+                        <h1 class="empty-state-title">404 — Página no encontrada</h1>
+                        <a class="btn btn-primary" href="/">Volver al inicio</a>
+                    </div>
                 </div>
             </LayoutView>
         </NotFound>

@@ -66,7 +66,7 @@
                     <button type="button" class="btn btn-primary btn-sm" @onclick="() => _showVetPatientModal = true">
                         <Icon Name="plus" Size="16" /> Registrar mascota
                     </button>
-                    <div class="filters-bar mb-0">
+                    <div class="filters-bar">
                         <div class="search-input">
                             <span class="search-icon"><Icon Name="search" Size="16" /></span>
                             <input aria-label="Buscar mascotas" class="form-control" placeholder="Buscar por nombre…"
@@ -81,7 +81,7 @@
                             <option value="Rabbit">Conejos</option>
                             <option value="Other">Otros</option>
                         </select>
-                        <div class="owner-search-wrap">
+                        <div>
                             @if (_selectedOwner != null)
                             {
                                 <div class="chip">
@@ -175,7 +175,7 @@
                     <button type="button" class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">
                         <Icon Name="plus" Size="16" /> Nueva cita
                     </button>
-                    <div class="filters-bar mb-0">
+                    <div class="filters-bar">
                         <select aria-label="Filtrar por estado" class="filter-select" @bind="_statusFilter" @bind:after="LoadAppointments">
                             <option value="">Todos los estados</option>
                             <option value="Scheduled">Programadas</option>

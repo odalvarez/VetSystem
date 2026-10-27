@@ -3,29 +3,29 @@
    Soporta pre-población: si Value llega con un indicativo conocido lo detecta automáticamente. *@
 
 <div class="phone-field">
-    <div class="phone-prefix" @onclick="TogglePicker">
-        +@_dial
-        <span class="phone-prefix-arrow">▾</span>
-        @if (_open)
-        {
-            <div class="phone-picker-overlay" @onclick="ClosePickerOverlay" @onclick:stopPropagation></div>
-            <div class="phone-picker-dropdown" @onclick:stopPropagation>
-                <input aria-label="Buscar país" class="phone-picker-search"
-                       @bind="_search" @bind:event="oninput"
-                       placeholder="Buscar país…" />
-                <div class="phone-picker-list">
-                    @foreach (var c in Filtered)
-                    {
-                        <button class="phone-picker-option" type="button" @onclick="() => Pick(c)">
-                            <span class="phone-picker-iso">@c.Iso</span>
-                            <span class="phone-picker-name">@c.Name</span>
-                            <span class="phone-picker-dial">+@c.Dial</span>
-                        </button>
-                    }
-                </div>
+    <button type="button" class="phone-prefix" aria-label="Indicativo del país: +@_dial"
+            aria-haspopup="listbox" aria-expanded="@(_open ? "true" : "false")" @onclick="TogglePicker">
+        +@_dial <Icon Name="chevron-down" Size="14" />
+    </button>
+    @if (_open)
+    {
+        <div class="phone-picker-overlay" @onclick="ClosePickerOverlay"></div>
+        <div class="phone-picker-dropdown">
+            <input aria-label="Buscar país" class="phone-picker-search"
+                   @bind="_search" @bind:event="oninput"
+                   placeholder="Buscar país…" />
+            <div class="phone-picker-list">
+                @foreach (var c in Filtered)
+                {
+                    <button class="phone-picker-option" type="button" @onclick="() => Pick(c)">
+                        <span class="phone-picker-iso">@c.Iso</span>
+                        <span class="phone-picker-name">@c.Name</span>
+                        <span class="phone-picker-dial">+@c.Dial</span>
+                    </button>
+                }
             </div>
-        }
-    </div>
+        </div>
+    }
     <input id="@Id" class="phone-number"
            value="@_local"
            @oninput="HandleLocal"
