@@ -50,6 +50,8 @@ out/
 *.env
 .env
 .env.*
+# Valores de prueba del stack E2E aislado (sin secretos reales); CI los necesita
+!tests/VetSystem.E2E/e2e.env
 secrets.json
 **/appsettings.Production.json
 
