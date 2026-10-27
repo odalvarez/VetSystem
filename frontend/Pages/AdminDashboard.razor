@@ -1137,11 +1137,17 @@
 
     // ── Users ──────────────────────────────────────────────────────────────────
 
+    // Cada carga lleva un número: si el usuario cambia un filtro antes de que llegue la respuesta anterior,
+    // esa respuesta tardía no debe pisar a la nueva
+    private int _usersLoad;
+
     private async Task LoadUsers()
     {
+        var load = ++_usersLoad;
         _usersLoading = true;
         bool? active = _activeFilter switch { "true" => true, "false" => false, _ => null };
         var result = await AuthApi.AdminListUsersAsync(_roleFilter, _search, active, _usersPage, _usersPageSize);
+        if (load != _usersLoad) return;
         _users      = result.Items;
         _usersTotal = result.TotalCount;
         _usersLoading = false;
@@ -1200,13 +1206,17 @@
 
     // ── Patients ───────────────────────────────────────────────────────────────
 
+    private int _patientsLoad;
+
     private async Task LoadPatients()
     {
+        var load = ++_patientsLoad;
         _patientsLoading = true;
         var result = await PatientApi.ListAsync(
             page: _patientsPage, pageSize: _patientsPageSize,
             species: string.IsNullOrEmpty(_patientsSpecies) ? null : _patientsSpecies,
             search:  string.IsNullOrEmpty(_patientsSearch)  ? null : _patientsSearch);
+        if (load != _patientsLoad) return;
         _patients      = result?.Items ?? [];
         _patientsTotal = result?.TotalCount ?? 0;
         _patientsLoading = false;
@@ -1262,8 +1272,11 @@
 
     // ── Appointments ───────────────────────────────────────────────────────────
 
+    private int _apptsLoad;
+
     private async Task LoadAppointments()
     {
+        var load = ++_apptsLoad;
         _apptsLoading = true;
         var result = await AppointmentApi.ListPagedAsync(
             status:   string.IsNullOrEmpty(_apptsStatus) ? null : _apptsStatus,
@@ -1271,6 +1284,7 @@
             to:       _apptsTo,
             page:     _apptsPage,
             pageSize: _apptsPageSize);
+        if (load != _apptsLoad) return;
         _appointments = result?.Items ?? [];
         _apptsTotal   = result?.TotalCount ?? 0;
         _apptsLoading = false;

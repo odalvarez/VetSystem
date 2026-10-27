@@ -373,8 +373,13 @@
         catch { _owners = []; }
     }
 
+    // Cada carga lleva un número: si el usuario cambia un filtro antes de que llegue la respuesta anterior,
+    // esa respuesta tardía no debe pisar a la nueva
+    private int _patientsLoad;
+
     private async Task LoadPatients()
     {
+        var load = ++_patientsLoad;
         _patientsLoading = true;
         try
         {
@@ -384,11 +389,12 @@
                 search: string.IsNullOrEmpty(_patientSearch) ? null : _patientSearch,
                 ownerId: _selectedOwner?.Id);
 
+            if (load != _patientsLoad) return;
             _patients      = result?.Items ?? [];
             _totalPatients = result?.TotalCount ?? 0;
         }
-        catch { _patients = []; }
-        finally { _patientsLoading = false; }
+        catch { if (load == _patientsLoad) _patients = []; }
+        finally { if (load == _patientsLoad) _patientsLoading = false; }
     }
 
     private async Task OnPatientCreated()
@@ -412,8 +418,11 @@
         ShowToast("Mascota eliminada correctamente.");
     }
 
+    private int _apptsLoad;
+
     private async Task LoadAppointments()
     {
+        var load = ++_apptsLoad;
         _apptsLoading = true;
         try
         {
@@ -422,12 +431,13 @@
                 from: _fromFilter,
                 to: _toFilter);
 
+            if (load != _apptsLoad) return;
             _appointments        = result ?? [];
             _todayAppointments   = _appointments.Count(a => a.ScheduledAt.Date == DateTime.Today);
             _pendingConfirmation = _appointments.Count(a => a.Status == "Scheduled");
         }
-        catch { _appointments = []; }
-        finally { _apptsLoading = false; }
+        catch { if (load == _apptsLoad) _appointments = []; }
+        finally { if (load == _apptsLoad) _apptsLoading = false; }
     }
 
     private void HandleOwnerInput(ChangeEventArgs e)

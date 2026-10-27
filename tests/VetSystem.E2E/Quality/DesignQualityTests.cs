@@ -25,6 +25,8 @@ public class DesignQualityTests(StackFixture stack) : E2ETest(stack)
     private async Task<IPage> OpenScreenAsync(string screen, int width = 1440, int height = 900)
     {
         var page = await NewPageAsync(width, height);
+        // Las animaciones de entrada (fundidos) hacen que axe mida el contraste a media opacidad
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
         switch (screen)
         {
             case "login":
@@ -133,8 +135,11 @@ public class DesignQualityTests(StackFixture stack) : E2ETest(stack)
         for (var i = 0; i < 25; i++)
         {
             await page.Keyboard.PressAsync("Tab");
-            var inside = await page.EvaluateAsync<bool>("!!document.activeElement?.closest('[role=dialog]')");
-            Assert.True(inside, $"El foco salió del diálogo tras {i + 1} Tab");
+            // Al pasar el último control el foco sale a la interfaz del navegador (activeElement = body): es válido.
+            // Lo inválido es aterrizar en el contenido de fondo, que debe estar inert
+            var onBackground = await page.EvaluateAsync<bool>(
+                "document.activeElement !== document.body && !document.activeElement.closest('[role=dialog]')");
+            Assert.False(onBackground, $"El foco llegó al contenido de fondo tras {i + 1} Tab");
         }
 
         await page.Keyboard.PressAsync("Escape");
