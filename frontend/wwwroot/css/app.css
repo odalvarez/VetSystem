@@ -78,6 +78,7 @@
         --state-warning-bg:  rgba(180, 83, 9, .14);    --state-warning-fg:  #8A3F06;
         --color-danger:      #BE123C;
         --color-success:     #087F5B;
+        --color-warning:     #B45309;
 
         /* Forma y ritmo */
         --radius-xs: 10px;
@@ -103,13 +104,15 @@
         font-size: 15px;
         line-height: 1.5;
         color: var(--color-text);
-        background: var(--color-bg);
         -webkit-font-smoothing: antialiased;
     }
+    /* El color va solo en html: un fondo en body se pinta encima de las capas con z-index negativo y tapa las manchas */
+    html { background: var(--color-bg); }
 
     /* Manchas fijas detrás del vidrio; sin ellas el desenfoque no se percibe */
     body::before,
-    body::after {
+    body::after,
+    html::after {
         content: "";
         position: fixed;
         z-index: -1;
@@ -126,8 +129,15 @@
     body::after {
         bottom: -220px; right: -140px;
         width: 720px; height: 720px;
-        background: radial-gradient(circle at 30% 30%, var(--blob-peach) 0 28%, transparent 29%), var(--blob-mint);
+        background: var(--blob-mint);
         opacity: .6;
+        filter: blur(100px);
+    }
+    html::after {
+        top: 180px; right: 22%;
+        width: 360px; height: 360px;
+        background: var(--blob-peach);
+        opacity: .45;
     }
 
     h1, h2, h3, h4 { font-weight: 700; line-height: 1.25; color: var(--color-text); }
@@ -404,6 +414,10 @@
     }
     .auth-logo-title { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; }
     .auth-logo-sub   { font-size: .93rem; color: var(--color-text-muted); }
+    /* El registro es un formulario largo: el encabezado en línea deja más alto útil que el logo centrado del login */
+    .auth-head { display: flex; align-items: center; gap: 14px; }
+    .auth-logo-icon-sm { width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0; }
+    .auth-head-title { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
     .auth-footer     { text-align: center; font-size: .93rem; color: var(--color-text-muted); }
 
     /* ── KPIs ── */
@@ -772,20 +786,42 @@
     }
 
     /* ── Requisitos de contraseña ── */
-    .pwd-rules {
-        list-style: none;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-        gap: 6px 14px;
+    .pwd-rules-box {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
         padding: 12px 14px;
         border-radius: var(--radius-md);
         background: rgba(255, 255, 255, .45);
         border: 1px solid rgba(255, 255, 255, .85);
     }
+    .pwd-rules-title {
+        font-size: .75rem;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+    }
+    .pwd-rules {
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 6px 14px;
+    }
     .pwd-rule { display: flex; align-items: center; gap: 8px; font-size: .87rem; font-weight: 500; color: var(--color-text-muted); }
     .pwd-rule.met { color: var(--state-success-fg); font-weight: 600; }
     .pwd-rule.exceeded { color: var(--state-danger-fg); font-weight: 600; }
     .pwd-rule-mark { width: 16px; display: inline-grid; place-items: center; }
+    .pwd-meter { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 4px; }
+    .pwd-meter > span { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .8); }
+    .pwd-meter > .low    { background: var(--color-danger); }
+    .pwd-meter > .medium { background: var(--color-warning); }
+    .pwd-meter > .high   { background: var(--color-success); }
+    .pwd-meter-label { font-size: .8rem; font-weight: 600; }
+    .pwd-meter-label.low    { color: var(--state-danger-fg); }
+    .pwd-meter-label.medium { color: var(--state-warning-fg); }
+    .pwd-meter-label.high   { color: var(--state-success-fg); }
     .pwd-match { font-size: .82rem; font-weight: 600; }
     .pwd-match.ok  { color: var(--state-success-fg); }
     .pwd-match.bad { color: var(--state-danger-fg); }
@@ -895,10 +931,10 @@
         text-align: left;
         cursor: pointer;
         transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+        container-type: inline-size;
     }
     .patient-card:hover { background: rgba(255, 255, 255, .8); box-shadow: 0 10px 24px rgba(15, 42, 51, .10); transform: translateY(-1px); }
     .patient-card-header { display: flex; align-items: center; gap: 12px; }
-    .patient-detail-item { min-width: 0; }
     .patient-avatar {
         width: 46px; height: 46px;
         border-radius: var(--radius-md);
@@ -921,6 +957,11 @@
     }
     .patient-detail-label { font-size: .75rem; color: var(--color-text-muted); }
     .patient-detail-value { font-size: .87rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Depende del ancho de la tarjeta y no de la pantalla: con una sola mascota en la grilla la tarjeta es angosta
+       aun en escritorio, y cuatro casillas en fila recortaban "Hembra" o el peso */
+    @container (max-width: 340px) {
+        .patient-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
     .patient-owner { font-size: .82rem; color: var(--color-text-muted); }
 
     /* ── Ficha de mascota de solo lectura (vista del propietario) ── */

@@ -7,10 +7,12 @@
 
 <div class="auth-wrapper">
     <form class="auth-card auth-card-wide" @onsubmit="DoRegister" novalidate>
-        <div class="auth-logo">
-            <span class="auth-logo-icon"><Icon Name="paw" Size="28" /></span>
-            <h1 class="auth-logo-title">VetSystem</h1>
-            <p class="auth-logo-sub">Crear nueva cuenta</p>
+        <div class="auth-head">
+            <span class="auth-logo-icon auth-logo-icon-sm"><Icon Name="paw" Size="26" /></span>
+            <div>
+                <h1 class="auth-head-title">Crear nueva cuenta</h1>
+                <p class="auth-logo-sub">VetSystem · Portal del propietario</p>
+            </div>
         </div>
 
         @if (_registered)
@@ -58,26 +60,38 @@
                 <PhoneInput Id="reg-phone" @bind-Value="_request.Phone" Placeholder="3001234567" />
             </div>
 
-            <div class="form-group">
-                <label class="form-label" for="reg-password">Contraseña *</label>
-                <input id="reg-password" type="password" autocomplete="new-password"
-                       class="form-control @(_submitted && !PasswordStrength.IsValid(_request.Password) ? "invalid" : "")"
-                       value="@_request.Password"
-                       @oninput="e => _request.Password = e.Value?.ToString() ?? string.Empty"
-                       placeholder="Crea una contraseña" />
-                <PasswordStrength Password="@_request.Password" />
-                <FieldError Show="@(_submitted && !PasswordStrength.IsValid(_request.Password))" Message="La contraseña no cumple los requisitos." />
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="reg-password">Contraseña *</label>
+                    <input id="reg-password" type="password" autocomplete="new-password"
+                           class="form-control @(_submitted && !PasswordStrength.IsValid(_request.Password) ? "invalid" : "")"
+                           value="@_request.Password"
+                           @oninput="e => _request.Password = e.Value?.ToString() ?? string.Empty"
+                           placeholder="Mínimo 8 caracteres" />
+                    @if (!string.IsNullOrEmpty(_request.Password))
+                    {
+                        var (met, level, label) = Strength(_request.Password);
+                        <span class="pwd-meter" aria-hidden="true">
+                            @for (var i = 0; i < PasswordStrength.RuleCount; i++)
+                            {
+                                <span class="@(i < met ? level : "")"></span>
+                            }
+                        </span>
+                        <span class="pwd-meter-label @level">@label</span>
+                    }
+                    <FieldError Show="@(_submitted && !PasswordStrength.IsValid(_request.Password))" Message="La contraseña no cumple los requisitos." />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="reg-password-confirm">Confirmar contraseña *</label>
+                    <input id="reg-password-confirm" type="password" autocomplete="new-password"
+                           class="form-control @(!string.IsNullOrEmpty(_confirm) && _confirm != _request.Password ? "invalid" : "")"
+                           value="@_confirm"
+                           @oninput="e => _confirm = e.Value?.ToString() ?? string.Empty"
+                           placeholder="Repite la contraseña" />
+                    <PasswordMatchHint Password="@_request.Password" Confirm="@_confirm" />
+                </div>
             </div>
-
-            <div class="form-group">
-                <label class="form-label" for="reg-password-confirm">Confirmar contraseña *</label>
-                <input id="reg-password-confirm" type="password" autocomplete="new-password"
-                       class="form-control @(!string.IsNullOrEmpty(_confirm) && _confirm != _request.Password ? "invalid" : "")"
-                       value="@_confirm"
-                       @oninput="e => _confirm = e.Value?.ToString() ?? string.Empty"
-                       placeholder="Repite la contraseña" />
-                <PasswordMatchHint Password="@_request.Password" Confirm="@_confirm" />
-            </div>
+            <PasswordStrength Password="@_request.Password" Title="Tu contraseña debe tener" />
 
             <button type="submit" class="btn btn-primary btn-block btn-lg" disabled="@_loading">
                 @if (_loading) { <span class="spinner spinner-sm" aria-hidden="true"></span> }
@@ -130,4 +144,15 @@
     }
 
     private string Cls(string? v) => _submitted && string.IsNullOrWhiteSpace(v) ? "invalid" : "";
+
+    private static (int Met, string Level, string Label) Strength(string password)
+    {
+        var met = PasswordStrength.MetCount(password);
+        return met switch
+        {
+            _ when met == PasswordStrength.RuleCount => (met, "high", "Seguridad alta"),
+            >= 2                                     => (met, "medium", "Seguridad media"),
+            _                                        => (met, "low", "Seguridad baja")
+        };
+    }
 }

@@ -813,7 +813,6 @@
                            value="@_formPassword"
                            @oninput="e => _formPassword = e.Value?.ToString() ?? string.Empty"
                            placeholder="Crea una contraseña" />
-                    <PasswordStrength Password="@_formPassword" />
                     <FieldError Show="@(_modalSubmitted && !PasswordStrength.IsValid(_formPassword))" Message="La contraseña no cumple los requisitos." />
                 </div>
                 <div class="form-group">
@@ -825,6 +824,7 @@
                            placeholder="Repite la contraseña" />
                     <PasswordMatchHint Password="@_formPassword" Confirm="@_formConfirm" />
                 </div>
+                <PasswordStrength Password="@_formPassword" />
             }
         </ChildContent>
         <Footer>
@@ -854,7 +854,6 @@
                        value="@_resetPassword"
                        @oninput="e => _resetPassword = e.Value?.ToString() ?? string.Empty"
                        placeholder="Crea una contraseña" />
-                <PasswordStrength Password="@_resetPassword" />
                 <FieldError Show="@(_resetSubmitted && !PasswordStrength.IsValid(_resetPassword))" Message="La contraseña no cumple los requisitos." />
             </div>
             <div class="form-group">
@@ -866,6 +865,7 @@
                        placeholder="Repite la contraseña" />
                 <PasswordMatchHint Password="@_resetPassword" Confirm="@_resetConfirm" />
             </div>
+            <PasswordStrength Password="@_resetPassword" />
         </ChildContent>
         <Footer>
             <button type="button" class="btn btn-ghost" @onclick="() => _showResetModal = false">Cancelar</button>

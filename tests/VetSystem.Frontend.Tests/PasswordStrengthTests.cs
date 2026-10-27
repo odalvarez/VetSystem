@@ -50,4 +50,32 @@ public class PasswordStrengthTests : TestContext
         Assert.Contains("Máximo 72 caracteres", cut.Markup);
         Assert.False(PasswordStrength.IsValid(password));
     }
+
+    [Theory]
+    [InlineData("", 0)]
+    [InlineData("abc", 0)]
+    [InlineData("abcdefgh", 1)]
+    [InlineData("Abcdefg1", 3)]
+    [InlineData("Abcdefg1!", 4)]
+    public void MetCount_CountsSatisfiedRules(string password, int expected)
+    {
+        Assert.Equal(expected, PasswordStrength.MetCount(password));
+    }
+
+    [Fact]
+    public void MetCount_IsZeroAboveSeventyTwoBytes_SoTheMeterNeverShowsARejectedPasswordAsStrong()
+    {
+        Assert.Equal(0, PasswordStrength.MetCount("Aa1!" + new string('á', 40)));
+    }
+
+    [Fact]
+    public void ShowsTitle_WithoutChangingTheListAccessibleName()
+    {
+        var cut = RenderComponent<PasswordStrength>(p => p
+            .Add(x => x.Password, "")
+            .Add(x => x.Title, "Tu contraseña debe tener"));
+
+        Assert.Equal("Tu contraseña debe tener", cut.Find(".pwd-rules-title").TextContent);
+        Assert.Equal("Requisitos de la contraseña", cut.Find("ul.pwd-rules").GetAttribute("aria-label"));
+    }
 }
