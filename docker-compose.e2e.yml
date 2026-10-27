@@ -7,7 +7,7 @@
 #
 #  El "-p" separa contenedores, red y volúmenes del stack de desarrollo, por eso aquí
 #  "down -v" solo borra datos de prueba. No se carga docker-compose.override.yml para
-#  que el frontend corra con el nginx.conf real de producción.
+#  que el frontend corra con la configuración de nginx de producción (frontend/nginx/default.conf).
 # ══════════════════════════════════════════════════════════════════════════════
 
 services:
@@ -15,6 +15,10 @@ services:
   sqlserver:
     container_name: vetsystem-e2e-sqlserver
     ports: !reset []
+    environment:
+      # Por defecto SQL Server reserva hasta el 80% de la RAM de la VM de Docker; compartida con el navegador
+      # de la suite (y con otros stacks del equipo) terminaba en error 701 y reinicios a mitad de la corrida
+      MSSQL_MEMORY_LIMIT_MB: "1536"
 
   # Evolution real no hace falta: WireMock responde como Evolution API v2
   redis-evolution:
@@ -46,7 +50,7 @@ services:
     networks:
       - vetsystem
 
-  # Certificado autofirmado para que el frontend corra con el server 443 real de nginx.conf
+  # Certificado autofirmado para que el frontend corra con el server 443 de producción
   certgen:
     image: alpine:3.20
     container_name: vetsystem-e2e-certgen

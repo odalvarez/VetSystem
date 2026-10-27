@@ -1,0 +1,20 @@
+services:
+  frontend:
+    volumes:
+      - ./frontend/nginx/local.conf:/etc/nginx/conf.d/default.conf:ro
+
+  auth-service:
+    ports:
+      - "5001:8080"
+
+  patients-service:
+    ports:
+      - "5002:8080"
+
+  appointments-service:
+    ports:
+      - "5003:8080"
+
+  notifications-service:
+    ports:
+      - "5004:8080"
