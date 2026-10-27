@@ -4,7 +4,7 @@
         <strong>@Appointment.PatientName</strong>
         @if (!string.IsNullOrEmpty(Appointment.OwnerName))
         {
-            <div style="font-size:.78rem;color:var(--color-text-muted)">@Appointment.OwnerName</div>
+            <div class="cell-sub">@Appointment.OwnerName</div>
         }
     </td>
     <td data-label="Fecha">@Appointment.ScheduledAt.ToString("dd/MM/yyyy")</td>
@@ -16,14 +16,14 @@
         <td data-label="Acciones" class="td-actions">
             @foreach (var next in GetNextStatuses())
             {
-                <button class="btn btn-sm btn-secondary"
+                <button type="button" class="btn btn-sm btn-secondary"
                         @onclick="() => OnStatusChange.InvokeAsync((Appointment.Id, next))">
                     @TranslateStatus(next)
                 </button>
             }
             @if (IsActive)
             {
-                <button class="btn btn-sm btn-primary"
+                <button type="button" class="btn btn-sm btn-primary"
                         @onclick="() => OnOpenLog.InvokeAsync(Appointment)">
                     Bitácora
                 </button>

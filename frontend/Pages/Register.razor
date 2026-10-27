@@ -6,24 +6,20 @@
 <PageTitle>Crear cuenta — VetSystem</PageTitle>
 
 <div class="auth-wrapper">
-    <div class="auth-card" style="max-width:480px">
+    <form class="auth-card auth-card-wide" @onsubmit="DoRegister" novalidate>
         <div class="auth-logo">
-            <span class="auth-logo-icon">🏥</span>
-            <div class="auth-logo-title">VetSystem</div>
-            <div class="auth-logo-sub">Crear nueva cuenta</div>
+            <span class="auth-logo-icon"><Icon Name="paw" Size="28" /></span>
+            <h1 class="auth-logo-title">VetSystem</h1>
+            <p class="auth-logo-sub">Crear nueva cuenta</p>
         </div>
 
         @if (_registered)
         {
-            <div style="text-align:center;padding:16px 0">
-                <div style="font-size:3rem;margin-bottom:12px">✅</div>
-                <div style="font-size:1.15rem;font-weight:600;color:var(--color-success);margin-bottom:8px">
-                    ¡Cuenta creada con éxito!
-                </div>
-                <div style="color:var(--color-text-muted);margin-bottom:24px;font-size:.9rem">
-                    Ya puedes iniciar sesión con tu correo y contraseña.
-                </div>
-                <button class="btn btn-primary btn-block btn-lg" @onclick='() => Nav.NavigateTo("/login")'>
+            <div class="empty-state">
+                <span class="empty-state-icon"><Icon Name="check-circle" Size="30" /></span>
+                <p class="empty-state-title">¡Cuenta creada con éxito!</p>
+                <p class="empty-state-sub">Ya puedes iniciar sesión con tu correo y contraseña.</p>
+                <button type="button" class="btn btn-primary btn-block btn-lg" @onclick='() => Nav.NavigateTo("/login")'>
                     Ir al login
                 </button>
             </div>
@@ -32,32 +28,29 @@
         {
             @if (!string.IsNullOrEmpty(_error))
             {
-                <div class="alert alert-danger">⚠️ @_error</div>
+                <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_error</div>
             }
 
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="reg-first-name">Nombre *</label>
-                    <input id="reg-first-name" class="form-control @Cls(_request.FirstName)"
+                    <input id="reg-first-name" class="form-control @Cls(_request.FirstName)" autocomplete="given-name"
                            @bind="_request.FirstName" placeholder="Nombre" />
-                    @if (_submitted && string.IsNullOrWhiteSpace(_request.FirstName))
-                    { <div class="validation-message">Obligatorio.</div> }
+                    <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_request.FirstName))" />
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="reg-last-name">Apellido *</label>
-                    <input id="reg-last-name" class="form-control @Cls(_request.LastName)"
+                    <input id="reg-last-name" class="form-control @Cls(_request.LastName)" autocomplete="family-name"
                            @bind="_request.LastName" placeholder="Apellido" />
-                    @if (_submitted && string.IsNullOrWhiteSpace(_request.LastName))
-                    { <div class="validation-message">Obligatorio.</div> }
+                    <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_request.LastName))" />
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="reg-email">Correo electrónico *</label>
-                <input id="reg-email" type="email" class="form-control @Cls(_request.Email)"
+                <input id="reg-email" type="email" class="form-control @Cls(_request.Email)" autocomplete="email"
                        @bind="_request.Email" placeholder="correo@ejemplo.com" />
-                @if (_submitted && string.IsNullOrWhiteSpace(_request.Email))
-                { <div class="validation-message">Obligatorio.</div> }
+                <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_request.Email))" />
             </div>
 
             <div class="form-group">
@@ -67,19 +60,18 @@
 
             <div class="form-group">
                 <label class="form-label" for="reg-password">Contraseña *</label>
-                <input id="reg-password" type="password"
+                <input id="reg-password" type="password" autocomplete="new-password"
                        class="form-control @(_submitted && !PasswordStrength.IsValid(_request.Password) ? "invalid" : "")"
                        value="@_request.Password"
                        @oninput="e => _request.Password = e.Value?.ToString() ?? string.Empty"
-                       placeholder="Mínimo 8 caracteres" />
+                       placeholder="Crea una contraseña" />
                 <PasswordStrength Password="@_request.Password" />
-                @if (_submitted && !PasswordStrength.IsValid(_request.Password))
-                { <div class="validation-message">La contraseña no cumple los requisitos.</div> }
+                <FieldError Show="@(_submitted && !PasswordStrength.IsValid(_request.Password))" Message="La contraseña no cumple los requisitos." />
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="reg-password-confirm">Confirmar contraseña *</label>
-                <input id="reg-password-confirm" type="password"
+                <input id="reg-password-confirm" type="password" autocomplete="new-password"
                        class="form-control @(!string.IsNullOrEmpty(_confirm) && _confirm != _request.Password ? "invalid" : "")"
                        value="@_confirm"
                        @oninput="e => _confirm = e.Value?.ToString() ?? string.Empty"
@@ -87,17 +79,14 @@
                 <PasswordMatchHint Password="@_request.Password" Confirm="@_confirm" />
             </div>
 
-            <button class="btn btn-primary btn-block btn-lg" @onclick="DoRegister" disabled="@_loading">
-                @if (_loading) { <span class="spinner spinner-sm"></span> }
-                <span>Crear cuenta</span>
+            <button type="submit" class="btn btn-primary btn-block btn-lg" disabled="@_loading">
+                @if (_loading) { <span class="spinner spinner-sm" aria-hidden="true"></span> }
+                Crear cuenta
             </button>
 
-            <div style="margin-top:20px;text-align:center;font-size:.85rem;color:var(--color-text-muted)">
-                ¿Ya tienes cuenta?
-                <a href="/login" style="font-weight:600">Inicia sesión</a>
-            </div>
+            <p class="auth-footer">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
         }
-    </div>
+    </form>
 </div>
 
 @code {

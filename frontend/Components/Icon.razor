@@ -1,0 +1,9 @@
+@* Decorativo siempre: el nombre accesible lo pone el texto visible o el aria-label del botón que lo contiene *@
+<svg class="icon" width="@Size" height="@Size" aria-hidden="true" focusable="false">
+    <use href="icons.svg#@Name" />
+</svg>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+    [Parameter] public int Size { get; set; } = 18;
+}

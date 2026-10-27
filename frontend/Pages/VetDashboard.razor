@@ -10,36 +10,47 @@
 
 <PageTitle>Panel veterinario — VetSystem</PageTitle>
 
-<div class="page-header">
-    <div class="page-title">🩺 Panel de control</div>
-    <div class="page-subtitle">Gestión de pacientes y citas</div>
-</div>
+<header class="page-header">
+    <div>
+        <h1 class="page-title">Panel de control</h1>
+        <p class="page-subtitle">Gestión de pacientes y citas</p>
+    </div>
+</header>
 
 <div class="page-content">
 
     @* ── KPIs ── *@
     <div class="stats-row">
         <div class="stat-card">
-            <div class="stat-label">Total pacientes</div>
-            <div class="stat-value">@_totalPatients</div>
+            <span class="stat-icon"><Icon Name="paw" Size="22" /></span>
+            <div>
+                <div class="stat-label">Total pacientes</div>
+                <div class="stat-value">@_totalPatients</div>
+            </div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Citas hoy</div>
-            <div class="stat-value">@_todayAppointments</div>
+            <span class="stat-icon"><Icon Name="calendar" Size="22" /></span>
+            <div>
+                <div class="stat-label">Citas hoy</div>
+                <div class="stat-value">@_todayAppointments</div>
+            </div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Pendientes confirmación</div>
-            <div class="stat-value">@_pendingConfirmation</div>
+            <span class="stat-icon"><Icon Name="clock" Size="22" /></span>
+            <div>
+                <div class="stat-label">Pendientes confirmación</div>
+                <div class="stat-value">@_pendingConfirmation</div>
+            </div>
         </div>
     </div>
 
     @* ── Pestañas ── *@
-    <div class="admin-tabs">
-        <button class="admin-tab @(_tab == "patients" ? "active" : "")" @onclick='() => SwitchTab("patients")'>
-            🐾 Pacientes
+    <div class="admin-tabs" role="group" aria-label="Secciones del panel">
+        <button type="button" class="admin-tab @(_tab == "patients" ? "active" : "")" aria-current="@(_tab == "patients" ? "true" : null)" @onclick='() => SwitchTab("patients")'>
+            <Icon Name="paw" Size="16" /> Pacientes
         </button>
-        <button class="admin-tab @(_tab == "appointments" ? "active" : "")" @onclick='() => SwitchTab("appointments")'>
-            📅 Citas
+        <button type="button" class="admin-tab @(_tab == "appointments" ? "active" : "")" aria-current="@(_tab == "appointments" ? "true" : null)" @onclick='() => SwitchTab("appointments")'>
+            <Icon Name="calendar" Size="16" /> Citas
         </button>
     </div>
 
@@ -48,14 +59,16 @@
        ═══════════════════════════════════════════════ *@
     @if (_tab == "patients")
     {
-        <div class="card">
+        <section class="card" aria-labelledby="patients-title">
             <div class="card-header">
-                <span class="card-title">Pacientes</span>
+                <h2 id="patients-title" class="card-title">Pacientes</h2>
                 <div class="card-header-actions">
-                    <button class="btn btn-primary btn-sm" @onclick="() => _showVetPatientModal = true">+ Registrar mascota</button>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="() => _showVetPatientModal = true">
+                        <Icon Name="plus" Size="16" /> Registrar mascota
+                    </button>
                     <div class="filters-bar mb-0">
-                        <div class="search-input" style="min-width:180px">
-                            <span class="search-icon">🔍</span>
+                        <div class="search-input">
+                            <span class="search-icon"><Icon Name="search" Size="16" /></span>
                             <input aria-label="Buscar mascotas" class="form-control" placeholder="Buscar por nombre…"
                                    value="@_patientSearch"
                                    @oninput="HandleSearchInput" />
@@ -71,16 +84,17 @@
                         <div class="owner-search-wrap">
                             @if (_selectedOwner != null)
                             {
-                                <div class="owner-chip">
+                                <div class="chip">
                                     <span>@_selectedOwner.FullName</span>
-                                    <button aria-label="Quitar filtro de dueño" class="owner-chip-clear" @onclick="() => SelectOwner(null)" title="Quitar filtro">✕</button>
+                                    <button type="button" aria-label="Quitar filtro de dueño" class="chip-clear" @onclick="() => SelectOwner(null)">
+                                        <Icon Name="x" Size="14" />
+                                    </button>
                                 </div>
                             }
                             else
                             {
-                                <div style="position:relative">
-                                    <input aria-label="Buscar dueño" class="form-control filter-select"
-                                           style="min-width:200px"
+                                <div class="suggest-wrap">
+                                    <input aria-label="Buscar dueño" class="form-control filter-select owner-filter" autocomplete="off"
                                            placeholder="Buscar dueño…"
                                            value="@_ownerSearch"
                                            @oninput="HandleOwnerInput"
@@ -88,21 +102,21 @@
                                            @onblur="@(_ => Task.Delay(150).ContinueWith(_ => InvokeAsync(() => { _ownerSuggestOpen = false; StateHasChanged(); })))" />
                                     @if (_ownerSuggestOpen && !string.IsNullOrWhiteSpace(_ownerSearch))
                                     {
-                                        <div class="owner-suggest-dropdown">
+                                        <div class="suggest-list popover">
                                             @if (FilteredOwners.Any())
                                             {
                                                 @foreach (var o in FilteredOwners.Take(8))
                                                 {
                                                     var owner = o;
-                                                    <div class="owner-suggest-item" @onclick="() => SelectOwner(owner)">
-                                                        <div>@owner.FullName</div>
-                                                        <div class="owner-suggest-sub">@owner.Email @(string.IsNullOrEmpty(owner.Phone) ? "" : $"· {owner.Phone}")</div>
-                                                    </div>
+                                                    <button type="button" class="suggest-item" @onclick="() => SelectOwner(owner)">
+                                                        <span class="suggest-item-title">@owner.FullName</span>
+                                                        <span class="suggest-item-sub">@owner.Email @(string.IsNullOrEmpty(owner.Phone) ? "" : $"· {owner.Phone}")</span>
+                                                    </button>
                                                 }
                                             }
                                             else
                                             {
-                                                <div style="padding:10px 12px;color:var(--color-text-muted);font-size:.85rem">Sin resultados</div>
+                                                <div class="suggest-empty">Sin resultados</div>
                                             }
                                         </div>
                                     }
@@ -112,7 +126,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card-body" style="padding:0">
+            <div class="card-body flush">
                 @if (_patientsLoading)
                 {
                     <div class="loading-pad"><LoadingSpinner Message="Cargando pacientes…" /></div>
@@ -120,9 +134,9 @@
                 else if (_patients == null || !_patients.Any())
                 {
                     <div class="empty-state">
-                        <div class="empty-state-icon">🐾</div>
-                        <div class="empty-state-title">No hay pacientes</div>
-                        <div class="empty-state-sub">Aún no se han registrado mascotas en el sistema.</div>
+                        <span class="empty-state-icon"><Icon Name="paw" Size="28" /></span>
+                        <p class="empty-state-title">No hay pacientes</p>
+                        <p class="empty-state-sub">Aún no se han registrado mascotas en el sistema.</p>
                     </div>
                 }
                 else
@@ -131,22 +145,22 @@
                         <div class="patients-grid">
                             @foreach (var p in _patients)
                             {
-                                <PatientCard Patient="p"
+                                <PatientCard Patient="p" ShowOwner="true"
                                              OnSelect="EventCallback.Factory.Create(this, () => SelectPatient(p))" />
                             }
                         </div>
                         @if (_totalPatients > _pageSize)
                         {
                             <div class="pagination">
-                                <button aria-label="Página anterior" class="page-btn" disabled="@(_page == 1)" @onclick="PrevPage">‹</button>
-                                <span class="page-btn active">@_page</span>
-                                <button aria-label="Página siguiente" class="page-btn" disabled="@(_page * _pageSize >= _totalPatients)" @onclick="NextPage">›</button>
+                                <button type="button" aria-label="Página anterior" class="page-btn" disabled="@(_page == 1)" @onclick="PrevPage"><Icon Name="chevron-left" Size="16" /></button>
+                                <span class="page-btn active" aria-current="page">@_page</span>
+                                <button type="button" aria-label="Página siguiente" class="page-btn" disabled="@(_page * _pageSize >= _totalPatients)" @onclick="NextPage"><Icon Name="chevron-right" Size="16" /></button>
                             </div>
                         }
                     </div>
                 }
             </div>
-        </div>
+        </section>
     }
 
     @* ═══════════════════════════════════════════════
@@ -154,11 +168,13 @@
        ═══════════════════════════════════════════════ *@
     @if (_tab == "appointments")
     {
-        <div class="card">
+        <section class="card" aria-labelledby="appts-title">
             <div class="card-header">
-                <span class="card-title">Citas</span>
+                <h2 id="appts-title" class="card-title">Citas</h2>
                 <div class="card-header-actions">
-                    <button class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">+ Nueva cita</button>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="() => _showNewAppointmentModal = true">
+                        <Icon Name="plus" Size="16" /> Nueva cita
+                    </button>
                     <div class="filters-bar mb-0">
                         <select aria-label="Filtrar por estado" class="filter-select" @bind="_statusFilter" @bind:after="LoadAppointments">
                             <option value="">Todos los estados</option>
@@ -187,9 +203,9 @@
                 else if (_appointments == null || !_appointments.Any())
                 {
                     <div class="empty-state">
-                        <div class="empty-state-icon">📅</div>
-                        <div class="empty-state-title">Sin citas</div>
-                        <div class="empty-state-sub">No hay citas para los filtros seleccionados.</div>
+                        <span class="empty-state-icon"><Icon Name="calendar" Size="28" /></span>
+                        <p class="empty-state-title">Sin citas</p>
+                        <p class="empty-state-sub">No hay citas para los filtros seleccionados.</p>
                     </div>
                 }
                 else
@@ -217,39 +233,48 @@
                     </table>
                 }
             </div>
-        </div>
+        </section>
     }
 
 </div>
 
-@* Modal para registrar nueva mascota *@
-<VetNewPatientModal Visible="_showVetPatientModal"
-                    OnSaved="EventCallback.Factory.Create(this, OnPatientCreated)"
-                    OnClose="EventCallback.Factory.Create(this, () => _showVetPatientModal = false)" />
+
+@if (_showVetPatientModal)
+{
+    <PatientFormModal ChooseOwner="true" OnSaved="EventCallback.Factory.Create(this, OnPatientCreated)"
+                      OnClose="EventCallback.Factory.Create(this, () => _showVetPatientModal = false)" />
+}
 
 @* Modal de detalle: datos, bitácoras e historia clínica *@
-<PatientDetailModal Visible="_showRecordModal"
-                    Patient="_selectedPatient"
-                    InitialReferenceLog="_referenceLog"
-                    OnPatientSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
-                    OnPatientDeleted="EventCallback.Factory.Create(this, OnPatientDeletedFromModal)"
-                    OnClose="EventCallback.Factory.Create(this, () => { _showRecordModal = false; _selectedPatient = null; _referenceLog = null; })" />
+@if (_showRecordModal && _selectedPatient is not null)
+{
+    <PatientDetailModal
+        Patient="_selectedPatient!"
+        InitialReferenceLog="_referenceLog"
+        OnPatientSaved="EventCallback.Factory.Create(this, OnPatientUpdated)"
+        OnPatientDeleted="EventCallback.Factory.Create(this, OnPatientDeletedFromModal)"
+        OnClose="EventCallback.Factory.Create(this, () => { _showRecordModal = false; _selectedPatient = null; _referenceLog = null; })" />
+}
 
 @* Modal para crear nueva cita *@
-<NewAppointmentModal Visible="_showNewAppointmentModal"
-                     OnSaved="EventCallback.Factory.Create(this, async () => { await LoadAppointments(); await RefreshKpis(); })"
-                     OnClose="EventCallback.Factory.Create(this, () => _showNewAppointmentModal = false)" />
+@if (_showNewAppointmentModal)
+{
+    <NewAppointmentModal OnSaved="EventCallback.Factory.Create(this, async () => { await LoadAppointments(); await RefreshKpis(); })"
+                         OnClose="EventCallback.Factory.Create(this, () => _showNewAppointmentModal = false)" />
+}
 
 @* Modal de bitácora vinculada a una cita *@
-<AppointmentLogModal Visible="_showLogModal"
-                     Appointment="_logAppointment"
+@if (_showLogModal && _logAppointment is not null)
+{
+    <AppointmentLogModal Appointment="_logAppointment"
                      OnClose="EventCallback.Factory.Create(this, () => { _showLogModal = false; _logAppointment = null; })"
                      OnGoToHC="EventCallback.Factory.Create<ConsultationLogResponse>(this, OpenHCFromLog)" />
+}
 
 @if (!string.IsNullOrEmpty(_toast))
 {
-    <div class="toast-snack @(_toastIsError ? "toast-error" : "")">
-        @(_toastIsError ? "❌" : "✅") @_toast
+    <div class="toast-snack @(_toastIsError ? "toast-error" : "")" role="status">
+        <Icon Name="@(_toastIsError ? "x-circle" : "check-circle")" /> @_toast
     </div>
 }
 

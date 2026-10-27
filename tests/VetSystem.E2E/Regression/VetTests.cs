@@ -97,7 +97,7 @@ public class VetTests(StackFixture stack) : E2ETest(stack)
         await row.GetByRole(AriaRole.Button, new() { Name = "Bitácora" }).ClickAsync();
         var log = Flows.Dialog(page, "Bitácora de consulta");
         await log.GetByLabel("Motivo de consulta *").FillAsync("Control posvacunación");
-        await log.GetByLabel("Diagnóstico").FillAsync("Paciente sano");
+        await log.GetByLabel("Diagnóstico", new() { Exact = true }).FillAsync("Paciente sano");
         await log.GetByRole(AriaRole.Button, new() { Name = "Crear bitácora" }).ClickAsync();
         await log.GetByRole(AriaRole.Button, new() { Name = "Cerrar bitácora" }).ClickAsync();
         await Expect(log.GetByText("Bitácora cerrada correctamente.")).ToBeVisibleAsync();

@@ -1,388 +1,343 @@
-@* Modal de nueva cita — carga veterinarios desde auth-service para el selector.
-   El appointments-service necesita PatientName/OwnerId/OwnerName/OwnerPhone
-   porque no llama a otros servicios internamente. *@
+@* appointments-service no consulta a los otros servicios, por eso la cita viaja con los datos de mascota y dueño *@
 @inject PatientApiClient     PatientApi
 @inject AppointmentApiClient AppointmentApi
 @inject AuthApiClient        AuthApi
 @inject TokenProvider        Token
+@implements IDisposable
 
-@if (Visible)
-{
-    <div class="modal-overlay">
-        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="new-appt-title" style="max-width:600px" tabindex="-1" @ref="_modalRef" @onkeydown="HandleKeyDown" @onclick:stopPropagation>
-            <div class="modal-header">
-                <span id="new-appt-title" class="modal-title">📅 Solicitar cita</span>
-                <button aria-label="Cerrar" class="btn-close" @onclick="Close">✕</button>
-            </div>
+<ModalShell Title="Solicitar cita" Icon="calendar" OnClose="OnClose">
+    <ChildContent>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_error</div>
+        }
 
-            <div class="modal-body">
-                @if (!string.IsNullOrEmpty(_error))
+        <div class="form-group">
+            <label class="form-label" for="na-patient">Mascota *</label>
+            <div class="suggest-wrap">
+                <input id="na-patient" class="form-control @Invalid(_selectedPatient is null)" autocomplete="off"
+                       role="combobox" aria-autocomplete="list" aria-controls="na-patient-list"
+                       aria-expanded="@(_showSuggestions ? "true" : "false")"
+                       placeholder="Buscar por nombre, raza, dueño o teléfono…"
+                       value="@_patientSearch" @oninput="OnPatientSearchInput"
+                       @onfocus="() => _showSuggestions = true" @onblur="HideSuggestions" />
+                @if (_showSuggestions && !string.IsNullOrWhiteSpace(_patientSearch))
                 {
-                    <div class="alert alert-danger">@_error</div>
-                }
-
-                @* Mascota *@
-                <div class="form-group">
-                    <label class="form-label" for="na-patient">Mascota *</label>
-                    @if (_patients == null)
-                    {
-                        <LoadingSpinner Message="Cargando mascotas…" />
-                    }
-                    else
-                    {
-                        <div style="position:relative">
-                            <input id="na-patient" class="form-control @(_submitted && _selectedPatientId == Guid.Empty ? "invalid" : "")"
-                                   placeholder="Buscar por nombre, raza, dueño o teléfono…"
-                                   value="@_patientSearch"
-                                   @oninput="OnPatientSearchInput"
-                                   @onfocus="() => _showPatientDrop = true"
-                                   @onblur="HidePatientDrop"
-                                   autocomplete="off" />
-
-                            @if (_showPatientDrop && _patientResults.Any())
-                            {
-                                <div style="position:absolute;z-index:999;width:100%;background:var(--color-surface);
-                                            border:1px solid var(--color-border);border-radius:8px;
-                                            box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:240px;
-                                            overflow-y:auto;margin-top:2px">
-                                    @foreach (var p in _patientResults)
-                                    {
-                                        <div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--color-border-light)"
-                                             @onmousedown="() => SelectPatient(p)">
-                                            <div style="font-weight:600;font-size:.9rem">
-                                                @p.SpeciesIcon @p.Name
-                                                <span style="font-weight:400;color:var(--color-text-muted);font-size:.82rem"> · @p.Breed</span>
-                                            </div>
-                                            <div style="font-size:.78rem;color:var(--color-text-muted)">
-                                                👤 @p.OwnerName
-                                                @if (!string.IsNullOrEmpty(p.OwnerPhone))
-                                                { <span> · @p.OwnerPhone</span> }
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            }
-                            @if (_showPatientDrop && !string.IsNullOrWhiteSpace(_patientSearch) && !_patientResults.Any())
-                            {
-                                <div style="position:absolute;z-index:999;width:100%;background:var(--color-surface);
-                                            border:1px solid var(--color-border);border-radius:8px;
-                                            padding:12px 14px;color:var(--color-text-muted);font-size:.85rem;margin-top:2px">
-                                    Sin resultados para "<strong>@_patientSearch</strong>"
-                                </div>
-                            }
-                        </div>
-                        @if (_submitted && _selectedPatientId == Guid.Empty)
-                        { <div class="validation-message">Selecciona una mascota.</div> }
-                    }
-                </div>
-
-                @* Veterinario *@
-                <div class="form-group">
-                    <label class="form-label" for="na-vet">Veterinario *</label>
-                    @if (_vets == null)
-                    {
-                        <LoadingSpinner Message="Cargando veterinarios…" />
-                    }
-                    else
-                    {
-                        <select id="na-vet" class="form-control @(_submitted && _selectedVetId == Guid.Empty ? "invalid" : "")"
-                                @onchange="OnVetSelected">
-                            <option value="">— Selecciona —</option>
-                            @foreach (var v in _vets)
-                            {
-                                <option value="@v.Id">@v.FullName</option>
-                            }
-                        </select>
-                        @if (_submitted && _selectedVetId == Guid.Empty)
-                        { <div class="validation-message">Selecciona un veterinario.</div> }
-                    }
-                </div>
-
-                @* Fecha y duración *@
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="na-date">Fecha *</label>
-                        <input id="na-date" type="date" class="form-control @(_submitted && _date == default ? "invalid" : "")"
-                               value="@(_date == default ? "" : _date.ToString("yyyy-MM-dd"))"
-                               min="@DateTime.Today.ToString("yyyy-MM-dd")"
-                               @onchange="OnDateChanged" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="na-duration">Duración</label>
-                        <select id="na-duration" class="form-control" value="@_request.DurationMinutes"
-                                @onchange="OnDurationChanged">
-                            <option value="20">20 min — Consulta rápida</option>
-                            <option value="40">40 min — Consulta estándar</option>
-                            <option value="60">60 min — Consulta extendida</option>
-                            <option value="90">90 min — Procedimiento</option>
-                        </select>
-                    </div>
-                </div>
-
-                @* Grilla de slots disponibles *@
-                @if (_selectedVetId != Guid.Empty && _date != default)
-                {
-                    <div class="form-group">
-                        <label class="form-label">Hora disponible *</label>
-                        @if (_loadingSlots)
+                    <div id="na-patient-list" class="suggest-list popover" role="listbox">
+                        @if (_searching)
                         {
-                            <LoadingSpinner Message="Consultando disponibilidad…" />
+                            <div class="suggest-empty">Buscando…</div>
                         }
-                        else if (_availableSlots.Count == 0)
+                        else if (_patientResults.Count == 0)
                         {
-                            <div class="alert alert-danger" style="margin:0;font-size:.875rem">
-                                Este veterinario no tiene disponibilidad para la fecha y duración seleccionadas.
-                            </div>
+                            <div class="suggest-empty">Sin resultados para "@_patientSearch"</div>
                         }
                         else
                         {
-                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-                                @foreach (var slot in _availableSlots)
-                                {
-                                    var s = slot;
-                                    var selected = _selectedSlot.HasValue && _selectedSlot.Value == s.Start;
-                                    <button type="button"
-                                            style="padding:5px 12px;border-radius:6px;font-size:.85rem;font-weight:500;cursor:pointer;
-                                                   border:1.5px solid @(selected ? "var(--color-primary)" : "var(--color-border)");
-                                                   background:@(selected ? "var(--color-primary)" : "transparent");
-                                                   color:@(selected ? "#fff" : "var(--color-text-secondary)");"
-                                            @onclick="() => SelectSlot(s)">
-                                        @s.Start.ToString("HH:mm")
-                                    </button>
-                                }
-                            </div>
-                            @if (_submitted && !_selectedSlot.HasValue)
-                            { <div class="validation-message">Selecciona un horario.</div> }
+                            @foreach (var p in _patientResults)
+                            {
+                                <button type="button" class="suggest-item" role="option" @onmousedown="() => SelectPatient(p)">
+                                    <span class="suggest-item-title">@p.SpeciesIcon @p.Name <span class="suggest-item-sub">· @p.Breed</span></span>
+                                    <span class="suggest-item-sub">@p.OwnerName@(string.IsNullOrEmpty(p.OwnerPhone) ? "" : $" · {p.OwnerPhone}")</span>
+                                </button>
+                            }
                         }
                     </div>
                 }
-
-                @* Motivo *@
-                <div class="form-group">
-                    <label class="form-label" for="na-reason">Motivo de la cita *</label>
-                    <textarea id="na-reason" class="form-control @(_submitted && string.IsNullOrWhiteSpace(_request.Reason) ? "invalid" : "")"
-                              rows="2" @bind="_request.Reason"
-                              placeholder="Describe brevemente el motivo de la consulta…"></textarea>
-                    @if (_submitted && string.IsNullOrWhiteSpace(_request.Reason))
-                    { <div class="validation-message">El motivo de la cita es obligatorio.</div> }
-                </div>
             </div>
+            @if (_submitted && _selectedPatient is null)
+            {
+                <div class="validation-message">Selecciona una mascota.</div>
+            }
+        </div>
 
-            <div class="modal-footer">
-                <button class="btn btn-ghost" @onclick="Close" disabled="@_saving">Cancelar</button>
-                <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
-                    @if (_saving) { <span class="spinner spinner-sm"></span> }
-                    else { <span>Solicitar cita</span> }
-                </button>
+        <div class="form-group">
+            <label class="form-label" for="na-vet">Veterinario *</label>
+            @if (_vets is null)
+            {
+                <LoadingSpinner Message="Cargando veterinarios…" />
+            }
+            else
+            {
+                <select id="na-vet" class="form-control @Invalid(_selectedVetId == Guid.Empty)" @onchange="OnVetSelected">
+                    <option value="">— Selecciona —</option>
+                    @foreach (var v in _vets)
+                    {
+                        <option value="@v.Id">@v.FullName</option>
+                    }
+                </select>
+                @if (_submitted && _selectedVetId == Guid.Empty)
+                {
+                    <div class="validation-message">Selecciona un veterinario.</div>
+                }
+            }
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="na-date">Fecha *</label>
+                <input id="na-date" type="date" class="form-control @Invalid(_date == default)"
+                       value="@(_date == default ? "" : _date.ToString("yyyy-MM-dd"))"
+                       min="@DateTime.Today.ToString("yyyy-MM-dd")" @onchange="OnDateChanged" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="na-duration">Duración</label>
+                <select id="na-duration" class="form-control" value="@_durationMinutes" @onchange="OnDurationChanged">
+                    <option value="20">20 min — Consulta rápida</option>
+                    <option value="40">40 min — Consulta estándar</option>
+                    <option value="60">60 min — Consulta extendida</option>
+                    <option value="90">90 min — Procedimiento</option>
+                </select>
             </div>
         </div>
-    </div>
-}
+
+        @if (_selectedVetId != Guid.Empty && _date != default)
+        {
+            <fieldset class="form-group">
+                <legend class="form-label">Hora disponible *</legend>
+                @if (_loadingSlots)
+                {
+                    <LoadingSpinner Message="Consultando disponibilidad…" />
+                }
+                else if (_slotsError is not null)
+                {
+                    <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_slotsError</div>
+                }
+                else if (_availableSlots.Count == 0)
+                {
+                    <div class="alert alert-info">Este veterinario no tiene disponibilidad para la fecha y duración seleccionadas.</div>
+                }
+                else
+                {
+                    <div class="slot-grid">
+                        @foreach (var slot in _availableSlots)
+                        {
+                            var start = slot.Start;
+                            <label>
+                                <input type="radio" name="na-slot" checked="@(_selectedSlot == start)"
+                                       @onchange="() => SelectSlot(start)" />
+                                <span class="slot">@start.ToString("HH:mm")</span>
+                            </label>
+                        }
+                    </div>
+                    @if (_submitted && _selectedSlot is null)
+                    {
+                        <div class="validation-message">Selecciona un horario.</div>
+                    }
+                }
+            </fieldset>
+        }
+
+        <div class="form-group">
+            <label class="form-label" for="na-reason">Motivo de la cita *</label>
+            <textarea id="na-reason" class="form-control @Invalid(string.IsNullOrWhiteSpace(_reason))" rows="2"
+                      @bind="_reason" placeholder="Describe brevemente el motivo de la consulta…"></textarea>
+            @if (_submitted && string.IsNullOrWhiteSpace(_reason))
+            {
+                <div class="validation-message">El motivo de la cita es obligatorio.</div>
+            }
+        </div>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-ghost" @onclick="OnClose" disabled="@_saving">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="Save" disabled="@_saving">
+            @if (_saving)
+            {
+                <span class="spinner spinner-sm" aria-hidden="true"></span>
+            }
+            Solicitar cita
+        </button>
+    </Footer>
+</ModalShell>
 
 @code {
-    [Parameter] public bool Visible { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnClose { get; set; }
 
-    private List<PatientResponse>? _patients;
-    private List<VetSummary>?      _vets;
-    private List<OwnerSummary>?    _owners;
+    private bool IsOwner => Token.User?.Role?.Equals("Owner", StringComparison.OrdinalIgnoreCase) == true;
 
-    // Buscador de mascota
-    private string                _patientSearch   = "";
-    private List<PatientResponse> _patientResults  = [];
-    private bool                  _showPatientDrop = false;
+    private List<VetSummary>? _vets;
+
+    private string                _patientSearch = "";
+    private List<PatientResponse> _patientResults = [];
     private PatientResponse?      _selectedPatient;
+    private bool                  _showSuggestions;
+    private bool                  _searching;
+    private CancellationTokenSource? _searchCts;
 
-    private CreateAppointmentRequest _request = new() { DurationMinutes = 40 };
-    private Guid      _selectedPatientId;
     private Guid      _selectedVetId;
-    private bool      _submitted;
-    private bool      _saving;
-    private string?   _error;
     private DateTime  _date;
-    private ElementReference _modalRef;
-    private bool      _prevVisible;
+    private int       _durationMinutes = 40;
+    private string    _reason = "";
 
-    // Slots disponibles
     private List<TimeSlot> _availableSlots = [];
-    private bool           _loadingSlots;
     private DateTime?      _selectedSlot;
+    private bool           _loadingSlots;
+    private string?        _slotsError;
+    private int            _slotsRequest;
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (Visible && _patients == null)
-        {
-            await Task.WhenAll(LoadPatients(), LoadVets(), LoadOwners());
-        }
-        else if (!Visible)
-        {
-            Reset();
-        }
-    }
+    private bool    _submitted;
+    private bool    _saving;
+    private string? _error;
 
-    private async Task LoadPatients()
-    {
-        try
-        {
-            var user = Token.User;
-            bool callerIsOwner = user?.Role?.Equals("Owner", StringComparison.OrdinalIgnoreCase) == true;
-
-            var result = await PatientApi.ListAsync(
-                page: 1, pageSize: 200,
-                ownerId: callerIsOwner ? user?.Id : null);
-
-            _patients = result?.Items ?? [];
-        }
-        catch { _patients = []; }
-    }
-
-    private async Task LoadVets()
+    protected override async Task OnInitializedAsync()
     {
         try { _vets = await AuthApi.GetVeterinariansAsync(); }
-        catch { _vets = []; }
+        catch (Exception ex) { _vets = []; _error = ex.Message; }
     }
 
-    private async Task LoadOwners()
-    {
-        try { _owners = await AuthApi.GetOwnersAsync(); }
-        catch { _owners = []; }
-    }
+    private string Invalid(bool missing) => _submitted && missing ? "invalid" : "";
 
-    // ── Buscador de mascota ────────────────────────────────────────────────────
-
-    private void OnPatientSearchInput(ChangeEventArgs e)
+    // La búsqueda va al servidor: traer todas las mascotas al navegador dejaba fuera las que superaban
+    // el límite de página de la API. El retardo evita una petición por cada tecla
+    private async Task OnPatientSearchInput(ChangeEventArgs e)
     {
-        _patientSearch     = e.Value?.ToString() ?? "";
-        _selectedPatient   = null;
-        _selectedPatientId = Guid.Empty;
-        _showPatientDrop   = true;
+        _patientSearch   = e.Value?.ToString() ?? "";
+        _selectedPatient = null;
+        _showSuggestions = true;
+
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        var ct = _searchCts.Token;
 
         if (string.IsNullOrWhiteSpace(_patientSearch))
-        { _patientResults = []; return; }
+        {
+            _patientResults = [];
+            _searching      = false;
+            return;
+        }
 
-        var q = _patientSearch.Trim().ToLowerInvariant();
-        _patientResults = (_patients ?? [])
-            .Where(p => p.Name.ToLowerInvariant().Contains(q)
-                     || p.Breed.ToLowerInvariant().Contains(q)
-                     || p.OwnerName.ToLowerInvariant().Contains(q)
-                     || (p.OwnerPhone ?? "").Contains(q))
-            .Take(8)
-            .ToList();
+        _searching = true;
+        try
+        {
+            await Task.Delay(250, ct);
+            var page = await PatientApi.ListAsync(page: 1, pageSize: 8, search: _patientSearch.Trim(),
+                                                  ownerId: IsOwner ? Token.User?.Id : null);
+            if (ct.IsCancellationRequested) return;
+            _patientResults = page?.Items?.ToList() ?? [];
+            _searching      = false;
+        }
+        catch (TaskCanceledException) { }
+        catch (Exception ex)
+        {
+            _patientResults = [];
+            _searching      = false;
+            _error          = ex.Message;
+        }
     }
 
     private void SelectPatient(PatientResponse p)
     {
-        _selectedPatient   = p;
-        _selectedPatientId = p.Id;
-        _patientSearch     = $"{p.Name} ({p.OwnerName})";
-        _patientResults    = [];
-        _showPatientDrop   = false;
+        _searchCts?.Cancel();
+        _selectedPatient = p;
+        _patientSearch   = $"{p.Name} ({p.OwnerName})";
+        _patientResults  = [];
+        _searching       = false;
+        _showSuggestions = false;
     }
 
-    // onblur se dispara antes que onmousedown del item; el delay permite que SelectPatient corra primero
-    private async Task HidePatientDrop()
+    // blur llega antes que el mousedown de la sugerencia; la espera deja que SelectPatient corra primero
+    private async Task HideSuggestions()
     {
         await Task.Delay(150);
-        _showPatientDrop = false;
+        _showSuggestions = false;
     }
 
-    // ── Selección de vet, fecha y duración ────────────────────────────────────
-
+    // Firefox vuelve a disparar change al salir del input de fecha aunque el valor no cambie; sin estas guardas
+    // se recargaban los horarios y se perdía la hora que el usuario acababa de elegir
     private async Task OnVetSelected(ChangeEventArgs e)
     {
-        _selectedVetId = Guid.TryParse(e.Value?.ToString(), out var id) ? id : Guid.Empty;
-        _selectedSlot  = null;
-        await LoadAvailableSlots();
+        var id = Guid.TryParse(e.Value?.ToString(), out var parsed) ? parsed : Guid.Empty;
+        if (id == _selectedVetId) return;
+        _selectedVetId = id;
+        await ReloadSlots();
     }
 
     private async Task OnDateChanged(ChangeEventArgs e)
     {
-        _date         = DateTime.TryParse(e.Value?.ToString(), out var d) ? d : default;
-        _selectedSlot = null;
-        await LoadAvailableSlots();
+        var date = DateTime.TryParse(e.Value?.ToString(), out var parsed) ? parsed : default;
+        if (date == _date) return;
+        _date = date;
+        await ReloadSlots();
     }
 
     private async Task OnDurationChanged(ChangeEventArgs e)
     {
-        _request.DurationMinutes = int.TryParse(e.Value?.ToString(), out var dur) ? dur : 40;
-        _selectedSlot = null;
-        await LoadAvailableSlots();
+        var duration = int.TryParse(e.Value?.ToString(), out var parsed) ? parsed : 40;
+        if (duration == _durationMinutes) return;
+        _durationMinutes = duration;
+        await ReloadSlots();
     }
 
-    private async Task LoadAvailableSlots()
+    private async Task ReloadSlots()
     {
+        _selectedSlot = null;
+        _slotsError   = null;
         if (_selectedVetId == Guid.Empty || _date == default)
         {
             _availableSlots = [];
             return;
         }
 
+        // Si el usuario cambia fecha o veterinario antes de que llegue la respuesta anterior, esa respuesta ya no aplica
+        var request = ++_slotsRequest;
         _loadingSlots   = true;
         _availableSlots = [];
         StateHasChanged();
 
+        List<TimeSlot> slots = [];
+        string? error = null;
         try
         {
-            var date  = DateOnly.FromDateTime(_date);
-            var avail = await AppointmentApi.GetAvailabilityAsync(_selectedVetId, date, _request.DurationMinutes);
-            _availableSlots = avail?.AvailableSlots?.ToList() ?? [];
+            var avail = await AppointmentApi.GetAvailabilityAsync(_selectedVetId, DateOnly.FromDateTime(_date), _durationMinutes);
+            slots = avail?.AvailableSlots?.ToList() ?? [];
         }
-        catch
+        catch (Exception ex)
         {
-            _availableSlots = [];
+            error = ex.Message;
         }
-        finally
-        {
-            _loadingSlots = false;
-            StateHasChanged();
-        }
+
+        if (request != _slotsRequest) return;
+        _availableSlots = slots;
+        _slotsError     = error;
+        _loadingSlots   = false;
     }
 
-    private void SelectSlot(TimeSlot slot) => _selectedSlot = slot.Start;
-
-    // ──────────────────────────────────────────────────────────────────────────
+    private void SelectSlot(DateTime start) => _selectedSlot = start;
 
     private async Task Save()
     {
         _submitted = true;
         _error     = null;
 
-        if (_selectedPatientId == Guid.Empty) return;
-        if (_selectedVetId == Guid.Empty)     return;
-        if (_date == default)                  return;
-        if (!_selectedSlot.HasValue)           return;
-        if (string.IsNullOrWhiteSpace(_request.Reason)) { _error = "El motivo de la cita es obligatorio."; return; }
+        if (_selectedPatient is null || _selectedVetId == Guid.Empty || _date == default
+            || _selectedSlot is null || string.IsNullOrWhiteSpace(_reason))
+            return;
 
-        var scheduledAt = _selectedSlot.Value;
-        if (scheduledAt <= DateTime.Now) { _error = "La fecha y hora deben ser futuras."; return; }
-
-        var patient = _patients?.FirstOrDefault(p => p.Id == _selectedPatientId);
-        if (patient == null) { _error = "No se encontró la mascota seleccionada."; return; }
-
-        var vet  = _vets?.FirstOrDefault(v => v.Id == _selectedVetId);
-        var user = Token.User;
-
-        bool callerIsOwner = user?.Role?.Equals("Owner", StringComparison.OrdinalIgnoreCase) == true;
-
-        _request.PatientId        = _selectedPatientId;
-        _request.VeterinarianId   = _selectedVetId;
-        _request.VeterinarianName = vet?.FullName ?? "";
-        _request.ScheduledAt      = scheduledAt;
-        _request.PatientName      = patient.Name;
-        _request.OwnerId    = callerIsOwner ? (user?.Id ?? Guid.Empty) : patient.OwnerId;
-        _request.OwnerName  = callerIsOwner ? (user?.FullName ?? "")   : patient.OwnerName;
-        _request.OwnerPhone = callerIsOwner ? (user?.Phone ?? "")      : patient.OwnerPhone;
-        _request.OwnerEmail = callerIsOwner
-            ? user?.Email
-            : _owners?.FirstOrDefault(o => o.Id == patient.OwnerId)?.Email;
+        if (_selectedSlot.Value <= DateTime.Now) { _error = "La fecha y hora deben ser futuras."; return; }
 
         _saving = true;
         try
         {
-            await AppointmentApi.CreateAsync(_request);
+            var user    = Token.User;
+            var patient = _selectedPatient;
+            await AppointmentApi.CreateAsync(new CreateAppointmentRequest
+            {
+                PatientId        = patient.Id,
+                PatientName      = patient.Name,
+                VeterinarianId   = _selectedVetId,
+                VeterinarianName = _vets?.FirstOrDefault(v => v.Id == _selectedVetId)?.FullName ?? "",
+                ScheduledAt      = _selectedSlot.Value,
+                DurationMinutes  = _durationMinutes,
+                Reason           = _reason,
+                OwnerId          = IsOwner ? user!.Id       : patient.OwnerId,
+                OwnerName        = IsOwner ? user!.FullName : patient.OwnerName,
+                OwnerPhone       = IsOwner ? user!.Phone    : patient.OwnerPhone,
+                OwnerEmail       = IsOwner ? user!.Email    : await OwnerEmailAsync(patient.OwnerId)
+            });
             await OnSaved.InvokeAsync();
-            await Close();
+            await OnClose.InvokeAsync();
         }
         catch (Exception ex)
         {
@@ -394,34 +349,23 @@
         }
     }
 
-    private void Reset()
+    // Sin correo la cita igual se crea; solo se pierde la confirmación por email
+    private async Task<string?> OwnerEmailAsync(Guid ownerId)
     {
-        _patients = null; _vets = null; _owners = null; _error = null;
-        _submitted         = false;
-        _selectedPatientId = Guid.Empty;
-        _selectedVetId     = Guid.Empty;
-        _selectedPatient   = null;
-        _patientSearch     = "";
-        _patientResults    = [];
-        _showPatientDrop   = false;
-        _availableSlots    = [];
-        _loadingSlots      = false;
-        _selectedSlot      = null;
-        _request = new() { DurationMinutes = 40 };
-        _date    = default;
+        try
+        {
+            var owners = await AuthApi.GetOwnersAsync();
+            return owners?.FirstOrDefault(o => o.Id == ownerId)?.Email;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
-    private async Task Close() => await OnClose.InvokeAsync();
-
-    private async Task HandleKeyDown(KeyboardEventArgs e)
+    public void Dispose()
     {
-        if (e.Key == "Escape") await Close();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (Visible && !_prevVisible)
-            await _modalRef.FocusAsync();
-        _prevVisible = Visible;
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
     }
 }

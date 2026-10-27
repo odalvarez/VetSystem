@@ -1,0 +1,258 @@
+@* Alta de mascota. El propietario registra las suyas; veterinario y administrador eligen primero al dueño *@
+@inject PatientApiClient PatientApi
+@inject AuthApiClient    AuthApi
+@inject SpeciesApiClient SpeciesApi
+
+<ModalShell Title="@(ChooseOwner ? "Registrar mascota" : "Registrar nueva mascota")" Icon="paw" OnClose="OnClose">
+    <ChildContent>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_error</div>
+        }
+
+        @if (ChooseOwner)
+        {
+            <div class="form-group">
+                <label class="form-label" for="pf-owner">Propietario *</label>
+                @if (_owners is null)
+                {
+                    <LoadingSpinner Message="Cargando propietarios…" />
+                }
+                else
+                {
+                    <div class="suggest-wrap">
+                        <input id="pf-owner" class="form-control @Invalid(_selectedOwner is null)" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-controls="pf-owner-list"
+                               aria-expanded="@(_showOwnerList ? "true" : "false")"
+                               placeholder="Buscar por nombre, apellido o correo…"
+                               value="@_ownerSearch" @oninput="OnOwnerSearch"
+                               @onfocus="() => _showOwnerList = true" @onblur="HideOwnerList" />
+                        @if (_showOwnerList && !string.IsNullOrWhiteSpace(_ownerSearch))
+                        {
+                            <div id="pf-owner-list" class="suggest-list popover" role="listbox">
+                                @if (_ownerResults.Count == 0)
+                                {
+                                    <div class="suggest-empty">Sin resultados para "@_ownerSearch"</div>
+                                }
+                                @foreach (var o in _ownerResults)
+                                {
+                                    <button type="button" class="suggest-item" role="option" @onmousedown="() => SelectOwner(o)">
+                                        <span class="suggest-item-title">@o.FullName</span>
+                                        <span class="suggest-item-sub">@o.Email@(string.IsNullOrEmpty(o.Phone) ? "" : $" · {o.Phone}")</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <FieldError Show="@(_submitted && _selectedOwner is null)" Message="Selecciona un propietario." />
+                }
+            </div>
+        }
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="pf-name">Nombre *</label>
+                <input id="pf-name" class="form-control @Invalid(string.IsNullOrWhiteSpace(_request.Name))"
+                       @bind="_request.Name" placeholder="Nombre de la mascota" />
+                <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_request.Name))" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="pf-species">Especie *</label>
+                <select id="pf-species" class="form-control @Invalid(string.IsNullOrWhiteSpace(_request.Species))"
+                        @bind="_request.Species" disabled="@(_species is null)">
+                    <option value="">@(_species is null ? "Cargando…" : "— Selecciona —")</option>
+                    @foreach (var s in _species ?? [])
+                    {
+                        <option value="@s.Slug">@s.Name</option>
+                    }
+                </select>
+                <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_request.Species))" />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="pf-breed">Raza *</label>
+                <input id="pf-breed" class="form-control @Invalid(string.IsNullOrWhiteSpace(_request.Breed))"
+                       @bind="_request.Breed" placeholder="Raza o mestizo" />
+                <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_request.Breed))" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="pf-color">Color</label>
+                <input id="pf-color" class="form-control" @bind="_request.Color" placeholder="Color del pelaje" />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <fieldset class="form-group">
+                <legend class="form-label">Sexo *</legend>
+                <div class="segmented">
+                    <label>
+                        <input type="radio" name="pf-sex" value="Male" checked="@(_request.Sex == "Male")" @onchange='() => _request.Sex = "Male"' />
+                        <span class="segmented-option">Macho</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="pf-sex" value="Female" checked="@(_request.Sex == "Female")" @onchange='() => _request.Sex = "Female"' />
+                        <span class="segmented-option">Hembra</span>
+                    </label>
+                </div>
+                <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_request.Sex))" />
+            </fieldset>
+            <div class="form-group">
+                <label class="form-label" for="pf-age">Edad *</label>
+                <div class="row nowrap">
+                    <input id="pf-age" type="number" min="1" max="@(_ageUnit == "months" ? 11 : 40)"
+                           class="form-control @Invalid(_ageValue <= 0)" @bind="_ageValue" @bind:after="ClampAge" />
+                    <select class="form-control age-unit" aria-label="Unidad de edad" @bind="_ageUnit" @bind:after="ClampAge">
+                        <option value="years">Años</option>
+                        <option value="months">Meses</option>
+                    </select>
+                </div>
+                <FieldError Show="@(_submitted && _ageValue <= 0)" Message="Ingresa una edad válida." />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="pf-weight">Peso (kg) *</label>
+                <input id="pf-weight" type="number" step="0.1" min="0.01"
+                       class="form-control @Invalid(_request.WeightKg <= 0)" @bind="_request.WeightKg" />
+                <FieldError Show="@(_submitted && _request.WeightKg <= 0)" Message="Debe ser mayor a cero." />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="pf-chip">Microchip</label>
+                <input id="pf-chip" class="form-control" @bind="_request.MicrochipNumber" placeholder="Número de microchip" />
+            </div>
+        </div>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-ghost" @onclick="OnClose" disabled="@_saving">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="Save" disabled="@_saving">
+            @if (_saving)
+            {
+                <span class="spinner spinner-sm" aria-hidden="true"></span>
+            }
+            Registrar mascota
+        </button>
+    </Footer>
+</ModalShell>
+
+@code {
+    // Veterinario y administrador registran a nombre de un propietario; el propietario lo hace a su nombre
+    [Parameter] public bool ChooseOwner { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnClose { get; set; }
+
+    private List<SpeciesResponse>? _species;
+    private List<OwnerSummary>?    _owners;
+    private OwnerSummary?          _selectedOwner;
+    private List<OwnerSummary>     _ownerResults = [];
+    private string                 _ownerSearch  = "";
+    private bool                   _showOwnerList;
+
+    private readonly CreatePatientRequest _request = new();
+    private int     _ageValue;
+    private string  _ageUnit = "years";
+    private bool    _submitted;
+    private bool    _saving;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _species = await SpeciesApi.GetAllAsync();
+            if (ChooseOwner) _owners = await AuthApi.GetOwnersAsync();
+        }
+        catch (Exception ex)
+        {
+            _species ??= [];
+            if (ChooseOwner) _owners ??= [];
+            _error = ex.Message;
+        }
+    }
+
+    private string Invalid(bool missing) => _submitted && missing ? "invalid" : "";
+
+    private void OnOwnerSearch(ChangeEventArgs e)
+    {
+        _ownerSearch   = e.Value?.ToString() ?? "";
+        _selectedOwner = null;
+        _showOwnerList = true;
+
+        var q = _ownerSearch.Trim();
+        _ownerResults = q.Length == 0
+            ? []
+            : (_owners ?? [])
+                .Where(o => o.FullName.Contains(q, StringComparison.OrdinalIgnoreCase)
+                         || o.Email.Contains(q, StringComparison.OrdinalIgnoreCase)
+                         || (o.Phone ?? "").Contains(q))
+                .Take(8)
+                .ToList();
+    }
+
+    private void SelectOwner(OwnerSummary owner)
+    {
+        _selectedOwner = owner;
+        _ownerSearch   = owner.FullName;
+        _ownerResults  = [];
+        _showOwnerList = false;
+    }
+
+    // blur llega antes que el mousedown de la sugerencia; la espera deja que SelectOwner corra primero
+    private async Task HideOwnerList()
+    {
+        await Task.Delay(150);
+        _showOwnerList = false;
+    }
+
+    // Si el usuario cambia de unidad y el valor supera el máximo de meses, lo recorta
+    private void ClampAge()
+    {
+        if (_ageUnit == "months" && _ageValue > 11) _ageValue = 11;
+        if (_ageValue < 0) _ageValue = 0;
+    }
+
+    private async Task Save()
+    {
+        _submitted = true;
+        if ((ChooseOwner && _selectedOwner is null)
+            || string.IsNullOrWhiteSpace(_request.Name)
+            || string.IsNullOrWhiteSpace(_request.Species)
+            || string.IsNullOrWhiteSpace(_request.Breed)
+            || string.IsNullOrWhiteSpace(_request.Sex)
+            || _ageValue <= 0
+            || _request.WeightKg <= 0)
+            return;
+
+        // Se guarda la fecha de nacimiento aproximada que resulta de la edad indicada
+        _request.BirthDate = _ageUnit == "months"
+            ? DateOnly.FromDateTime(DateTime.Today.AddMonths(-_ageValue))
+            : DateOnly.FromDateTime(DateTime.Today.AddYears(-_ageValue));
+
+        if (_selectedOwner is not null)
+        {
+            _request.OwnerId    = _selectedOwner.Id;
+            _request.OwnerName  = _selectedOwner.FullName;
+            _request.OwnerPhone = _selectedOwner.Phone;
+            _request.OwnerEmail = _selectedOwner.Email;
+        }
+
+        _saving = true;
+        _error  = null;
+        try
+        {
+            await PatientApi.CreateAsync(_request);
+            await OnSaved.InvokeAsync();
+            await OnClose.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

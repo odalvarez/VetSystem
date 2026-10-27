@@ -21,7 +21,7 @@ public class NotificationTests(StackFixture stack) : E2ETest(stack)
 
     private static async Task SendWhatsAppAsync(IPage page, string localNumber, string message)
     {
-        await page.GetByLabel("Tipo", new() { Exact = true }).SelectOptionAsync(new SelectOptionValue { Label = "WhatsApp" });
+        await page.GetByRole(AriaRole.Group, new() { Name = "Tipo" }).GetByText("WhatsApp").ClickAsync();
         await page.GetByLabel("Número WhatsApp").FillAsync(localNumber);
         await page.GetByLabel("Mensaje", new() { Exact = true }).FillAsync(message);
         await Ui.Button(page, "Enviar WhatsApp").ClickAsync();

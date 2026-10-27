@@ -2,14 +2,12 @@
    Si Log es null se crea una nueva; si no, se edita la existente. *@
 @inject ConsultationLogApiClient LogApi
 
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">@(Log == null ? "Nueva bitácora" : "Editar bitácora")</span>
-        <button aria-label="Cerrar" class="btn-close" @onclick="OnCancel">✕</button>
-    </div>
-    <div class="card-body">
-        @if (!string.IsNullOrEmpty(_error))
-        { <div class="alert alert-danger">@_error</div> }
+<div class="stack">
+    <h3 class="form-section-title">@(Log == null ? "Nueva bitácora" : "Editar bitácora")</h3>
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_error</div>
+    }
 
         @* ── Motivo (obligatorio) ── *@
         <div class="form-group">
@@ -17,8 +15,7 @@
             <input id="log-reason" class="form-control @(_submitted && string.IsNullOrWhiteSpace(_req.ReasonForVisit) ? "invalid" : "")"
                    @bind="_req.ReasonForVisit"
                    placeholder="Motivo principal de la consulta" />
-            @if (_submitted && string.IsNullOrWhiteSpace(_req.ReasonForVisit))
-            { <div class="validation-message">Campo obligatorio.</div> }
+            <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_req.ReasonForVisit))" Message="Campo obligatorio." />
         </div>
 
         @* ── Anamnesis ── *@
@@ -29,15 +26,9 @@
         </div>
 
         @* ── Exploración física (colapsable) ── *@
-        <div style="margin-bottom:16px">
-            <button type="button" class="btn btn-ghost btn-sm"
-                    style="padding:6px 0;font-weight:600;width:100%;text-align:left;display:flex;align-items:center;gap:6px"
-                    @onclick="() => _showPhysical = !_showPhysical">
-                @(_showPhysical ? "▼" : "▶") Exploración física
-            </button>
-            @if (_showPhysical)
-            {
-                <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
+        <details class="collapse" open="@_showPhysical">
+            <summary>Exploración física</summary>
+            <div class="collapse-body">
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label" for="log-heart-rate">Frecuencia cardíaca</label>
@@ -58,13 +49,12 @@
                             <input id="log-mucous-membranes" class="form-control" @bind="_req.MucousMembranes" placeholder="ej. Rosadas, húmedas" />
                         </div>
                     </div>
-                    <div class="form-group" style="max-width:50%">
+                    <div class="form-group half">
                         <label class="form-label" for="log-hydration">Hidratación</label>
                         <input id="log-hydration" class="form-control" @bind="_req.Hydration" placeholder="ej. Normal" />
                     </div>
-                </div>
-            }
-        </div>
+            </div>
+        </details>
 
         @* ── Peso y temperatura ── *@
         <div class="form-row">
@@ -80,15 +70,9 @@
         </div>
 
         @* ── Exámenes ── *@
-        <div style="margin-bottom:16px">
-            <button type="button" class="btn btn-ghost btn-sm"
-                    style="padding:6px 0;font-weight:600;width:100%;text-align:left;display:flex;align-items:center;gap:6px"
-                    @onclick="() => _showTests = !_showTests">
-                @(_showTests ? "▼" : "▶") Exámenes
-            </button>
-            @if (_showTests)
-            {
-                <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
+        <details class="collapse" open="@_showTests">
+            <summary>Exámenes</summary>
+            <div class="collapse-body">
                     <div class="form-group">
                         <label class="form-label" for="log-exams-requested">Exámenes solicitados</label>
                         <textarea id="log-exams-requested" class="form-control" rows="2" @bind="_req.RequestedTests"
@@ -99,9 +83,8 @@
                         <textarea id="log-exam-results" class="form-control" rows="2" @bind="_req.TestResults"
                                   placeholder="Resultados obtenidos…"></textarea>
                     </div>
-                </div>
-            }
-        </div>
+            </div>
+        </details>
 
         @* ── Diagnóstico y pronóstico ── *@
         <div class="form-row">
@@ -118,15 +101,9 @@
         </div>
 
         @* ── Planes ── *@
-        <div style="margin-bottom:16px">
-            <button type="button" class="btn btn-ghost btn-sm"
-                    style="padding:6px 0;font-weight:600;width:100%;text-align:left;display:flex;align-items:center;gap:6px"
-                    @onclick="() => _showPlans = !_showPlans">
-                @(_showPlans ? "▼" : "▶") Planes
-            </button>
-            @if (_showPlans)
-            {
-                <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-top:8px">
+        <details class="collapse" open="@_showPlans">
+            <summary>Planes</summary>
+            <div class="collapse-body">
                     <div class="form-group">
                         <label class="form-label" for="log-treatment-plan">Plan terapéutico (medicamentos y tratamiento)</label>
                         <textarea id="log-treatment-plan" class="form-control" rows="3" @bind="_req.TherapeuticPlan"
@@ -137,9 +114,8 @@
                         <textarea id="log-diagnostic-plan" class="form-control" rows="2" @bind="_req.DiagnosticPlan"
                                   placeholder="Estudios adicionales a realizar…"></textarea>
                     </div>
-                </div>
-            }
-        </div>
+            </div>
+        </details>
 
         @* ── Recomendaciones y próxima visita ── *@
         <div class="form-group">
@@ -147,7 +123,7 @@
             <textarea id="log-recommendations" class="form-control" rows="2" @bind="_req.Recommendations"
                       placeholder="Cuidados en casa, dieta, ejercicio…"></textarea>
         </div>
-        <div class="form-group" style="max-width:50%">
+        <div class="form-group half">
             <label class="form-label" for="log-next-visit">Próxima visita</label>
             <input id="log-next-visit" type="date" class="form-control"
                    value="@_nextVisitStr"
@@ -155,14 +131,13 @@
                    @oninput="e => _nextVisitStr = e.Value?.ToString() ?? string.Empty" />
         </div>
 
-        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
-            <button class="btn btn-ghost" @onclick="OnCancel" disabled="@_saving">Cancelar</button>
-            <button class="btn btn-primary" @onclick="Save" disabled="@_saving">
-                @if (_saving) { <span class="spinner spinner-sm"></span> }
-                else { <span>@(Log == null ? "Crear bitácora" : "Guardar cambios")</span> }
+        <div class="row-end">
+            <button type="button" class="btn btn-ghost" @onclick="OnCancel" disabled="@_saving">Cancelar</button>
+            <button type="button" class="btn btn-primary" @onclick="Save" disabled="@_saving">
+                @if (_saving) { <span class="spinner spinner-sm" aria-hidden="true"></span> }
+                @(Log == null ? "Crear bitácora" : "Guardar cambios")
             </button>
         </div>
-    </div>
 </div>
 
 @code {
@@ -177,10 +152,10 @@
     private bool    _saving       = false;
     private string? _error;
     private string  _nextVisitStr = "";
-    // Secciones colapsables
-    private bool _showPhysical = false;
-    private bool _showTests    = false;
-    private bool _showPlans    = false;
+    // Solo decide si la sección arranca abierta (al editar, con datos); después manda el <details> nativo
+    private bool _showPhysical;
+    private bool _showTests;
+    private bool _showPlans;
 
     protected override void OnParametersSet()
     {

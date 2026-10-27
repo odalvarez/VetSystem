@@ -1,0 +1,32 @@
+@* Ficha de solo lectura de la mascota (vista del propietario): encabezado con lo esencial y hoja de datos *@
+<div class="stack">
+    <div class="pet-hero">
+        <span class="pet-hero-avatar" aria-hidden="true">@Patient.SpeciesIcon</span>
+        <div>
+            <p class="pet-hero-name">@Patient.Name</p>
+            <p class="pet-hero-meta">@Patient.SpeciesName · @Patient.Breed</p>
+            <div class="pet-hero-chips">
+                <span class="pet-hero-chip">@SexLabel</span>
+                <span class="pet-hero-chip">@AgeLabel</span>
+                <span class="pet-hero-chip">@Patient.WeightKg.ToString("0.##") kg</span>
+            </div>
+        </div>
+    </div>
+
+    <dl class="data-sheet">
+        <div class="data-sheet-row"><dt>Fecha de nacimiento aproximada</dt><dd>@Patient.BirthDate.ToString("dd/MM/yyyy")</dd></div>
+        <div class="data-sheet-row"><dt>Color</dt><dd>@Show(Patient.Color)</dd></div>
+        <div class="data-sheet-row"><dt>Microchip</dt><dd class="mono">@Show(Patient.MicrochipNumber)</dd></div>
+        <div class="data-sheet-row"><dt>Propietario</dt><dd>@Patient.OwnerName</dd></div>
+    </dl>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PatientResponse Patient { get; set; } = default!;
+
+    private string SexLabel => Patient.Sex.Equals("female", StringComparison.OrdinalIgnoreCase) ? "Hembra" : "Macho";
+
+    private string AgeLabel => AgeFormat.FromBirthDate(Patient.BirthDate);
+
+    private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value;
+}

@@ -7,52 +7,41 @@
 <PageTitle>Iniciar sesión — VetSystem</PageTitle>
 
 <div class="auth-wrapper">
-    <div class="auth-card">
+    <form class="auth-card" @onsubmit="DoLogin" novalidate>
         <div class="auth-logo">
-            <span class="auth-logo-icon">🏥</span>
-            <div class="auth-logo-title">VetSystem</div>
-            <div class="auth-logo-sub">Sistema de gestión veterinaria</div>
+            <span class="auth-logo-icon"><Icon Name="paw" Size="28" /></span>
+            <h1 class="auth-logo-title">VetSystem</h1>
+            <p class="auth-logo-sub">Sistema de gestión veterinaria</p>
         </div>
 
         @if (!string.IsNullOrEmpty(_error))
         {
-            <div class="alert alert-danger">⚠️ @_error</div>
+            <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_error</div>
         }
 
         <div class="form-group">
             <label class="form-label" for="login-email">Correo electrónico</label>
-            <input id="login-email" type="email"
+            <input id="login-email" type="email" autocomplete="username"
                    class="form-control @(_submitted && string.IsNullOrWhiteSpace(_email) ? "invalid" : "")"
-                   @bind="_email"
-                   @bind:event="oninput"
-                   placeholder="correo@ejemplo.com"
-                   @onkeydown="HandleKeyDown" />
-            @if (_submitted && string.IsNullOrWhiteSpace(_email))
-            { <div class="validation-message">Ingresa tu correo.</div> }
+                   @bind="_email" @bind:event="oninput" placeholder="correo@ejemplo.com" />
+            <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_email))" Message="Ingresa tu correo." />
         </div>
 
         <div class="form-group">
             <label class="form-label" for="login-password">Contraseña</label>
-            <input id="login-password" type="password"
+            <input id="login-password" type="password" autocomplete="current-password"
                    class="form-control @(_submitted && string.IsNullOrWhiteSpace(_password) ? "invalid" : "")"
-                   @bind="_password"
-                   @bind:event="oninput"
-                   placeholder="••••••••"
-                   @onkeydown="HandleKeyDown" />
-            @if (_submitted && string.IsNullOrWhiteSpace(_password))
-            { <div class="validation-message">Ingresa tu contraseña.</div> }
+                   @bind="_password" @bind:event="oninput" placeholder="••••••••" />
+            <FieldError Show="@(_submitted && string.IsNullOrWhiteSpace(_password))" Message="Ingresa tu contraseña." />
         </div>
 
-        <button class="btn btn-primary btn-block btn-lg" @onclick="DoLogin" disabled="@_loading">
-            @if (_loading) { <span class="spinner spinner-sm"></span> }
-            <span>Ingresar</span>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" disabled="@_loading">
+            @if (_loading) { <span class="spinner spinner-sm" aria-hidden="true"></span> }
+            Ingresar
         </button>
 
-        <div style="margin-top:20px;text-align:center;font-size:.85rem;color:var(--color-text-muted)">
-            ¿No tienes cuenta?
-            <a href="/register" style="font-weight:600">Regístrate aquí</a>
-        </div>
-    </div>
+        <p class="auth-footer">¿No tienes cuenta? <a href="/register">Regístrate aquí</a></p>
+    </form>
 </div>
 
 @code {
@@ -128,10 +117,5 @@
             _              => "/owner-portal"
         };
         Nav.NavigateTo(dest, replace: true);
-    }
-
-    private async Task HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter") await DoLogin();
     }
 }

@@ -8,10 +8,12 @@
 
 <PageTitle>Portal del propietario — VetSystem</PageTitle>
 
-<div class="page-header">
-    <div class="page-title">🐾 Mis mascotas</div>
-    <div class="page-subtitle">Portal del propietario</div>
-</div>
+<header class="page-header">
+    <div>
+        <h1 class="page-title">Mis mascotas</h1>
+        <p class="page-subtitle">Portal del propietario</p>
+    </div>
+</header>
 
 <div class="page-content">
 
@@ -22,12 +24,11 @@
     else
     {
         @* ── Mascotas ── *@
-        <div class="card" style="margin-bottom:28px">
+        <section class="card" aria-labelledby="pets-title">
             <div class="card-header">
-                <span class="card-title">Mis mascotas</span>
-                <button class="btn btn-primary btn-sm"
-                        @onclick="() => _showNewPatient = true">
-                    + Registrar mascota
+                <h2 id="pets-title" class="card-title">Mis mascotas</h2>
+                <button type="button" class="btn btn-primary btn-sm" @onclick="() => _showNewPatient = true">
+                    <Icon Name="plus" Size="16" /> Registrar mascota
                 </button>
             </div>
 
@@ -35,13 +36,10 @@
                 @if (_patients == null || !_patients.Any())
                 {
                     <div class="empty-state">
-                        <div class="empty-state-icon">🐾</div>
-                        <div class="empty-state-title">No tienes mascotas registradas</div>
-                        <div class="empty-state-sub">
-                            Registra tu primera mascota para acceder a las funciones del portal.
-                        </div>
-                        <button class="btn btn-primary" style="margin-top:16px"
-                                @onclick="() => _showNewPatient = true">
+                        <span class="empty-state-icon"><Icon Name="paw" Size="28" /></span>
+                        <p class="empty-state-title">No tienes mascotas registradas</p>
+                        <p class="empty-state-sub">Registra tu primera mascota para acceder a las funciones del portal.</p>
+                        <button type="button" class="btn btn-primary" @onclick="() => _showNewPatient = true">
                             Registrar mascota
                         </button>
                     </div>
@@ -57,16 +55,15 @@
                     </div>
                 }
             </div>
-        </div>
+        </section>
 
         @* ── Citas ── *@
-        <div class="card">
+        <section class="card" aria-labelledby="appts-title">
             <div class="card-header">
-                <span class="card-title">Mis citas</span>
-                <button class="btn btn-primary btn-sm"
-                        @onclick="() => _showNewAppointment = true"
+                <h2 id="appts-title" class="card-title">Mis citas</h2>
+                <button type="button" class="btn btn-primary btn-sm" @onclick="() => _showNewAppointment = true"
                         disabled="@(!(_patients?.Any() ?? false))">
-                    + Solicitar cita
+                    <Icon Name="plus" Size="16" /> Solicitar cita
                 </button>
             </div>
 
@@ -74,16 +71,12 @@
                 @if (_appointments == null || !_appointments.Any())
                 {
                     <div class="empty-state">
-                        <div class="empty-state-icon">📅</div>
-                        <div class="empty-state-title">No tienes citas</div>
-                        @if (_patients?.Any() == true)
-                        {
-                            <div class="empty-state-sub">Solicita tu primera cita con el botón de arriba.</div>
-                        }
-                        else
-                        {
-                            <div class="empty-state-sub">Registra una mascota primero para poder solicitar citas.</div>
-                        }
+                        <span class="empty-state-icon"><Icon Name="calendar" Size="28" /></span>
+                        <p class="empty-state-title">No tienes citas</p>
+                        <p class="empty-state-sub">
+                            @(_patients?.Any() == true ? "Solicita tu primera cita con el botón de arriba."
+                                                       : "Registra una mascota primero para poder solicitar citas.")
+                        </p>
                     </div>
                 }
                 else
@@ -108,36 +101,41 @@
                                     <td data-label="Hora">@a.ScheduledAt.ToString("HH:mm")</td>
                                     <td data-label="Duración">@a.DurationMinutes min</td>
                                     <td data-label="Estado"><StatusBadge Status="@a.Status" /></td>
-                                    <td data-label="Motivo" style="color:var(--color-text-muted);font-size:.85rem">
-                                        @(a.Reason ?? "—")
-                                    </td>
+                                    <td data-label="Motivo" class="cell-sub">@(a.Reason ?? "—")</td>
                                 </tr>
                             }
                         </tbody>
                     </table>
                 }
             </div>
-        </div>
+        </section>
     }
 </div>
 
-<NewPatientModal Visible="_showNewPatient"
-                 OnSaved="EventCallback.Factory.Create(this, OnPatientSaved)"
-                 OnClose="EventCallback.Factory.Create(this, () => _showNewPatient = false)" />
+@if (_showNewPatient)
+{
+    <PatientFormModal OnSaved="EventCallback.Factory.Create(this, OnPatientSaved)"
+                      OnClose="EventCallback.Factory.Create(this, () => _showNewPatient = false)" />
+}
 
-<NewAppointmentModal Visible="_showNewAppointment"
-                     OnSaved="EventCallback.Factory.Create(this, OnAppointmentSaved)"
-                     OnClose="EventCallback.Factory.Create(this, () => _showNewAppointment = false)" />
+@if (_showNewAppointment)
+{
+    <NewAppointmentModal OnSaved="EventCallback.Factory.Create(this, OnAppointmentSaved)"
+                         OnClose="EventCallback.Factory.Create(this, () => _showNewAppointment = false)" />
+}
 
-@* El PatientDetailModal detecta el rol Owner internamente y deshabilita escritura *@
-<PatientDetailModal Visible="_showDetail"
-                    Patient="_selectedPatient"
-                    OnPatientSaved="EventCallback.Factory.Create(this, OnPatientSaved)"
-                    OnClose="EventCallback.Factory.Create(this, () => { _showDetail = false; _selectedPatient = null; })" />
+@* PatientDetailModal detecta el rol Owner y muestra la ficha de solo lectura *@
+@if (_showDetail && _selectedPatient is not null)
+{
+    <PatientDetailModal
+        Patient="_selectedPatient!"
+        OnPatientSaved="EventCallback.Factory.Create(this, OnPatientSaved)"
+        OnClose="EventCallback.Factory.Create(this, () => { _showDetail = false; _selectedPatient = null; })" />
+}
 
 @if (!string.IsNullOrEmpty(_toast))
 {
-    <div class="toast-snack">✅ @_toast</div>
+    <div class="toast-snack" role="status"><Icon Name="check-circle" /> @_toast</div>
 }
 
 @code {

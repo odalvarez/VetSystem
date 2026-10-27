@@ -42,7 +42,9 @@ public static class Flows
         await dialog.GetByLabel("Nombre *").FillAsync(petName);
         await dialog.GetByLabel("Especie *").SelectOptionAsync(new SelectOptionValue { Label = "Perro" });
         await dialog.GetByLabel("Raza *").FillAsync("Golden Retriever");
-        await dialog.GetByLabel("Sexo *").SelectOptionAsync(new SelectOptionValue { Label = "Hembra" });
+        // El radio real está oculto visualmente; el usuario hace clic en su etiqueta
+        await dialog.GetByText("Hembra", new() { Exact = true }).ClickAsync();
+        await Expect(dialog.GetByRole(AriaRole.Radio, new() { Name = "Hembra" })).ToBeCheckedAsync();
         await dialog.GetByLabel("Edad *").FillAsync("4");
         await dialog.GetByLabel("Peso (kg) *").FillAsync("28.5");
     }

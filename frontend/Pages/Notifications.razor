@@ -7,44 +7,56 @@
 
 <PageTitle>Notificaciones — VetSystem</PageTitle>
 
-<div class="page-header">
-    <div class="page-title">🔔 Notificaciones</div>
-    <div class="page-subtitle">Envío y seguimiento de alertas</div>
-</div>
+<header class="page-header">
+    <div>
+        <h1 class="page-title">Notificaciones</h1>
+        <p class="page-subtitle">Envío y seguimiento de alertas</p>
+    </div>
+</header>
 
 <div class="page-content">
 
     <AuthorizeView Roles="Veterinarian,Admin">
         <Authorized>
-            <div class="card" style="margin-bottom:28px">
+            <section class="card" aria-labelledby="send-title">
                 <div class="card-header">
-                    <span class="card-title">Enviar notificación manual</span>
+                    <h2 id="send-title" class="card-title">Enviar notificación manual</h2>
                 </div>
                 <div class="card-body">
                     @if (!string.IsNullOrEmpty(_sendError))
-                    { <div class="alert alert-danger">@_sendError</div> }
+                    {
+                        <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_sendError</div>
+                    }
                     @if (!string.IsNullOrEmpty(_sendSuccess))
-                    { <div class="alert alert-success">@_sendSuccess</div> }
+                    {
+                        <div class="alert alert-success" role="status"><Icon Name="check-circle" /> @_sendSuccess</div>
+                    }
 
                     <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="notif-type">Tipo</label>
-                            <select id="notif-type" class="form-control" @bind="_notifType">
-                                <option value="whatsapp">WhatsApp</option>
-                                <option value="email">Email</option>
-                            </select>
-                        </div>
+                        <fieldset class="form-group">
+                            <legend class="form-label">Tipo</legend>
+                            <div class="segmented">
+                                <label>
+                                    <input type="radio" name="notif-type" checked="@(_notifType == "whatsapp")" @onchange='() => _notifType = "whatsapp"' />
+                                    <span class="segmented-option">WhatsApp</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="notif-type" checked="@(_notifType == "email")" @onchange='() => _notifType = "email"' />
+                                    <span class="segmented-option">Email</span>
+                                </label>
+                            </div>
+                        </fieldset>
 
                         @if (_notifType == "whatsapp")
                         {
-                            <div class="form-group" style="flex:2">
+                            <div class="form-group">
                                 <label class="form-label" for="notif-whatsapp">Número WhatsApp</label>
                                 <PhoneInput Id="notif-whatsapp" @bind-Value="_whatsappTo" />
                             </div>
                         }
                         else
                         {
-                            <div class="form-group" style="flex:2">
+                            <div class="form-group">
                                 <label class="form-label" for="notif-email">Correo destino</label>
                                 <input id="notif-email" class="form-control" @bind="_recipient"
                                        placeholder="correo@ejemplo.com" inputmode="email" />
@@ -66,19 +78,21 @@
                         </div>
                     }
 
-                    <button class="btn btn-primary" @onclick="SendNotification" disabled="@_sending">
-                        @if (_sending) { <span class="spinner spinner-sm"></span> }
-                        else { <span>Enviar @(_notifType == "whatsapp" ? "WhatsApp" : "Email")</span> }
+                    <button type="button" class="btn btn-primary" @onclick="SendNotification" disabled="@_sending">
+                        @if (_sending) { <span class="spinner spinner-sm" aria-hidden="true"></span> }
+                        <Icon Name="send" Size="16" /> Enviar @(_notifType == "whatsapp" ? "WhatsApp" : "Email")
                     </button>
                 </div>
-            </div>
+            </section>
         </Authorized>
     </AuthorizeView>
 
-    <div class="card">
+    <section class="card" aria-labelledby="history-title">
         <div class="card-header">
-            <span class="card-title">Historial</span>
-            <button class="btn btn-ghost btn-sm" @onclick="LoadHistory">🔄 Actualizar</button>
+            <h2 id="history-title" class="card-title">Historial</h2>
+            <button type="button" class="btn btn-ghost btn-sm" @onclick="LoadHistory">
+                <Icon Name="refresh" Size="16" /> Actualizar
+            </button>
         </div>
 
         @if (_loadingHistory)
@@ -87,9 +101,8 @@
         }
         else
         {
-            <div class="card-body" style="padding-bottom:0;border-bottom:1px solid var(--color-border)">
+            <div class="card-body filters-region">
                 <div class="filters-bar">
-
                     <select aria-label="Filtrar por tipo" class="filter-select" @bind="_filterType">
                         <option value="">Todos los tipos</option>
                         <option value="whatsapp">WhatsApp</option>
@@ -103,39 +116,37 @@
                         <option value="failed">Fallida</option>
                     </select>
 
-                    @* Fecha desde — label visible porque placeholder no funciona en date inputs móviles *@
+                    @* Etiqueta visible: el placeholder no existe en los inputs de fecha del móvil *@
                     <label class="date-filter-label">
                         <span>Desde</span>
-                        <input type="date" class="filter-select"
-                               @bind="_filterFrom" />
+                        <input type="date" class="filter-select" @bind="_filterFrom" />
                     </label>
 
                     <label class="date-filter-label">
                         <span>Hasta</span>
-                        <input type="date" class="filter-select"
-                               @bind="_filterTo" />
+                        <input type="date" class="filter-select" @bind="_filterTo" />
                     </label>
 
-                    @* Búsqueda por destinatario — solo para admin y veterinario *@
+                    @* Búsqueda por destinatario: solo admin y veterinario *@
                     <AuthorizeView Roles="Veterinarian,Admin">
                         <Authorized>
-                            <div class="search-input" style="min-width:200px">
-                                <span class="search-icon">🔍</span>
+                            <div class="search-input">
+                                <span class="search-icon"><Icon Name="search" Size="16" /></span>
                                 <input aria-label="Buscar destinatario" class="form-control"
                                        placeholder="Buscar destinatario…"
-                                       @bind="_filterRecipient"
-                                       @bind:event="oninput" />
+                                       @bind="_filterRecipient" @bind:event="oninput" />
                             </div>
                         </Authorized>
                     </AuthorizeView>
 
                     @if (HasActiveFilters)
                     {
-                        <button class="btn btn-ghost btn-sm" @onclick="ClearFilters"
-                                style="white-space:nowrap">✕ Limpiar</button>
+                        <button type="button" class="btn btn-ghost btn-sm" @onclick="ClearFilters">
+                            <Icon Name="x" Size="16" /> Limpiar
+                        </button>
                     }
 
-                    <span style="margin-left:auto;font-size:.82rem;color:var(--color-text-muted);align-self:center;white-space:nowrap">
+                    <span class="entry-meta results-count" role="status">
                         @FilteredHistory.Count() resultado@(FilteredHistory.Count() == 1 ? "" : "s")
                         @if (HasActiveFilters && _history?.Count != FilteredHistory.Count())
                         {
@@ -149,14 +160,12 @@
             {
                 <div class="card-body">
                     <div class="empty-state">
-                        <div class="empty-state-icon">🔔</div>
-                        <div class="empty-state-title">Sin resultados</div>
-                        <div class="empty-state-sub">
-                            @if (HasActiveFilters)
-                            { <span>Ninguna notificación coincide con los filtros aplicados.</span> }
-                            else
-                            { <span>Aún no hay notificaciones enviadas.</span> }
-                        </div>
+                        <span class="empty-state-icon"><Icon Name="bell" Size="28" /></span>
+                        <p class="empty-state-title">Sin resultados</p>
+                        <p class="empty-state-sub">
+                            @(HasActiveFilters ? "Ninguna notificación coincide con los filtros aplicados."
+                                               : "Aún no hay notificaciones enviadas.")
+                        </p>
                     </div>
                 </div>
             }
@@ -171,7 +180,7 @@
                                 <th>Estado</th>
                                 <th>Creada</th>
                                 <th>Enviada</th>
-                                <th></th>
+                                <th><span class="visually-hidden">Acciones</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -179,20 +188,14 @@
                             {
                                 <tr>
                                     <td data-label="Tipo"><StatusBadge Status="@n.Type" /></td>
-                                    <td data-label="Destinatario" style="font-size:.85rem">@n.Recipient</td>
+                                    <td data-label="Destinatario">@n.Recipient</td>
                                     <td data-label="Estado"><StatusBadge Status="@n.Status" /></td>
-                                    <td data-label="Creada" style="font-size:.82rem;color:var(--color-text-muted)">
-                                        @n.CreatedAt.ToLocalTime().ToString("dd/MM/yy HH:mm")
-                                    </td>
-                                    <td data-label="Enviada" style="font-size:.82rem;color:var(--color-text-muted)">
-                                        @(n.SentAt.HasValue ? n.SentAt.Value.ToLocalTime().ToString("dd/MM/yy HH:mm") : "—")
-                                    </td>
+                                    <td data-label="Creada" class="cell-sub cell-nowrap">@n.CreatedAt.ToLocalTime().ToString("dd/MM/yy HH:mm")</td>
+                                    <td data-label="Enviada" class="cell-sub cell-nowrap">@(n.SentAt.HasValue ? n.SentAt.Value.ToLocalTime().ToString("dd/MM/yy HH:mm") : "—")</td>
                                     <td data-label="" class="td-actions">
-                                        <span class="tip-wrap">
-                                            <button aria-label="Ver detalle" class="btn btn-sm btn-icon-view"
-                                                    @onclick="() => OpenDetail(n)">👁</button>
-                                            <span class="tip-txt">Ver detalle</span>
-                                        </span>
+                                        <button type="button" class="icon-btn" aria-label="Ver detalle" title="Ver detalle" @onclick="() => OpenDetail(n)">
+                                            <Icon Name="eye" />
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -201,68 +204,58 @@
                 </div>
             }
         }
-    </div>
+    </section>
 </div>
 
-@* Modal de detalle de notificación *@
 @if (_detailNotif != null)
 {
-    <div class="modal-overlay" @onclick="CloseDetail">
-        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="notif-detail-title" style="max-width:520px;width:100%" @onclick:stopPropagation>
-            <div class="modal-header">
-                <span id="notif-detail-title" class="modal-title">Detalle de notificación</span>
-                <button aria-label="Cerrar" class="btn-close" @onclick="CloseDetail">✕</button>
-            </div>
-            <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
-
-                <div style="display:flex;gap:10px;align-items:center">
+    <ModalShell Title="Detalle de notificación" Icon="bell" Size="ModalSize.Small" CloseOnBackdrop="true" OnClose="CloseDetailAsync">
+        <ChildContent>
+            <div class="stack">
+                <div class="row">
                     <StatusBadge Status="@_detailNotif.Type" />
                     <StatusBadge Status="@_detailNotif.Status" />
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Destinatario</label>
-                    <div class="detail-value">@_detailNotif.Recipient</div>
+                <div class="read-block">
+                    <p class="read-label">Destinatario</p>
+                    <p>@_detailNotif.Recipient</p>
                 </div>
 
                 @if (!string.IsNullOrEmpty(_detailNotif.Subject))
                 {
-                    <div class="form-group">
-                        <label class="form-label">Asunto</label>
-                        <div class="detail-value">@_detailNotif.Subject</div>
+                    <div class="read-block">
+                        <p class="read-label">Asunto</p>
+                        <p>@_detailNotif.Subject</p>
                     </div>
                 }
 
-                <div class="form-group">
-                    <label class="form-label">Mensaje</label>
-                    <div class="detail-value" style="white-space:pre-wrap;background:var(--color-bg-secondary);padding:12px;border-radius:8px;font-size:.9rem;min-height:60px">@_detailNotif.Body</div>
+                <div class="read-block">
+                    <p class="read-label">Mensaje</p>
+                    <p class="read-field">@_detailNotif.Body</p>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div class="form-group">
-                        <label class="form-label">Creada</label>
-                        <div class="detail-value">@_detailNotif.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</div>
+                <div class="form-row">
+                    <div class="read-block">
+                        <p class="read-label">Creada</p>
+                        <p>@_detailNotif.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</p>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Enviada</label>
-                        <div class="detail-value">
-                            @(_detailNotif.SentAt.HasValue
-                                ? _detailNotif.SentAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
-                                : "—")
-                        </div>
+                    <div class="read-block">
+                        <p class="read-label">Enviada</p>
+                        <p>@(_detailNotif.SentAt.HasValue ? _detailNotif.SentAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") : "—")</p>
                     </div>
                 </div>
 
                 @if (!string.IsNullOrEmpty(_detailNotif.Error))
                 {
-                    <div class="alert alert-danger" style="font-size:.85rem">@_detailNotif.Error</div>
+                    <div class="alert alert-danger" role="alert"><Icon Name="alert" /> @_detailNotif.Error</div>
                 }
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" @onclick="CloseDetail">Cerrar</button>
-            </div>
-        </div>
-    </div>
+        </ChildContent>
+        <Footer>
+            <button type="button" class="btn btn-secondary" @onclick="CloseDetail">Cerrar</button>
+        </Footer>
+    </ModalShell>
 }
 
 @code {
@@ -275,6 +268,7 @@
 
     private void OpenDetail(NotificationStatusResponse n) => _detailNotif = n;
     private void CloseDetail() => _detailNotif = null;
+    private Task CloseDetailAsync() { CloseDetail(); return Task.CompletedTask; }
 
     // Filtros del historial
     private string    _filterType      = "";
