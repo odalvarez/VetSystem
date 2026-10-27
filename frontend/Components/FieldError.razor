@@ -1,0 +1,10 @@
+@* Mensaje de validación bajo un campo; se muestra solo después del primer intento de envío *@
+@if (Show)
+{
+    <div class="validation-message">@Message</div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string Message { get; set; } = "Obligatorio.";
+}

@@ -224,6 +224,8 @@ public class NotificationsControllerTests : IClassFixture<NotificationsWebFactor
             });
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var body = await resp.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonNode>();
+        Assert.Contains("destinatario", body!["detail"]!.GetValue<string>());
     }
 
     [Fact]

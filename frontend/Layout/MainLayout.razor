@@ -1,13 +1,14 @@
 @inherits LayoutComponentBase
-@inject TokenProvider    Token
-@inject AuthApiClient    AuthApi
+@inject TokenProvider     Token
+@inject AuthApiClient     AuthApi
 @inject NavigationManager Nav
+@inject ModalState        Modals
 @implements IDisposable
 
 @* Las páginas públicas (login, register) se renderizan solas sin sidebar *@
 @if (Token.IsAuthenticated)
 {
-    <div class="app-layout"
+    <div class="app-layout" inert="@Modals.IsOpen"
          @onclick="@(_ => Token.RecordActivity())"
          @onkeydown="@(_ => Token.RecordActivity())">
         <NavMenu />
@@ -21,12 +22,18 @@ else
     @Body
 }
 
+@* Lo que se hace dentro de un modal también cuenta como actividad para el cierre por inactividad *@
+<div @onclick="@(_ => Token.RecordActivity())" @onkeydown="@(_ => Token.RecordActivity())">
+    <SectionOutlet SectionName="@ModalShell.SectionName" />
+</div>
+
 @code {
     private CancellationTokenSource _cts = new();
 
     protected override void OnInitialized()
     {
         Token.OnChange += StateHasChanged;
+        Modals.Changed += StateHasChanged;
         _ = RunInactivityCheck();
     }
 
@@ -55,6 +62,7 @@ else
     public void Dispose()
     {
         Token.OnChange -= StateHasChanged;
+        Modals.Changed -= StateHasChanged;
         _cts.Cancel();
         _cts.Dispose();
     }

@@ -1,0 +1,7 @@
+@* El ModalShell se pinta en un SectionOutlet; en la app lo aporta MainLayout, aquí este anfitrión *@
+<SectionOutlet SectionName="@ModalShell.SectionName" />
+@ChildContent
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

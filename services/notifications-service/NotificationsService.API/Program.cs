@@ -1,3 +1,4 @@
+using NotificationsService.API;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,8 @@ using NotificationsService.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(o => o.ModelMetadataDetailsProviders.Add(new SpanishValidationMessages()))
+    .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ValidationErrorResponse.Create);
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -94,6 +96,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddHttpClient<IWhatsAppSender, EvolutionWhatsAppSender>();
+// Se resuelve al arrancar para que una configuración SMTP inválida tumbe el despliegue y no el primer envío
+builder.Services.AddSingleton(SmtpSettings.FromConfiguration(builder.Configuration));
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<NotificationAppService>();

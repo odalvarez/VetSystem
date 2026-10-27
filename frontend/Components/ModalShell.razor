@@ -1,0 +1,84 @@
+@inject ModalState Modals
+@implements IDisposable
+
+@* Se pinta en el SectionOutlet de MainLayout, fuera de .app-layout: dentro de un panel con backdrop-filter el
+   position:fixed quedaría atrapado en ese panel, y el inert del fondo alcanzaría también al propio modal *@
+<SectionContent SectionName="@SectionName">
+    <div class="modal-overlay" @onclick="OnBackdropClick" @onkeydown="OnKeyDown">
+        <div @ref="_box" class="modal-box @SizeClass" role="dialog" aria-modal="true" aria-labelledby="@_titleId"
+             tabindex="-1" @onclick:stopPropagation="true">
+            <header class="modal-header">
+                <div class="modal-heading">
+                    @if (!string.IsNullOrEmpty(Icon))
+                    {
+                        <span class="modal-icon @(Danger ? "danger" : "")"><Icon Name="@Icon" Size="20" /></span>
+                    }
+                    <div>
+                        <h2 id="@_titleId" class="modal-title">@Title</h2>
+                        @if (!string.IsNullOrEmpty(Subtitle))
+                        {
+                            <p class="modal-subtitle">@Subtitle</p>
+                        }
+                    </div>
+                </div>
+                <button type="button" class="icon-btn" aria-label="Cerrar" @onclick="OnClose">
+                    <Icon Name="x" />
+                </button>
+            </header>
+            <div class="modal-body">@ChildContent</div>
+            @if (Footer is not null)
+            {
+                <footer class="modal-footer @(SpreadFooter ? "spread" : "")">@Footer</footer>
+            }
+        </div>
+    </div>
+</SectionContent>
+
+@code {
+    public const string SectionName = "modal";
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public bool Danger { get; set; }
+    [Parameter] public ModalSize Size { get; set; } = ModalSize.Medium;
+    [Parameter] public bool SpreadFooter { get; set; }
+    // Solo las vistas de consulta se cierran al hacer clic fuera; en un formulario se perdería lo escrito
+    [Parameter] public bool CloseOnBackdrop { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    private readonly string _titleId = $"modal-title-{Guid.NewGuid():N}";
+    private ElementReference _box;
+    private bool _focused;
+
+    private string SizeClass => Size switch
+    {
+        ModalSize.Small => "modal-sm",
+        ModalSize.Large => "modal-lg",
+        _               => ""
+    };
+
+    protected override void OnInitialized() => Modals.Opened();
+
+    // El foco entra al diálogo al abrir para que teclado y lector de pantalla empiecen dentro de él
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focused || string.IsNullOrEmpty(_box.Id)) return;
+        _focused = true;
+        await _box.FocusAsync();
+    }
+
+    private async Task OnBackdropClick()
+    {
+        if (CloseOnBackdrop) await OnClose.InvokeAsync();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") await OnClose.InvokeAsync();
+    }
+
+    public void Dispose() => Modals.Closed();
+}

@@ -56,6 +56,31 @@ public class PatientsControllerTests : IClassFixture<PatientsWebFactory>
     }
 
     [Fact]
+    public async Task CreatePatient_MissingName_ReturnsSpanishDetail()
+    {
+        // Todo 400 de validación trae un detail en español que el frontend muestra tal cual
+        var client = ClientAs(PatientsWebFactory.VetId, "vet@test.com", "Veterinarian");
+
+        var resp = await client.PostAsJsonAsync("/api/patients", new CreatePatientRequest
+        {
+            Name       = "",
+            Species    = "Canine",
+            Breed      = "Labrador",
+            BirthDate  = new DateOnly(2020, 3, 15),
+            Sex        = "Female",
+            WeightKg   = 25.5m,
+            OwnerId    = PatientsWebFactory.OwnerId,
+            OwnerName  = "Pedro Ramirez",
+            OwnerPhone = "3001234567"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        Assert.Equal("application/problem+json", resp.Content.Headers.ContentType?.MediaType);
+        var body = await resp.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonNode>();
+        Assert.Contains("El campo nombre es obligatorio.", body!["detail"]!.GetValue<string>());
+    }
+
+    [Fact]
     public async Task CreatePatient_AsAdmin_Returns201()
     {
         var client = ClientAs(PatientsWebFactory.AdminId, "admin@test.com", "Admin");
@@ -128,6 +153,34 @@ public class PatientsControllerTests : IClassFixture<PatientsWebFactory>
         var client = ClientAs(PatientsWebFactory.OwnerId, "owner@test.com", "Owner");
         var resp   = await client.GetAsync("/api/patients");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+    }
+
+    // El buscador del modal de citas filtra en el servidor: debe encontrar por raza y por teléfono del dueño,
+    // no solo por nombre, y ya no depende de traer todas las mascotas al navegador
+    [Theory]
+    [InlineData("Shiba")]
+    [InlineData("3157778899")]
+    public async Task ListPatients_SearchMatchesBreedAndOwnerPhone(string term)
+    {
+        var vet  = ClientAs(PatientsWebFactory.VetId, "vet@test.com", "Veterinarian");
+        var name = $"Kenji{Guid.NewGuid():N}"[..12];
+        var create = await vet.PostAsJsonAsync("/api/patients", new CreatePatientRequest
+        {
+            Name       = name,
+            Species    = "Canine",
+            Breed      = "Shiba Inu",
+            BirthDate  = new DateOnly(2021, 3, 1),
+            Sex        = "Male",
+            WeightKg   = 9m,
+            OwnerId    = PatientsWebFactory.OwnerId,
+            OwnerName  = "Hana",
+            OwnerPhone = "3157778899"
+        });
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+
+        var page = await vet.GetFromJsonAsync<PagedResponse<PatientResponse>>($"/api/patients?search={term}&pageSize=100");
+
+        Assert.Contains(page!.Items, p => p.Name == name);
     }
 
     // ── Obtener mascota por ID ────────────────────────────────────────────────

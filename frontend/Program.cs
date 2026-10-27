@@ -10,6 +10,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // Singleton: la sesión del usuario debe sobrevivir a re-renders de componentes Scoped
 builder.Services.AddSingleton<TokenProvider>();
+builder.Services.AddScoped<ModalState>();
 
 builder.Services.AddScoped<AuthenticationStateProvider, VetAuthStateProvider>();
 builder.Services.AddAuthorizationCore();

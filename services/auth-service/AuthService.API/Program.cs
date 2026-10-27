@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading.RateLimiting;
 using AuthService.API;
 using Microsoft.OpenApi.Models;
 using AuthService.API.Middleware;
@@ -9,13 +8,13 @@ using AuthService.Infrastructure.Data;
 using AuthService.Infrastructure.Data.Repositories;
 using AuthService.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ValidationErrorResponse.Create);
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -99,29 +98,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Los tests corren múltiples llamadas a /register en el mismo proceso; el rate limiter
-// los bloquearía con 429 antes de que lleguen a la lógica que realmente quieren probar.
-if (!builder.Environment.IsEnvironment("Testing"))
-{
-    builder.Services.AddRateLimiter(opt =>
-    {
-        opt.AddFixedWindowLimiter("login", cfg =>
-        {
-            cfg.Window               = TimeSpan.FromMinutes(10);
-            cfg.PermitLimit          = 10;
-            cfg.QueueLimit           = 0;
-            cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        });
-        opt.AddFixedWindowLimiter("register", cfg =>
-        {
-            cfg.Window               = TimeSpan.FromMinutes(10);
-            cfg.PermitLimit          = 5;
-            cfg.QueueLimit           = 0;
-            cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        });
-        opt.RejectionStatusCode = 429;
-    });
-}
+builder.Services.AddClientIpResolution();
+builder.Services.AddAuthRateLimiting();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -142,6 +120,9 @@ using (var scope = app.Services.CreateScope())
         ?? throw new InvalidOperationException("AdminSeed:Email no está configurado.");
     var adminPwd = app.Configuration["AdminSeed:Password"]
         ?? throw new InvalidOperationException("AdminSeed:Password no está configurado.");
+    // El seed no pasa por los endpoints; se avisa en vez de fallar para no tumbar el servicio en producción
+    if (!AuthService.Application.Security.PasswordPolicy.IsValid(adminPwd))
+        app.Logger.LogWarning("AdminSeed:Password no cumple la política de contraseñas; cámbiala por una que la cumpla.");
     if (!await db.Users.AnyAsync(u => u.Role == AuthService.Domain.Enums.UserRole.Admin))
     {
         var adminUser = AuthService.Domain.Entities.User.Create(
@@ -153,6 +134,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseForwardedHeaders();
 app.UseCors();
 if (!app.Environment.IsProduction())
 {
@@ -160,8 +142,7 @@ if (!app.Environment.IsProduction())
     app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "AuthService v1"));
 }
 app.UseMiddleware<ErrorHandlingMiddleware>();
-if (!app.Environment.IsEnvironment("Testing"))
-    app.UseRateLimiter();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

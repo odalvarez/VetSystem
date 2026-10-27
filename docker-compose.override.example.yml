@@ -1,0 +1,22 @@
+# Copia este archivo como docker-compose.override.yml para desarrollo local (sin TLS y con puertos de los servicios).
+# El de la VM de producción es otro (certificados, imagen ARM64) y nunca se versiona.
+services:
+  frontend:
+    volumes:
+      - ./frontend/nginx/local.conf:/etc/nginx/conf.d/default.conf:ro
+
+  auth-service:
+    ports:
+      - "5001:8080"
+
+  patients-service:
+    ports:
+      - "5002:8080"
+
+  appointments-service:
+    ports:
+      - "5003:8080"
+
+  notifications-service:
+    ports:
+      - "5004:8080"

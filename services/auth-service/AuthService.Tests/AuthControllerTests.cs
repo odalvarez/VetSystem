@@ -51,6 +51,23 @@ public class AuthControllerTests : IClassFixture<AuthWebFactory>
     }
 
     [Fact]
+    public async Task Register_WithoutPhone_Returns201()
+    {
+        // El teléfono es opcional en el contrato y en el formulario de registro
+        var resp = await _client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            FirstName = "Sin",
+            LastName  = "Telefono",
+            Email     = $"nophone_{Guid.NewGuid():N}@test.com",
+            Password  = "Password1!",
+            Phone     = "",
+            Role      = "Owner"
+        });
+
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+    }
+
+    [Fact]
     public async Task Register_DuplicateEmail_Returns409()
     {
         var email = $"dup_{Guid.NewGuid():N}@test.com";

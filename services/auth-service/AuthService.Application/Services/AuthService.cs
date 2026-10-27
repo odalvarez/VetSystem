@@ -1,6 +1,7 @@
 using AuthService.Application.DTOs;
 using AuthService.Application.Exceptions;
 using AuthService.Application.Interfaces;
+using AuthService.Application.Security;
 using AuthService.Domain.Entities;
 using AuthService.Domain.Enums;
 using AuthService.Domain.Exceptions;
@@ -25,17 +26,16 @@ public class AuthApplicationService
 
     public async Task<RegisterResponse> RegisterAsync(RegisterRequest req, CancellationToken ct)
     {
-        if (await _users.EmailExistsAsync(req.Email, ct))
-            throw new ConflictException("El correo ya está registrado.");
-
-        ValidatePasswordStrength(req.Password);
-
-        if (!Enum.TryParse<UserRole>(req.Role, ignoreCase: true, out var role))
-            throw new ValidationException("Rol inválido.");
+        // La entrada se valida antes de consultar la BD: una petición inválida no debe revelar si el correo existe
+        EnsurePasswordPolicy(req.Password);
+        var role = ParseRole(req.Role);
 
         // El registro público es exclusivo para propietarios; veterinarios y admins los crea el admin
         if (role != UserRole.Owner)
             throw new ValidationException("El registro público solo está disponible para propietarios.");
+
+        if (await _users.EmailExistsAsync(req.Email, ct))
+            throw new ConflictException("El correo ya está registrado.");
 
         var user = User.Create(
             req.FirstName, req.LastName,
@@ -103,6 +103,8 @@ public class AuthApplicationService
 
     public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest req, CancellationToken ct)
     {
+        EnsurePasswordPolicy(req.NewPassword);
+
         var user = await _users.GetByIdAsync(userId, ct)
             ?? throw new NotFoundException("Usuario no encontrado.");
 
@@ -162,13 +164,11 @@ public class AuthApplicationService
 
     public async Task<AdminUserItem> AdminCreateUserAsync(AdminCreateUserRequest req, CancellationToken ct)
     {
+        EnsurePasswordPolicy(req.Password);
+        var role = ParseRole(req.Role);
+
         if (await _users.EmailExistsAsync(req.Email, ct))
             throw new ConflictException("El correo ya está registrado.");
-
-        ValidatePasswordStrength(req.Password);
-
-        if (!Enum.TryParse<UserRole>(req.Role, ignoreCase: true, out var role))
-            throw new ValidationException("Rol inválido. Valores permitidos: Veterinarian, Owner, Admin.");
 
         var user = User.Create(
             req.FirstName, req.LastName,
@@ -185,8 +185,7 @@ public class AuthApplicationService
         var user = await _users.GetByIdAsync(id, ct)
             ?? throw new NotFoundException("Usuario no encontrado.");
 
-        if (!Enum.TryParse<UserRole>(req.Role, ignoreCase: true, out var role))
-            throw new ValidationException("Rol inválido.");
+        var role = ParseRole(req.Role);
 
         user.AdminUpdate(req.FirstName, req.LastName, req.Phone, role);
         await _users.UpdateAsync(user, ct);
@@ -209,7 +208,7 @@ public class AuthApplicationService
         var user = await _users.GetByIdAsync(id, ct)
             ?? throw new NotFoundException("Usuario no encontrado.");
 
-        ValidatePasswordStrength(newPassword);
+        EnsurePasswordPolicy(newPassword);
         user.ChangePassword(_hasher.Hash(newPassword));
         await _users.UpdateAsync(user, ct);
         await _users.SaveChangesAsync(ct);
@@ -227,18 +226,18 @@ public class AuthApplicationService
         await _users.SaveChangesAsync(ct);
     }
 
-    // El backend es la fuente de verdad: duplicar la validación evita bypass desde clientes alternativos
-    private static void ValidatePasswordStrength(string password)
+    // El backend es la fuente de verdad: aunque el frontend valide, un cliente alternativo podría saltarse esa capa
+    private static void EnsurePasswordPolicy(string? password)
     {
-        if (password.Length < 8)
-            throw new ValidationException("La contraseña debe tener al menos 8 caracteres.");
-        if (!password.Any(char.IsUpper))
-            throw new ValidationException("La contraseña debe incluir al menos una mayúscula.");
-        if (!password.Any(char.IsDigit))
-            throw new ValidationException("La contraseña debe incluir al menos un número.");
-        if (!password.Any(c => !char.IsLetterOrDigit(c)))
-            throw new ValidationException("La contraseña debe incluir al menos un carácter especial.");
+        var errors = PasswordPolicy.Validate(password);
+        if (errors.Count > 0)
+            throw new ValidationException(string.Join(" ", errors));
     }
+
+    private static UserRole ParseRole(string? raw) =>
+        UserRoles.TryParse(raw, out var role)
+            ? role
+            : throw new ValidationException("Rol inválido. Valores permitidos: Veterinarian, Owner, Admin.");
 
     private static AdminUserItem MapToAdminItem(User u) => new()
     {

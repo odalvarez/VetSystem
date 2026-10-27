@@ -1,0 +1,51 @@
+# Todo lo que comparten el server de prod (443) y el de desarrollo (80). El entrypoint oficial de nginx lo
+# genera en conf.d/app.inc sustituyendo la variable INTERNAL_KEY; la extensión .inc evita que conf.d/*.conf lo cargue
+# fuera de un server
+include /etc/nginx/snippets/security-headers.inc;
+
+root  /usr/share/nginx/html;
+index index.html;
+
+# El publish de Blazor ya deja cada archivo precomprimido en .gz; gzip on queda para las respuestas de las APIs
+gzip_static     on;
+gzip            on;
+gzip_vary       on;
+gzip_min_length 1024;
+gzip_types      application/json application/problem+json application/javascript text/css image/svg+xml application/wasm;
+
+# DNS embebido de Docker; las variables en proxy_pass obligan a re-resolver para que un contenedor
+# reconstruido (con otra IP) no deje a nginx apuntando a la anterior
+resolver 127.0.0.11 valid=10s;
+
+# Mismo origen para todas las APIs: la cookie httpOnly viaja sin configuración en el cliente
+proxy_set_header Host              $host;
+proxy_set_header X-Real-IP         $remote_addr;
+proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+
+location /api/auth         { set $up http://auth-service:8080;         proxy_pass $up; }
+location /api/patients     { set $up http://patients-service:8080;     proxy_pass $up; }
+location /api/species      { set $up http://patients-service:8080;     proxy_pass $up; }
+location /api/vaccines     { set $up http://patients-service:8080;     proxy_pass $up; }
+location /api/appointments { set $up http://appointments-service:8080; proxy_pass $up; }
+location /api/schedules    { set $up http://appointments-service:8080; proxy_pass $up; }
+
+location /api/notifications {
+    set $up http://notifications-service:8080;
+    proxy_pass $up;
+    # La clave interna la pone nginx; el navegador nunca la ve. Un proxy_set_header en el location anula los
+    # heredados, por eso se repiten aquí
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Internal-Key    "${INTERNAL_KEY}";
+}
+
+# Una ruta de API desconocida no debe caer en el SPA y responder index.html con 200
+location /api/ { return 404; }
+
+# Rutas del SPA: lo que no existe como archivo se sirve con index.html para que recargar /vet-dashboard funcione
+location / {
+    try_files $uri $uri/ /index.html;
+}

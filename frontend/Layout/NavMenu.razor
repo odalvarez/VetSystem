@@ -4,97 +4,91 @@
 @inject AuthApiClient AuthApi
 @implements IDisposable
 
-@* Botón hamburger — solo visible en móvil (ver CSS media query) *@
-<button class="nav-toggle" @onclick="ToggleNav" aria-label="Abrir menú">
-    @(_navOpen ? "✕" : "☰")
-</button>
+@* Barra superior: solo visible en pantallas de 1024 px o menos (ver .topbar en app.css) *@
+<header class="topbar">
+    <a class="topbar-brand" href="@_homeUrl">
+        <span class="sidebar-logo"><Icon Name="paw" Size="20" /></span>
+        VetSystem
+    </a>
+    <button type="button" class="icon-btn lg" aria-label="@(_navOpen ? "Cerrar menú" : "Abrir menú")"
+            aria-expanded="@(_navOpen ? "true" : "false")" aria-controls="app-sidebar" @onclick="ToggleNav">
+        <Icon Name="@(_navOpen ? "x" : "menu")" Size="20" />
+    </button>
+</header>
 
 @if (_navOpen)
 {
     <div class="sidebar-overlay" @onclick="ToggleNav"></div>
 }
 
-<aside class="sidebar @(_navOpen ? "open" : "")">
-    <div class="sidebar-brand">
-        <a class="sidebar-brand-link" href="@_homeUrl">
-            <div class="sidebar-brand-name">🏥 VetSystem</div>
-            <div class="sidebar-brand-sub">Sistema veterinario</div>
-        </a>
-    </div>
+<aside id="app-sidebar" class="sidebar @(_navOpen ? "open" : "")">
+    <a class="sidebar-brand-link" href="@_homeUrl">
+        <span class="sidebar-logo"><Icon Name="paw" Size="22" /></span>
+        <span class="sidebar-brand-text">
+            <span class="sidebar-brand-name">VetSystem</span>
+            <span class="sidebar-brand-sub">Gestión veterinaria</span>
+        </span>
+    </a>
 
-    <nav class="sidebar-nav">
-        @if (_isAdmin)
+    <nav class="sidebar-nav" aria-label="Navegación principal">
+        <div class="nav-section-label">@_roleLabel</div>
+        @foreach (var item in _items)
         {
-            <div class="nav-section-label">Administración</div>
-            <NavLink class="nav-item" href="/admin" Match="NavLinkMatch.All" ActiveClass="active">
-                <span class="nav-icon">⚙️</span> Panel de administración
-            </NavLink>
-            <NavLink class="nav-item" href="/notifications" ActiveClass="active">
-                <span class="nav-icon">🔔</span> Notificaciones
-            </NavLink>
-        }
-        else if (_isVet)
-        {
-            <div class="nav-section-label">Veterinario</div>
-            <NavLink class="nav-item" href="/vet-dashboard" Match="NavLinkMatch.All" ActiveClass="active">
-                <span class="nav-icon">🩺</span> Panel de control
-            </NavLink>
-            <NavLink class="nav-item" href="/notifications" ActiveClass="active">
-                <span class="nav-icon">🔔</span> Notificaciones
-            </NavLink>
-        }
-        else
-        {
-            <div class="nav-section-label">Propietario</div>
-            <NavLink class="nav-item" href="/owner-portal" Match="NavLinkMatch.All" ActiveClass="active">
-                <span class="nav-icon">🐾</span> Mis mascotas
-            </NavLink>
-            <NavLink class="nav-item" href="/notifications" ActiveClass="active">
-                <span class="nav-icon">🔔</span> Notificaciones
+            <NavLink class="nav-item" href="@item.Href" Match="NavLinkMatch.All" ActiveClass="active">
+                <Icon Name="@item.Icon" /> @item.Label
             </NavLink>
         }
     </nav>
 
     <div class="sidebar-footer">
         <div class="sidebar-user">
-            <div class="sidebar-avatar">@_initials</div>
+            <div class="sidebar-avatar" aria-hidden="true">@_initials</div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name">@Token.User?.FullName</div>
                 <div class="sidebar-user-role">@_roleLabel</div>
             </div>
         </div>
-        <button class="btn btn-ghost btn-sm btn-block" style="color:var(--color-sidebar-text)"
-                @onclick="() => _ = Logout()">
-            🚪 Cerrar sesión
+        <button type="button" class="btn btn-ghost btn-sm btn-block" @onclick="Logout">
+            <Icon Name="log-out" Size="16" /> Cerrar sesión
         </button>
     </div>
 </aside>
 
 @code {
-    private bool   _isVet;
-    private bool   _isAdmin;
-    private string _initials  = "?";
-    private string _homeUrl   = "/";
-    private string _roleLabel = "";
-    private bool   _navOpen   = false;
+    private sealed record NavItem(string Href, string Icon, string Label);
+
+    private NavItem[] _items     = [];
+    private string    _initials  = "?";
+    private string    _homeUrl   = "/";
+    private string    _roleLabel = "";
+    private bool      _navOpen;
 
     protected override async Task OnInitializedAsync()
     {
-        var state = await AuthState.GetAuthenticationStateAsync();
-        _isVet   = state.User.IsInRole("Veterinarian");
-        _isAdmin = state.User.IsInRole("Admin");
+        var state   = await AuthState.GetAuthenticationStateAsync();
+        var isAdmin = state.User.IsInRole("Admin");
+        var isVet   = state.User.IsInRole("Veterinarian");
 
-        _homeUrl   = _isAdmin ? "/admin" : _isVet ? "/vet-dashboard" : "/owner-portal";
-        _roleLabel = _isAdmin ? "Administrador" : _isVet ? "Veterinario" : "Propietario";
+        _homeUrl   = isAdmin ? "/admin" : isVet ? "/vet-dashboard" : "/owner-portal";
+        _roleLabel = isAdmin ? "Administrador" : isVet ? "Veterinario" : "Propietario";
+        _items =
+        [
+            isAdmin ? new(_homeUrl, "shield", "Panel de administración")
+            : isVet ? new(_homeUrl, "layout", "Panel de control")
+            :         new(_homeUrl, "paw",    "Mis mascotas"),
+            new("/notifications", "bell", "Notificaciones")
+        ];
 
-        var name  = Token.User?.FullName ?? "";
-        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        _initials = parts.Length >= 2
-            ? $"{parts[0][0]}{parts[1][0]}"
-            : name.Length > 0 ? name[..1] : "?";
+        var parts = (Token.User?.FullName ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        _initials = parts.Length switch
+        {
+            0 => "?",
+            1 => parts[0][..1],
+            _ => $"{parts[0][0]}{parts[1][0]}"
+        };
 
-        Token.OnChange  += StateHasChanged;
-        // Cierra el sidebar automáticamente al navegar (útil en móvil)
+        Token.OnChange      += StateHasChanged;
+        // En móvil el menú se cierra solo al navegar
         Nav.LocationChanged += OnLocationChanged;
     }
 
